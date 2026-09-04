@@ -1,55 +1,63 @@
-# ADR-0006: Store Historical Playlist Snapshots Instead of Current-State Overwrite
+# ADR-0006: Store Historical Playlist Snapshots with Source-Version Lineage
 
 ## Status
-Accepted
+Accepted (Revised for 2026 API & Canonical Grain Alignment)
 
 ## Context
-Standard tutorial pipelines for music APIs typically overwrite the current state of a playlist on each execution (e.g., updating a single `current_playlist_tracks` table). While simple, this approach loses all historical context and temporal dynamics:
-- It cannot answer which tracks entered or exited a playlist between dates.
-- It cannot determine the retention duration (tenure) of a track on a chart or editorial playlist.
-- It cannot observe how playlist composition, genre distribution, or artist concentration evolve over time.
-- It cannot correlate track popularity spikes with playlist placement dates.
+Standard music API tutorial pipelines overwrite current playlist state on each run (e.g., maintaining a single `current_playlist_tracks` table). This destroys temporal dynamics:
+- Which tracks entered or exited a playlist between dates.
+- Retention duration (days on playlist).
+- Playlist rank movements, volatility, and artist representation shifts over time.
 
-To build an enterprise-caliber data platform, the architecture must support longitudinal analytics and temporal analysis.
+To build an enterprise data platform, we must preserve historical snapshot states. However, the snapshot model must define a mathematically sound canonical grain that guarantees idempotency across pipeline retries and arbitrary historical backfills.
 
 ## Decision
-We decide to model playlist track membership as an **immutable, append-only historical snapshot series**:
-1. **Raw Bronze Ingestion**: Every daily pipeline run lands an immutable JSON document representing the state of the monitored playlist at that point in time (`ingestion_date=YYYY-MM-DD/run_id=<id>/`).
-2. **Silver Parquet Dataset**: Glue outputs a point-in-time snapshot entity dataset (`silver/playlist_snapshots/`) recording every track present, its positional index (`position`), and the ingestion timestamp.
-3. **Snowflake Fact Table**: dbt models this into `fact_playlist_snapshot`, capturing track-playlist associations per snapshot.
-4. **Marts Layer Analytics**: dbt models compute daily churn, additions, removals, and tenure via window functions (e.g., `LAG`, `LEAD`) across historical snapshots.
+We decide to model playlist track membership as an **immutable, append-only historical snapshot series** anchored by a deterministic daily canonical grain and upstream source-version lineage:
 
-### Natural Key & Surrogate Key Evaluation
-We evaluate the uniqueness criteria for historical snapshot records:
-- **Candidate Natural Key**: `playlist_id` + `track_id` + `snapshot_date` (or `snapshot_timestamp`).
-- **Edge Case Considered**: Can a track appear more than once in the same playlist at the same point in time? Yes, Spotify playlists allow duplicate track entries at different positional indices.
-- **Adopted Natural Key**: `playlist_id` + `track_id` + `position` + `snapshot_timestamp`.
-- **Surrogate Hash Key**: MD5 / SHA-256 hash of `playlist_id || '-' || track_id || '-' || position || '-' || snapshot_timestamp` generated in dbt using `dbt_utils.generate_surrogate_key`.
+1. **Source Version Lineage (`spotify_snapshot_id`)**: Every Spotify playlist response includes a `snapshot_id` representing the upstream version identifier. We capture this as first-class metadata to track when Spotify playlist contents actually mutated versus when our pipeline merely observed an unchanged state.
+2. **Physical Run vs. Business Date Identity**:
+   - `pipeline_run_id`: A UUID v4 generated per execution. It is intentionally non-deterministic and represents physical execution lineage.
+   - `snapshot_date`: The canonical business observation date (UTC).
+   - `snapshot_timestamp`: The specific timestamp when the observation occurred.
+3. **Canonical Fact Grain**:
+   For our daily snapshot cadence, the canonical natural grain of `fact_playlist_snapshot` is:
+   `playlist_id` + `snapshot_date` + `track_position`
+   *(One canonical playlist slot per playlist per business date).*
+   The `track_id` represents the observed track entity situated at that slot.
+4. **Surrogate Key (`snapshot_pk`)**:
+   Computed as the deterministic MD5 / SHA-256 hash of:
+   `playlist_id || '-' || snapshot_date || '-' || track_position`
+   *(Generated in dbt via `dbt_utils.generate_surrogate_key`).*
+5. **Idempotent Merge Semantics**:
+   Pipeline retries or backfills targeting an existing `snapshot_date` execute a deterministic SQL `MERGE` on `snapshot_pk`. Retrying a failed execution updates/matches existing records rather than producing duplicate rows.
+
+### Why Execution Timestamps Were Excluded from the Natural Key
+Earlier drafts evaluated `playlist_id + track_id + position + snapshot_timestamp`. Including an ever-changing execution timestamp in the natural key breaks idempotency: if a pipeline run is re-executed or retried on the same date, a new timestamp would yield distinct surrogate keys, causing duplicate snapshot records for the same logical business date. Pinned to `snapshot_date`, the grain remains strictly deterministic.
+
+### Multi-Snapshot Future Evolution
+If the platform evolves from a daily snapshot cadence to intra-day snapshots (e.g., hourly or event-triggered), the canonical grain must be revised to include the upstream `spotify_snapshot_id` or an explicit snapshot sequence identifier (`playlist_id + spotify_snapshot_id + track_position`).
 
 ## Alternatives Considered
-- **Type 2 Slowly Changing Dimension (SCD-2) on Tracks**:
-  - *Pros*: Compact storage showing start_date and end_date of track membership.
-  - *Cons*: High transformation complexity and merge costs for high-churn playlists; does not easily preserve daily ranking/positional snapshots without complex interval queries.
+- **Type 2 Slowly Changing Dimension (SCD-2) on Track Placement**:
+  - *Pros*: Compact storage showing effective date ranges (`valid_from`, `valid_to`).
+  - *Cons*: High merge complexity and compute overhead when playlists undergo frequent track reordering; difficult to compute daily ranking matrices without complex interval expansion queries.
 - **Current-State Overwrite (Truncate & Load)**:
-  - *Pros*: Extremely low storage requirement.
-  - *Cons*: Complete destruction of historical analytics; defeats the core value proposition of the portfolio platform.
+  - *Pros*: Minimal storage.
+  - *Cons*: Destroys all temporal analysis; eliminates track tenure and churn metrics.
 
 ## Consequences
 
 ### Positive Consequences
-- **Rich Analytical Capabilities**: Powers downstream questions:
-  - Which tracks entered/exited this week?
-  - What is the average track lifespan on "Today's Top Hits"?
-  - How did an artist's playlist reach fluctuate month-over-month?
-- **Idempotency & Replayability**: Any past day's state can be inspected or recomputed without guesswork.
-- **Deterministic Modeling**: Simplifies fact table ingestion to append-only partitioned inserts.
+- **Strict Idempotency**: Backfills and retries are mathematically deterministic and safe against accidental row duplication.
+- **Upstream Change Detection**: `spotify_snapshot_id` enables downstream models to identify whether playlist contents changed between consecutive pipeline runs.
+- **Rich Temporal Analytics**: Powers queries for daily entry/exit churn, track longevity, and positional volatility.
 
 ### Negative Consequences
-- **Storage Growth**: Table size scales linearly with `num_monitored_playlists * avg_tracks_per_playlist * 365 days`. For typical portfolio scale (e.g., 5 playlists of 50-100 tracks = ~500 rows/day), this represents ~182,500 rows/year, which is negligible in Snowflake and S3 (< 50 MB compressed).
-- **Query Scan Filtering**: Analytical queries must filter on `snapshot_date` or use pre-aggregated marts to avoid scanning all historical snapshots.
+- **Storage Growth**: Table scales with `num_monitored_playlists * avg_tracks * 365 days` (~182,500 rows/year for 10 playlists of 50 tracks), which remains negligible in Snowflake and S3 (< 50 MB compressed).
+- **Date Filtering Required**: Queries must filter on `snapshot_date` or consume pre-aggregated marts to avoid scanning entire history.
 
 ## Risks
-- Duplication from accidental re-runs on the same calendar day. Mitigated by scoping snapshot deduplication to `playlist_id + track_id + position + snapshot_date` or enforcing partition overwrite at the daily grain in Silver/Landing.
+- Upstream playlist modified midway through extraction pagination. Mitigated by comparing `spotify_snapshot_id` across paginated chunks and aborting if the snapshot ID shifts during pagination.
 
 ## Review Conditions
-Review if monitored playlists scale to tens of thousands of items, requiring transition from daily full snapshots to change-data-capture (CDC) event logs.
+Review if monitored playlists scale to tens of thousands of items or intra-day cadences, requiring change-data-capture (CDC) event logs.

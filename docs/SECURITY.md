@@ -4,34 +4,57 @@ This document outlines the security architecture, credential management principl
 
 ---
 
-## 1. Zero Secrets Policy
+## 1. Zero Credentials in Version Control
 
-This repository adheres to a strict **Zero Secrets Policy**:
-- No client IDs, client secrets, access keys, private keys, or passwords may ever be committed to git.
+This repository adheres to a strict credential exclusion policy:
+- No client IDs, client secrets, refresh tokens, access keys, private keys, or passwords may ever be committed to version control.
 - The `.gitignore` and `.geminiignore` files explicitly exclude `.env`, `*.pem`, `*.key`, and any files in `credentials/` or `secrets/`.
 - Automated pre-commit scans and GitHub secret scanning detect accidental credential inclusions prior to merging.
 - Only non-sensitive templates with explicit placeholders (such as `.env.example`) are permitted in version control.
 
 ---
 
-## 2. Secrets Management & Credential Injection
+## 2. Authentication Architecture & Token Lifecycles
 
-### Local Development
-- Secrets are stored in a local `.env` file that is strictly ignored by version control.
-- Developers instantiate local variables by copying `.env.example` to `.env` and populating local values.
+Per **ADR-0007**, the platform implements a decoupled OAuth 2.0 authentication architecture:
 
-### AWS Cloud Execution
-- Spotify API client credentials (`client_id` and `client_secret`) are stored securely in **AWS Secrets Manager** under the secret path `spotify/api/credentials`.
-- AWS Lambda fetches credentials dynamically at runtime using the AWS SDK (`boto3`) and caches the token for the duration of the execution context.
-- Secrets are never hardcoded into Lambda environment variables or configuration files.
+```
+[Initial Setup]
+Operator Consent (Browser) -> Authorization Code Flow -> access_token + refresh_token
+                                                                   │
+                                                                   ▼
+                                                       AWS Secrets Manager
+                                                       (Encrypted at rest)
+                                                                   │
+[Scheduled Run]                                                    │
+Airflow / Lambda Extractor ◄───────────────────────────────────────┘
+       │
+       ▼ (Dynamic Token Exchange)
+Spotify Accounts API (grant_type=refresh_token) -> Short-Lived Bearer Token (1 hour)
+       │
+       ▼ (Playlist Ingestion)
+Spotify Web API (/v1/playlists/{id}/items)
+```
 
-### CI/CD (GitHub Actions)
-- Continuous Integration workflows run strictly in dry-run/mock mode and do not require live cloud access.
-- If deployment workflows are enabled in future milestones, credentials must be passed via **GitHub Actions Repository Secrets** using OpenID Connect (OIDC) IAM federation.
+### Key Security Characteristics:
+1. **Initial Interactive Authorization**: Executed once by the operator using Spotify's Authorization Code Flow with minimal scopes (`playlist-read-private`, `playlist-read-collaborative`).
+2. **Refresh Token Storage**: Stored securely in **AWS Secrets Manager** (`spotify/api/credentials`) containing:
+   - `client_id`
+   - `client_secret`
+   - `refresh_token`
+3. **Transient Access Tokens**: The operational bearer token is requested dynamically at the start of pipeline execution, cached strictly in runtime memory, and automatically expires after 3600 seconds.
+4. **Token Revocation & Rotation**: If a refresh token is compromised or revoked by the user, the secret in AWS Secrets Manager is updated with a newly issued token without code modification.
 
 ---
 
-## 3. IAM Least-Privilege Architecture
+## 3. Local Development Security
+
+- Developers configure local environments using named AWS CLI profiles (e.g., `AWS_PROFILE=spotify-dev`) using temporary session credentials or AWS SSO rather than long-lived static IAM access keys.
+- Local configuration is stored in a non-tracked `.env` file created from `.env.example`.
+
+---
+
+## 4. IAM Least-Privilege Architecture
 
 All AWS execution roles are granted the minimal set of permissions required to perform their discrete function.
 
@@ -108,22 +131,21 @@ All AWS execution roles are granted the minimal set of permissions required to p
 
 ---
 
-## 4. Snowflake Access & RBAC Governance
+## 5. Snowflake Access & RBAC Governance
 
-Snowflake access follows Role-Based Access Control (RBAC):
-- `SECURITYADMIN`: Manages users and role assignments.
-- `SYSADMIN`: Manages databases, warehouses, and infrastructure objects.
-- `TRANSFORMER_ROLE`: Dedicated service role used by dbt to create and replace models in `STAGING`, `CORE`, and `MARTS`.
-- `LOADER_ROLE`: Used by Snowpipe with write permissions strictly to `LANDING`.
-- `ANALYST_ROLE`: Read-only role granted access strictly to `MARTS` and consumed by Power BI.
+Snowflake access follows Role-Based Access Control (RBAC). Dedicated service roles are used for pipeline automation; privileged accounts (`ACCOUNTADMIN`, `SYSADMIN`) are never used for application runtimes:
+- `SECURITYADMIN`: Manages user credentials and role hierarchies.
+- `SYSADMIN`: Manages warehouses, databases, and resource monitors.
+- `SPOTIFY_LOADER`: Used by Snowpipe with write permissions strictly to `LANDING`.
+- `SPOTIFY_TRANSFORMER`: Dedicated service role used by dbt to build and merge models across `STAGING`, `CORE`, and `MARTS`.
+- `SPOTIFY_ANALYST`: Read-only role granted access strictly to `MARTS` and consumed by Power BI.
 
 ---
 
-## 5. Data Encryption Standards
+## 6. Data Encryption Standards
 
 - **Encryption at Rest**:
-  - Amazon S3: Enforced Server-Side Encryption using AWS KMS or S3-Managed Keys (SSE-S3 / AES-256). Unencrypted uploads are denied via bucket policies (`aws:SecureTransport` and `s3:x-amz-server-side-encryption`).
-  - Snowflake: Transparent Data Encryption (TDE) protects all internal micro-partitions.
+  - Amazon S3: Enforced Server-Side Encryption using S3-Managed Keys (SSE-S3 / AES-256) or AWS KMS.
+  - Snowflake: Transparent Data Encryption (TDE) protects all micro-partitions.
 - **Encryption in Transit**:
   - All communications with the Spotify API, AWS APIs, Snowflake, and Power BI use **TLS 1.3** (minimum TLS 1.2).
-  - Insecure HTTP traffic is strictly blocked.

@@ -8,44 +8,51 @@ This document records the architectural references, foundational concepts, and o
 
 The concept of extracting music streaming metadata to build analytical pipelines is a well-established educational paradigm in data engineering.
 
-This platform draws conceptual inspiration from educational Spotify ETL patterns (specifically basic Lambda-to-S3 pipelines), but **the architectural implementation, infrastructure as code, data models, and codebase are entirely original**:
-- **Educational Pattern**: Often consists of a single Python script overwriting daily JSON in S3 and loading flat tables into Snowflake or Athena without testing or dimensional modeling.
+This platform draws conceptual inspiration from educational Spotify ETL patterns, but **the architectural implementation, infrastructure as code, data models, and codebase are entirely original**:
+- **Educational Pattern**: Often consists of a single Python script overwriting daily JSON in S3 and loading flat tables into Snowflake or Athena without testing, versioning, or dimensional modeling.
 - **This Platform's Architecture**: Engineered to enterprise standards:
-  - Strict separation between Airflow orchestration and external compute execution.
+  - Strict separation between Apache Airflow 3.x orchestration and external compute execution.
   - Multi-tiered data lake (Bronze immutable raw JSON -> Silver normalized Parquet).
-  - PySpark distributed unnesting of deeply nested arrays.
-  - Automated continuous Snowflake ingestion via Snowpipe.
+  - AWS Glue 5.1 (Apache Spark 3.5.6) distributed unnesting of semi-structured items.
+  - Automated continuous Snowflake ingestion via Snowpipe with lineage audit metadata.
   - Kimball dimensional star schema (`dim_*`, `fact_*`, `bridge_*`) managed via dbt Core.
   - Historical longitudinal snapshot modeling preserving daily track placement, churn, and retention.
-  - Zero-spend local development workflows and explicit cost governance.
+  - Deterministic incremental merge backfills and zero-spend local development workflows.
 
 ---
 
 ## 2. Official Documentation & Specifications
 
-### Spotify Web API
+### Spotify Web API (2026 Specifications)
 - [Spotify Developer Platform Documentation](https://developer.spotify.com/documentation/web-api)
-- [Spotify Web API: Get Playlist Items Reference](https://developer.spotify.com/documentation/web-api/reference/get-playlists-tracks)
-- [Spotify Web API Authorization Guide](https://developer.spotify.com/documentation/web-api/concepts/authorization)
+- [Spotify Web API: Get Playlist Items Reference (`/v1/playlists/{id}/items`)](https://developer.spotify.com/documentation/web-api/reference/get-playlists-tracks)
+- [Spotify Web API: Authorization Code Flow & Scopes](https://developer.spotify.com/documentation/web-api/concepts/authorization)
+- [Spotify Web API: Working with Playlists & snapshot_id](https://developer.spotify.com/documentation/web-api/concepts/playlists)
+- [Spotify Web API: February 2026 Migration Guide & Changelogs](https://developer.spotify.com/documentation/web-api)
 
 ### Apache Spark & AWS Glue
-- [Apache Spark 3.3+ Documentation](https://spark.apache.org/docs/latest/)
-- [AWS Glue Developer Guide](https://docs.aws.amazon.com/glue/latest/dg/what-is-glue.html)
-- [AWS Glue PySpark Programming Reference](https://docs.aws.amazon.com/glue/latest/dg/aws-glue-programming-python.html)
+- [AWS Glue 5.1 Release Notes & Runtime Specifications (Spark 3.5.6, Python 3.11)](https://docs.aws.amazon.com/glue/latest/dg/glue-version-5-1.html)
+- [Migrating to AWS Glue Version 5.1](https://docs.aws.amazon.com/glue/latest/dg/migrating-to-glue-version-5-1.html)
+- [Apache Spark 3.5 Documentation](https://spark.apache.org/docs/3.5.6/)
+- [AWS Lambda Pricing & Perpetual Free Tier (400,000 GB-seconds)](https://aws.amazon.com/lambda/pricing/)
+
+### Apache Airflow 3.x
+- [Apache Airflow 3.0 Release Notes & Architecture](https://airflow.apache.org/docs/apache-airflow/stable/release_notes.html)
+- [Airflow Task SDK Documentation (`airflow.sdk`)](https://airflow.apache.org/docs/task-sdk/stable/)
+- [Airflow 3 Deadline Alerts (Replacing Legacy SLAs)](https://airflow.apache.org/docs/apache-airflow/stable/authoring-and-scheduling/deadline-alerts.html)
+- [Upgrading from Airflow 2 to Airflow 3](https://airflow.apache.org/docs/apache-airflow/stable/upgrading-to-airflow-3.html)
 
 ### Snowflake & Snowpipe
-- [Snowflake Continuous Data Pipelines (Snowpipe)](https://docs.snowflake.com/en/user-guide/data-load-snowpipe-intro)
+- [Snowflake Continuous Data Pipelines (Snowpipe Auto-Ingest)](https://docs.snowflake.com/en/user-guide/data-load-snowpipe-intro)
+- [Snowflake Metadata Columns for Staged Files (`METADATA$FILENAME`, `METADATA$FILE_ROW_NUMBER`)](https://docs.snowflake.com/en/user-guide/querying-metadata)
 - [Snowflake External Stages & Storage Integrations for S3](https://docs.snowflake.com/en/user-guide/data-load-s3-config-storage-integration)
-- [Snowflake Best Practices for Cost Optimization](https://docs.snowflake.com/en/user-guide/cost-understanding-overall)
+- [Snowflake Warehouse Auto-Suspend & Cost Optimization](https://docs.snowflake.com/en/user-guide/cost-understanding-overall)
 
 ### dbt Core
 - [dbt Core Documentation](https://docs.getdbt.com/docs/build/documentation)
 - [dbt-snowflake Adapter Reference](https://docs.getdbt.com/reference/warehouse-setups/snowflake-setup)
+- [dbt Incremental Merge Strategy](https://docs.getdbt.com/docs/build/incremental-models)
 - [Dimensional Modeling with dbt Best Practices](https://docs.getdbt.com/blog/kimball-dimensional-modeling)
-
-### Apache Airflow
-- [Apache Airflow 2.x Architecture & Best Practices](https://airflow.apache.org/docs/apache-airflow/stable/best-practices.html)
-- [Amazon Provider Package for Airflow](https://airflow.apache.org/docs/apache-airflow-providers-amazon/stable/index.html)
 
 ### Infrastructure as Code & Tooling
 - [Terraform AWS Provider](https://registry.terraform.io/providers/hashicorp/aws/latest/docs)

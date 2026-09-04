@@ -6,7 +6,9 @@ This document defines the observability framework, structured logging schema, au
 
 ## 1. Observability Strategy
 
-The platform applies structured telemetry anchored by a globally unique pipeline execution identifier: `pipeline_run_id`. Every log event, S3 partition, CloudWatch metric, and Snowflake audit table carries this identifier, enabling end-to-end tracing across distributed tiers.
+The platform applies structured telemetry anchored by two distinct identifiers:
+1. **`pipeline_run_id` (UUID v4)**: A non-deterministic physical execution identifier generated per pipeline run to track processing lineage across Lambda, Glue, Snowflake, and dbt.
+2. **`spotify_snapshot_id` (String)**: An upstream version identifier emitted directly by Spotify representing the state of the playlist. It enables upstream mutation detection and idempotency verification.
 
 ---
 
@@ -23,7 +25,9 @@ All pipeline components emit JSON-structured log events adhering to the followin
     "pipeline_run_id",
     "source",
     "playlist_id",
-    "ingestion_timestamp",
+    "spotify_snapshot_id",
+    "snapshot_date",
+    "snapshot_timestamp",
     "pipeline_version",
     "status"
   ],
@@ -31,8 +35,10 @@ All pipeline components emit JSON-structured log events adhering to the followin
     "pipeline_run_id": { "type": "string", "format": "uuid" },
     "source": { "type": "string", "example": "spotify_web_api" },
     "playlist_id": { "type": "string" },
-    "ingestion_timestamp": { "type": "string", "format": "date-time" },
-    "pipeline_version": { "type": "string", "example": "0.1.0" },
+    "spotify_snapshot_id": { "type": "string" },
+    "snapshot_date": { "type": "string", "format": "date" },
+    "snapshot_timestamp": { "type": "string", "format": "date-time" },
+    "pipeline_version": { "type": "string", "example": "0.1.1" },
     "records_extracted": { "type": "integer", "minimum": 0 },
     "records_validated": { "type": "integer", "minimum": 0 },
     "records_written_raw": { "type": "integer", "minimum": 0 },
@@ -55,18 +61,18 @@ All pipeline components emit JSON-structured log events adhering to the followin
 
 | Component | Destination | Format | Key Metrics Logged |
 | :--- | :--- | :--- | :--- |
-| **AWS Lambda** | Amazon CloudWatch Logs (`/aws/lambda/spotify-extractor`) | JSON | API response codes, pagination counts, latency, S3 PutObject status |
-| **AWS Glue** | Amazon CloudWatch Logs (`/aws-glue/jobs/spotify-silver-transformation`) | JSON / Text | Input row counts, schema validation errors, records exploded, output Parquet partitions |
+| **AWS Lambda** | Amazon CloudWatch Logs (`/aws/lambda/spotify-extractor`) | JSON | API response codes, pagination counts, latency, `spotify_snapshot_id`, S3 PutObject status |
+| **AWS Glue 5.1** | Amazon CloudWatch Logs (`/aws-glue/jobs/spotify-silver-transformation`) | JSON / Text | Input row counts, schema validation errors, items exploded, output Parquet partitions |
 | **Snowpipe** | Snowflake Ingestion History (`SNOWFLAKE.ACCOUNT_USAGE.COPY_HISTORY`) | SQL Table | Files loaded, rows parsed, byte sizes, parse error counts |
-| **dbt Core** | dbt Artifacts (`target/run_results.json`, `target/manifest.json`) | JSON | Model build durations, rows affected, test assertion pass/fail counts |
-| **Apache Airflow**| Airflow Task Logs (`airflow/logs/`) | Text / Structured | Task lifecycle events, sensor evaluation intervals, SLA breaches |
+| **dbt Core** | dbt Artifacts (`target/run_results.json`, `target/manifest.json`) | JSON | Model build durations, rows merged, test assertion pass/fail counts |
+| **Apache Airflow 3**| Airflow Task Logs (`airflow/logs/`) | Text / Structured | Task lifecycle events, Deadline Alerts, sensor evaluation intervals |
 
 ---
 
 ## 4. Operational Auditing & Quality Verification
 
 ### Snowflake Landing Verification Query
-To verify that Snowpipe successfully loaded the Parquet files produced by Glue:
+Verify that Snowpipe successfully loaded the Parquet files produced by Glue:
 
 ```sql
 SELECT
@@ -97,6 +103,6 @@ FROM TABLE(INFORMATION_SCHEMA.COPY_HISTORY(
 
 ## 5. Cost-Conscious Monitoring Design
 
-- **No Paid Third-Party Observability Tools**: Avoid Datadog, New Relic, or Sumo Logic subscriptions.
+- **No Paid Third-Party Observability Tools**: Avoid Datadog, New Relic, or commercial APM subscriptions.
 - **CloudWatch Retention**: Capped at **7 days** to eliminate log storage accumulation costs.
 - **Basic Metric Alarms**: Single CloudWatch alarm triggering on Lambda error count > 0.

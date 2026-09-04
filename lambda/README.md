@@ -6,11 +6,12 @@ This directory houses the serverless extractor functions responsible for calling
 
 ## Architectural Responsibility
 
-- **Short-Lived Execution**: Runs within a serverless container with a timeout bounded to standard API calls (typically < 60 seconds).
-- **Authentication**: Fetches client credentials securely from AWS Secrets Manager using IAM least privilege.
-- **Immutable Landing**: Ingests complete playlist and track responses without mutating or cleaning data, persisting raw JSON directly to the Bronze layer:
+- **Short-Lived Execution**: Runs within a serverless container with a timeout bounded to standard API calls (typically < 30 seconds).
+- **OAuth 2.0 Token Refresh**: Dynamically retrieves `client_id`, `client_secret`, and `refresh_token` from AWS Secrets Manager (`spotify/api/credentials`), exchanges the refresh token with Spotify Accounts for a short-lived access token (valid for 1 hour), and caches the token in runtime memory (ADR-0007).
+- **Get Playlist Items Ingestion**: Calls `GET /v1/playlists/{playlist_id}/items` using pagination (`limit=50`, `offset=0`), capturing upstream `spotify_snapshot_id`.
+- **Immutable Landing**: Ingests complete playlist and item responses without mutating or cleaning data, persisting raw JSON directly to the Bronze layer:
   `s3://<bucket>/bronze/spotify/playlist_tracks/ingestion_date=YYYY-MM-DD/run_id=<run_id>/playlist_<id>.json`
-- **Structured Observability**: Emits JSON log events to Amazon CloudWatch containing `pipeline_run_id`, playlist identifiers, response codes, record counts, and elapsed latency.
+- **Structured Observability**: Emits JSON log events to Amazon CloudWatch containing `pipeline_run_id`, `spotify_snapshot_id`, playlist identifiers, response codes, record counts, and elapsed latency.
 
 ---
 
@@ -20,8 +21,10 @@ This directory houses the serverless extractor functions responsible for calling
 lambda/
 ├── src/
 │   ├── extractor.py           # Main Lambda handler
-│   ├── spotify_client.py      # OAuth2 client and HTTP retry logic
-│   └── s3_writer.py           # Multi-part S3 upload utility
+│   ├── spotify_auth.py        # Token exchange and in-memory caching logic
+│   ├── spotify_client.py      # HTTP client, pagination, and retry logic
+│   ├── s3_writer.py           # S3 Bronze upload utility
+│   └── logger.py              # Structured JSON logging formatter
 ├── tests/
 │   └── test_extractor.py      # Local Lambda handler unit tests (mocked boto3/requests)
 ├── requirements.txt           # Runtime dependencies (boto3, requests, etc.)
@@ -32,4 +35,4 @@ lambda/
 
 ## Cost Optimization
 
-Lambda executes for under a minute per run and is scheduled on a daily cadence, ensuring operational costs remain well within the AWS Free Tier.
+Lambda executes for under 30 seconds per run and is scheduled on a daily cadence, consuming < 8 GB-seconds per day, which falls well within the AWS Lambda perpetual free tier (400,000 GB-seconds and 1M requests per month).
