@@ -1,7 +1,7 @@
 # ADR-0001: Use Apache Airflow as Orchestrator Rather Than Execution Engine
 
 ## Status
-Accepted
+Accepted (Updated for Airflow 3.x)
 
 ## Context
 In data engineering architectures, Apache Airflow is frequently misconfigured as a monolithic execution engine where DAGs run heavy extraction logic, parse multi-megabyte JSON payloads in worker memory, execute complex pandas transformations, or run compute-intensive queries. This pattern leads to worker memory exhaustion (OOM), task concurrency bottlenecks, fragile dependency graphs, and tight coupling between orchestration scheduling and data processing runtimes.
@@ -9,14 +9,14 @@ In data engineering architectures, Apache Airflow is frequently misconfigured as
 In our Spotify Analytics Data Platform, workloads include API pagination, semi-structured JSON ingestion, distributed PySpark array explosion, and multi-layer SQL dimensional transformations.
 
 ## Decision
-We decide to use **Apache Airflow strictly as an Orchestrator**, delegating all compute, extraction, and transformation workloads to dedicated external platforms:
-1. **Extraction**: Delegated to AWS Lambda (`LambdaInvokeFunctionOperator`).
-2. **Semi-structured transformation & normalization**: Delegated to AWS Glue / Apache Spark (`GlueJobOperator`).
+We decide to use **Apache Airflow (3.x) strictly as an Orchestrator**, delegating all compute, extraction, and transformation workloads to dedicated external platforms:
+1. **Extraction**: Delegated to AWS Lambda (`LambdaInvokeFunctionOperator` or task execution triggers).
+2. **Semi-structured transformation & normalization**: Delegated to AWS Glue 5.1 / Apache Spark (`GlueJobOperator`).
 3. **Data warehouse loading**: Delegated to Snowpipe / Snowflake native commands.
-4. **Dimensional modeling & analytical metrics**: Delegated to dbt Core via Snowflake pushdown (`DbtRunOperator` / Bash execution of dbt CLI).
+4. **Dimensional modeling & analytical metrics**: Delegated to dbt Core via Snowflake pushdown (`DbtRunOperator` / Airflow Task SDK execution of dbt CLI).
 5. **Quality assertions**: Executed via dbt tests and external quality gate operators.
 
-Airflow's responsibility is confined to scheduling, task sequencing, dependency management, sensor polling, SLA monitoring, and alerting.
+Airflow's responsibility is confined to scheduling, task sequencing, dependency management, sensor polling, deadline alerting, and failure notifications.
 
 ## Alternatives Considered
 - **Monolithic Airflow Execution (PythonOperator + Pandas)**:
@@ -27,12 +27,12 @@ Airflow's responsibility is confined to scheduling, task sequencing, dependency 
   - *Cons*: Limited cross-cloud and local developer ecosystem, proprietary JSON state machine definition, lower visibility and analytical observability compared to Airflow's rich UI.
 - **Prefect / Dagster**:
   - *Pros*: Modern Python-first orchestration paradigms.
-  - *Cons*: While excellent tools, Apache Airflow remains the enterprise industry standard sought after in international Senior Data Engineering roles.
+  - *Cons*: While capable tools, Apache Airflow 3.x remains the enterprise standard sought after in international Senior Data Engineering roles.
 
 ## Consequences
 
 ### Positive Consequences
-- **Worker Stability**: Airflow workers require minimal RAM and CPU since they only manage task state and poll APIs.
+- **Worker Stability**: Airflow workers require minimal RAM and CPU since they only manage task state and poll APIs via the Airflow 3 Task Execution API and Task SDK.
 - **Decoupled Lifecycles**: Spark transformations, Lambda extractors, and dbt models can be modified, tested, and versioned independently from orchestration DAGs.
 - **Portability & Cost**: Airflow can run locally in Docker Compose during development with zero cloud cost, communicating with AWS and Snowflake via standard credentials.
 - **Scalability**: Data volume increases affect AWS Glue and Snowflake compute, leaving Airflow unaffected.

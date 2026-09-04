@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "spotify-analytics-data-platform"
-version = "0.1.0"
+version = "0.1.1"
 description = "Production-oriented data engineering platform that ingests historical Spotify playlist snapshots using AWS Lambda, S3, Glue/PySpark, Snowflake, dbt, and Airflow."
 readme = "README.md"
 requires-python = ">=3.12"

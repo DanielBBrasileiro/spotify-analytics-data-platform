@@ -6,14 +6,14 @@ This document establishes the financial and operational guardrails for the Spoti
 
 ## 1. Portfolio Budget Target
 
-| Metric | Target Limit | Notes |
-| :--- | :--- | :--- |
-| **Monthly Operating Ceiling** | **≤ $20.00 USD / month** | Hard ceiling for regular portfolio evaluation and testing. |
-| **Target Steady-State (Idle)** | **$0.00 - $2.00 USD / month** | When pipelines are not actively running. |
-| **Single Full Integration Run** | **< $0.25 USD / run** | End-to-end extraction, Glue ETL, and Snowflake load. |
+| Metric | Target Limit | Governance Type | Notes |
+| :--- | :--- | :--- | :--- |
+| **Monthly Budget Target** | **≤ $20.00 USD / month** | **Operational Target & Alert Threshold** | Target ceiling for portfolio demonstration runs. |
+| **Target Steady-State (Idle)** | **$0.00 - $2.00 USD / month** | Estimated Range | When pipelines and warehouses are suspended. |
+| **Single Full Pipeline Run** | **< $0.25 USD / run** | Estimated Execution Cost | Ephemeral Lambda, Glue 5.1 job, and dbt merge run. |
 
 > [!IMPORTANT]
-> The $20.00/month budget is a strict portfolio management target, not a cloud provider price guarantee. All numeric figures below are conservative estimates based on official public documentation and typical consumption patterns.
+> The $20.00/month figure is an **operational portfolio budget target and alert threshold**, not a hard cloud provider stop guarantee. Cloud billing alarms notify operators when thresholds are crossed but do not instantaneously cut off all running services without configured automated shutdown scripts. All numeric figures below are conservative estimates based on official documentation and typical consumption patterns.
 
 ---
 
@@ -21,9 +21,9 @@ This document establishes the financial and operational guardrails for the Spoti
 
 1. **Zero Always-On Compute**: No permanently running EC2 instances, EMR clusters, or Kubernetes nodes. Compute is provisioned ephemerally or invoked serverless.
 2. **Aggressive Auto-Suspend**: Snowflake virtual warehouses auto-suspend after 60 seconds of inactivity.
-3. **Local-First Development**: Airflow, unit tests, and PySpark transformations run locally in Docker or Python virtualenvs. Cloud services are invoked only for integration verification and portfolio demonstrations.
-4. **No Managed Orchestrator in Early Phases**: AWS MWAA (Managed Workflows for Apache Airflow) incurs a baseline cost of ~$0.49/hour (~$350/month) for a base environment. MWAA is explicitly excluded; Airflow runs in Docker locally or via on-demand triggers.
-5. **No NAT Gateways**: AWS NAT Gateways cost ~$0.045/hour plus data transfer charges (~$32/month base). Lambda functions run outside VPC or use public endpoints to eliminate NAT Gateway requirements.
+3. **Local-First Development**: Airflow 3.x, unit tests, and PySpark transformations run locally in Docker or Python virtualenvs. Cloud services are invoked only for integration verification and portfolio demonstrations.
+4. **No Managed Cloud Orchestrator (No MWAA)**: AWS MWAA (Managed Workflows for Apache Airflow) incurs a baseline cost of ~$0.49/hour (~$350/month estimated base). MWAA is explicitly excluded; Airflow runs in Docker locally or via on-demand triggers.
+5. **No NAT Gateways**: AWS NAT Gateways incur an estimated baseline of ~$0.045/hour (~$32/month base) plus data processing fees. Lambda functions run outside VPC to eliminate NAT Gateway requirements.
 6. **Reproducible Ephemeral Infrastructure**: All cloud infrastructure is declared in Terraform and can be spun up for live demos and immediately destroyed (`terraform destroy`).
 
 ---
@@ -33,36 +33,35 @@ This document establishes the financial and operational guardrails for the Spoti
 ### A. Expected Low-Cost / Free Tier Components
 
 - **Amazon S3**:
-  - Storage: < 1 GB of raw JSON and Parquet per month (< $0.03/month).
-  - API Requests: Standard GET/PUT requests fall well within the AWS Free Tier (20,000 GET, 2,000 PUT/month).
+  - Storage: < 1 GB of raw JSON and Parquet per month (< $0.03/month estimated).
+  - API Requests: Standard GET/PUT requests fall well within the AWS Free Tier.
 - **AWS Lambda**:
-  - Execution: Ingesting 5 playlists daily requires ~5 invocations/day, each executing for < 15 seconds with 256 MB RAM.
-  - Cost: Free tier covers 1,000,000 requests and 3,200,000 seconds of compute time per month. Estimated cost: $0.00.
+  - AWS Lambda Free Tier includes **400,000 GB-seconds** of compute time and **1 million requests** per month (perpetual free tier).
+  - Ingesting monitored playlists daily requires minimal invocations (< 30 seconds per run with 256 MB RAM = < 8 GB-seconds per day). Estimated cost: $0.00.
 - **Amazon CloudWatch**:
-  - Log ingestion: < 50 MB/month with a 7-day retention policy. Capped well within the 5 GB free tier.
+  - Log ingestion: < 50 MB/month with a strict 7-day retention policy. Capped well within the 5 GB free tier.
 - **AWS Secrets Manager**:
-  - 1 secret (Spotify API credentials) = $0.40/month per secret + negligible API call fees.
+  - 1 secret (Spotify API credentials) = ~$0.40/month per secret + negligible API call fees.
 - **GitHub Actions**:
-  - Free tier for public repositories includes 2,000 free minutes/month for CI (linting and unit tests).
+  - For public open-source GitHub repositories, standard GitHub-hosted Linux runners are provided free of charge under standard GitHub service terms.
 
 ### B. Controlled Variable Cost Components
 
-- **AWS Glue (PySpark)**:
+- **AWS Glue 5.1 (PySpark)**:
   - Billed per DPU-Hour (Data Processing Unit) with a 1-minute minimum.
-  - A standard Glue 4.0 job configured with 2 DPUs running for 2 minutes consumes `(2 DPUs * 2/60 hrs) = 0.067 DPU-hours`.
-  - At ~$0.44 per DPU-hour (US East), each run costs approximately ~$0.03. Running daily = ~$0.90/month.
+  - An estimated Glue 5.1 job configured with 2 DPUs running for ~2 minutes consumes `(2 DPUs * 2/60 hrs) = 0.067 DPU-hours` (estimated ~$0.03 to $0.05 per run based on regional pricing). Running daily equals ~$0.90 to $1.50/month.
 - **Snowflake (Data Warehouse)**:
-  - Billed per credit per second (Standard Edition: 1 credit/hour for X-Small warehouse).
-  - An `X-Small` warehouse consumes 1 credit/hour (~$2.00 to $3.00 per credit depending on contract/edition).
-  - With `AUTO_SUSPEND = 60`, a daily dbt run executing in 90 seconds consumes ~150 billed seconds (~0.042 credits, or ~$0.10/run).
-  - Free trial accounts provide $400 of trial credits for initial implementation.
+  - Billed per credit per second (Standard Edition consumes 1 credit/hour for an `X-Small` warehouse).
+  - Credit dollar rates vary depending on contractual tier and cloud region.
+  - With `AUTO_SUSPEND = 60` and `AUTO_RESUME = TRUE`, a daily dbt run executing in 60-90 seconds consumes ~120-150 billed seconds (~0.033 to 0.042 credits).
+  - Trial credits may be available depending on the current Snowflake trial program terms.
 
 ### C. Dangerous Cost Traps (Explicitly Avoided)
 
 | Component | Why It Is Dangerous | Status in This Project |
 | :--- | :--- | :--- |
-| **AWS MWAA** | Base environment costs ~$350/month continuously. | **Prohibited** (Use Local Docker Airflow). |
-| **AWS NAT Gateway** | Base charge ~$32/month per AZ + data transfer. | **Prohibited** (Lambda operates outside VPC). |
+| **AWS MWAA** | Base environment incurs ~$350/month continuously. | **Prohibited** (Use Local Docker Airflow). |
+| **AWS NAT Gateway** | Base charge ~$32/month per AZ + data transfer fees. | **Prohibited** (Lambda operates outside VPC). |
 | **Amazon EMR** | Cluster nodes billed continuously unless terminated. | **Prohibited** (Use AWS Glue on-demand). |
 | **Amazon Redshift Serverless** | Minimum RPU baseline can accumulate rapidly. | **Prohibited** (Use Snowflake X-Small). |
 | **Snowflake Warehouse Left Running** | Failing to set `AUTO_SUSPEND` drains credits. | **Enforced `AUTO_SUSPEND = 60`**. |
@@ -74,24 +73,24 @@ This document establishes the financial and operational guardrails for the Spoti
 
 ### Mode 1: Development Mode (Default)
 - Target cost: **$0.00 - $1.00 / month**
-- Airflow runs locally via Docker Compose.
+- Airflow 3.x runs locally via Docker Compose.
 - PySpark transformations tested locally using pytest and local Spark sessions.
-- Mock JSON data generated locally using `scripts/generate_mock_spotify_data.py`.
-- Snowflake queries executed against local DuckDB or transient Snowflake trial accounts.
+- Mock JSON data generated locally matching current 2026 API schemas.
+- Snowflake queries executed against local DuckDB or transient Snowflake accounts.
 
 ### Mode 2: Demonstration / Portfolio Review Mode
 - Target cost: **$2.00 - $5.00 / month**
-- Cloud infrastructure provisioned via Terraform.
+- Cloud infrastructure provisioned on-demand via Terraform.
 - Live Spotify API ingestion via AWS Lambda into S3 Bronze.
-- AWS Glue job triggered once daily via Airflow.
+- AWS Glue 5.1 job triggered once daily via Airflow.
 - Snowpipe ingests into Snowflake Landing.
-- dbt Core runs transformations on Snowflake `X-Small` warehouse.
+- dbt Core runs incremental merges on Snowflake `X-Small` warehouse.
 - Power BI connects to Snowflake Marts.
 
-### Mode 3: Future Production-Grade Mode (Reference)
+### Mode 3: Extended Production-Like Mode (Reference)
 - Target cost: **$15.00 - $20.00 / month**
-- Continuous daily scheduling across 10-20 playlists.
-- S3 lifecycle policies archiving bronze data to Glacier Instant Retrieval after 90 days.
+- Daily scheduling across monitored playlists.
+- S3 lifecycle policies archiving bronze data after 90 days.
 - CloudWatch anomaly detection alarms monitoring job execution duration.
 
 ---
@@ -99,12 +98,12 @@ This document establishes the financial and operational guardrails for the Spoti
 ## 5. Cost Governance & Alarms
 
 1. **AWS Budgets**:
-   - A zero-cost AWS Budget must be created via Terraform or AWS Console with an alert threshold set at **$10.00 USD** (50% of budget) and **$18.00 USD** (90% of budget).
-   - Email alerts configured to notify the platform administrator immediately.
+   - An AWS Budget configured via Terraform with alert thresholds set at **$10.00 USD** (50% of target) and **$18.00 USD** (90% of target).
+   - Email notifications alert the administrator proactively before approaching the $20/month threshold.
 2. **Snowflake Resource Monitors**:
    - A Snowflake Resource Monitor attached to `COMPUTE_WH` configured with:
-     - Warning at 80% of monthly quota (e.g., 5 credits).
-     - Suspend immediately at 100% of monthly quota.
+     - Notification at 80% of monthly credit quota.
+     - Immediate suspension at 100% of quota.
 
 ---
 
