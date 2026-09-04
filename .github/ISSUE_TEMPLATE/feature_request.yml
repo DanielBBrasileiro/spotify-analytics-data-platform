@@ -1,0 +1,45 @@
+name: Feature Request / Engineering Task
+description: Propose a new feature, pipeline enhancement, or architectural task
+labels: ["type:feature", "status:ready"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template to specify a feature or implementation story aligned with the platform roadmap.
+  - type: input
+    id: component
+    attributes:
+      label: Target Component
+      description: Target architectural component (e.g., Spotify API Client, S3 Bronze, Glue/PySpark, Snowflake, dbt, Airflow, Terraform, Power BI)
+      placeholder: e.g., Snowflake & Snowpipe
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context & Problem Statement
+      description: Why is this feature or improvement needed?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed Implementation
+      description: Detailed technical design or proposed approach.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance Criteria
+      description: Concrete, verifiable criteria that must be satisfied for completion.
+      placeholder: |
+        - [ ] Criterion 1
+        - [ ] Criterion 2
+    validations:
+      required: true
+  - type: textarea
+    id: architectural_alignment
+    attributes:
+      label: Architectural Alignment & Constraints
+      description: Reference relevant ADRs, data model impacts, cost/security considerations.
