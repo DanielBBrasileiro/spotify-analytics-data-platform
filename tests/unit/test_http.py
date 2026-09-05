@@ -1,5 +1,6 @@
 """Exercise the real urllib adapter without opening network connections."""
 
+from http.client import IncompleteRead
 from io import BytesIO
 from unittest.mock import MagicMock
 from urllib.error import HTTPError, URLError
@@ -12,7 +13,7 @@ from spotify_data_platform import _http
 
 def test_success_and_redirect_policy(monkeypatch):
     opener = MagicMock()
-    response = opener.open.return_value.__enter__.return_value
+    response = opener.open.return_value
     response.status, response.read.return_value, response.headers = 200, b"{}", {}
     factory = MagicMock(return_value=opener)
     monkeypatch.setattr(_http, "build_opener", factory)
@@ -42,3 +43,23 @@ def test_transport_failure_is_sanitized(monkeypatch, error):
     monkeypatch.setattr(_http, "build_opener", lambda *_: opener)
     with pytest.raises(_http.TransportError, match="HTTP transport failed"):
         _http.send(Request("https://example.invalid"), 10)
+
+
+@pytest.mark.parametrize("status", [200, 429])
+def test_interrupted_response_body_is_sanitized_and_closed(monkeypatch, status):
+    opener = MagicMock()
+    body = MagicMock()
+    body.closed = False
+    body.read.side_effect = IncompleteRead(b"synthetic-secret")
+    if status == 429:
+        opener.open.side_effect = HTTPError("https://example.invalid", status, "", {}, body)
+    else:
+        opener.open.return_value = body
+        body.status = status
+    monkeypatch.setattr(_http, "build_opener", lambda *_: opener)
+    with pytest.raises(_http.TransportError, match="HTTP transport failed"):
+        _http.send(Request("https://example.invalid"), 10)
+    if status == 429:
+        body.close.assert_called_once()
+    else:
+        body.__exit__.assert_called_once()

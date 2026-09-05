@@ -11,6 +11,7 @@ from spotify_data_platform._http import Response, TransportError
 from spotify_data_platform.extraction import (
     PaginationException,
     PlaylistItemsExtractor,
+    RateLimitExceededException,
     SnapshotChangedException,
     SpotifyExtractionException,
 )
@@ -196,5 +197,152 @@ def test_invalid_playlist_id_never_dispatches(playlist_id):
     ],
 )
 def test_invalid_configuration(options):
+    with pytest.raises(ValueError):
+        make_extractor([], **options)
+
+
+@pytest.mark.parametrize("at_request", [0, 1, 2])
+def test_rate_limit_recovery_at_every_endpoint(at_request):
+    replies = [response(metadata()), response(page()), response(metadata())]
+    replies.insert(at_request, Response(429, b"not-json", {"retry-after": "7"}))
+    sleep = Mock()
+    extractor, transport, auth = make_extractor(replies, sleep=sleep, jitter=lambda: 0.25)
+    assert len(extractor.extract(PLAYLIST_ID)["items"]) == 2
+    sleep.assert_called_once_with(7.0)
+    calls = transport.call_args_list
+    assert calls[at_request].args[0].full_url == calls[at_request + 1].args[0].full_url
+    assert auth.get_access_token.call_count == 4
+
+
+def test_exponential_backoff_and_exhaustion():
+    sleep = Mock()
+    extractor, transport, _ = make_extractor(
+        [Response(429, b"")] * 6, sleep=sleep, jitter=lambda: 0.5
+    )
+    with pytest.raises(RateLimitExceededException, match="retry budget"):
+        extractor.extract(PLAYLIST_ID)
+    assert [call.args[0] for call in sleep.call_args_list] == [1.5, 2.5, 4.5, 8.5, 16.5]
+    assert transport.call_count == 6
+
+
+@pytest.mark.parametrize("header", ["invalid", "-2", "nan", "inf", "", "0"])
+def test_invalid_retry_after_uses_backoff(header):
+    sleep = Mock()
+    extractor, _, _ = make_extractor(
+        [
+            Response(429, b"", {"Retry-After": header}),
+            response(metadata()),
+            response(page()),
+            response(metadata()),
+        ],
+        sleep=sleep,
+        jitter=lambda: 0.25,
+    )
+    extractor.extract(PLAYLIST_ID)
+    sleep.assert_called_once_with(1.25)
+
+
+def test_excessive_retry_after_fails_without_retrying_early():
+    sleep = Mock()
+    extractor, transport, _ = make_extractor(
+        [
+            Response(429, b"", {"Retry-After": "301"}),
+        ],
+        sleep=sleep,
+    )
+    with pytest.raises(RateLimitExceededException, match="wait limit"):
+        extractor.extract(PLAYLIST_ID)
+    sleep.assert_not_called()
+    transport.assert_called_once()
+
+
+def test_zero_retries_and_retry_budget_reset_per_request():
+    extractor, transport, _ = make_extractor([Response(429, b"")], max_retries=0)
+    with pytest.raises(RateLimitExceededException):
+        extractor.extract(PLAYLIST_ID)
+    transport.assert_called_once()
+    extractor, _, _ = make_extractor(
+        [
+            Response(429, b""),
+            response(metadata()),
+            Response(429, b""),
+            response(page()),
+            Response(429, b""),
+            response(metadata()),
+        ],
+        max_retries=1,
+        sleep=Mock(),
+        jitter=lambda: 0,
+    )
+    assert len(extractor.extract(PLAYLIST_ID)["items"]) == 2
+
+
+def test_authentication_is_rechecked_after_sleep():
+    sleep = Mock()
+    extractor, transport, auth = make_extractor(
+        [
+            Response(429, b""),
+            response(metadata()),
+            response(page()),
+            response(metadata()),
+        ],
+        sleep=sleep,
+    )
+    auth.get_access_token.side_effect = [
+        "old-token",
+        "renewed-token",
+        "renewed-token",
+        "renewed-token",
+    ]
+    extractor.extract(PLAYLIST_ID)
+    assert transport.call_args_list[1].args[0].get_header("Authorization") == "Bearer renewed-token"
+
+
+@pytest.mark.parametrize("status", [500, 502, 503, 504])
+def test_server_error_recovery_and_exhaustion(status):
+    sleep = Mock()
+    extractor, _, _ = make_extractor(
+        [
+            Response(status, b"upstream-secret"),
+            response(metadata()),
+            response(page()),
+            response(metadata()),
+        ],
+        sleep=sleep,
+        jitter=lambda: 0,
+    )
+    extractor.extract(PLAYLIST_ID)
+    sleep.assert_called_once_with(1)
+    extractor, _, _ = make_extractor([Response(status, b"upstream-secret")], max_retries=0)
+    with pytest.raises(SpotifyExtractionException, match=f"HTTP {status}") as error:
+        extractor.extract(PLAYLIST_ID)
+    assert "upstream-secret" not in str(error.value)
+
+
+def test_mutation_during_rate_limit_wait_is_detected():
+    extractor, _, _ = make_extractor(
+        [
+            response(metadata()),
+            Response(429, b""),
+            response(page()),
+            response(metadata("version-two")),
+        ],
+        sleep=Mock(),
+    )
+    with pytest.raises(SnapshotChangedException):
+        extractor.extract(PLAYLIST_ID)
+
+
+@pytest.mark.parametrize(
+    "options",
+    [
+        {"max_retries": -1},
+        {"max_retries": True},
+        {"max_retries": 1.5},
+        {"max_retry_wait": 0},
+        {"max_retry_wait": float("nan")},
+    ],
+)
+def test_invalid_retry_configuration(options):
     with pytest.raises(ValueError):
         make_extractor([], **options)

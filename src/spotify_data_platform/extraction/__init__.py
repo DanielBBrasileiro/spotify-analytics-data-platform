@@ -3,6 +3,7 @@
 from .playlist import (
     PaginationException,
     PlaylistItemsExtractor,
+    RateLimitExceededException,
     SnapshotChangedException,
     SpotifyExtractionException,
 )
@@ -10,6 +11,7 @@ from .playlist import (
 __all__ = [
     "PaginationException",
     "PlaylistItemsExtractor",
+    "RateLimitExceededException",
     "SnapshotChangedException",
     "SpotifyExtractionException",
 ]

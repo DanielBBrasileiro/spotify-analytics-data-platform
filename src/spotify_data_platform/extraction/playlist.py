@@ -2,7 +2,9 @@
 
 import json
 import math
+import random
 import re
+import time
 from collections.abc import Callable
 from typing import Any, Protocol, TypedDict
 from urllib.parse import urlencode
@@ -41,6 +43,10 @@ class SnapshotChangedException(SpotifyExtractionException):
     """The playlist changed; the caller must restart the entire extraction."""
 
 
+class RateLimitExceededException(SpotifyExtractionException):
+    """Throttling exceeded the request retry or wait budget."""
+
+
 class PlaylistItemsExtractor:
     """Fetch all pages into memory and return only after version verification.
 
@@ -54,16 +60,28 @@ class PlaylistItemsExtractor:
         *,
         timeout: float = 10.0,
         max_pages: int = 1000,
+        max_retries: int = 5,
+        max_retry_wait: float = 300.0,
         transport: Callable[[Request, float], Response] = send,
+        sleep: Callable[[float], None] = time.sleep,
+        jitter: Callable[[], float] = random.random,
     ) -> None:
         if not math.isfinite(timeout) or timeout <= 0:
             raise ValueError("timeout must be finite and positive.")
         if type(max_pages) is not int or max_pages <= 0:
             raise ValueError("max_pages must be a positive integer.")
+        if type(max_retries) is not int or max_retries < 0:
+            raise ValueError("max_retries must be a non-negative integer.")
+        if not math.isfinite(max_retry_wait) or max_retry_wait <= 0:
+            raise ValueError("max_retry_wait must be finite and positive.")
         self._auth = auth
         self._timeout = timeout
         self._max_pages = max_pages
         self._transport = transport
+        self._max_retries = max_retries
+        self._max_retry_wait = max_retry_wait
+        self._sleep = sleep
+        self._jitter = jitter
 
     def extract(self, playlist_id: str) -> PlaylistSnapshot:
         """Preserve item order, nulls, duplicates, and unknown source fields."""
@@ -137,6 +155,47 @@ class PlaylistItemsExtractor:
         return total
 
     def _get_json(self, url: str) -> dict[str, Any]:
+        response = self._request_with_retries(url)
+        try:
+            payload = json.loads(response.body)
+        except (ValueError, UnicodeError):
+            raise SpotifyExtractionException("Spotify API returned invalid JSON.") from None
+        if not isinstance(payload, dict):
+            raise SpotifyExtractionException("Spotify API returned an invalid object.")
+        return payload
+
+    def _request_with_retries(self, url: str) -> Response:
+        for attempt in range(self._max_retries + 1):
+            response = self._request_once(url)
+            if response.status == 200:
+                return response
+            throttled = response.status == 429
+            if not throttled and not 500 <= response.status <= 599:
+                raise SpotifyExtractionException(f"Spotify API returned HTTP {response.status}.")
+            error_type = RateLimitExceededException if throttled else SpotifyExtractionException
+            if attempt == self._max_retries:
+                raise error_type(f"Spotify API retry budget exhausted (HTTP {response.status}).")
+            delay = min(2 ** min(attempt, 6), 60) + self._jitter()
+            retry_after = next(
+                (
+                    value
+                    for name, value in response.headers.items()
+                    if name.lower() == "retry-after"
+                ),
+                "",
+            )
+            try:
+                seconds = float(retry_after)
+            except ValueError:
+                seconds = 0.0
+            if math.isfinite(seconds) and seconds >= 0:
+                delay = max(delay, seconds)
+            if delay > self._max_retry_wait:
+                raise error_type("Spotify API retry delay exceeds configured wait limit.")
+            self._sleep(delay)
+        raise AssertionError("Unreachable retry state.")  # pragma: no cover
+
+    def _request_once(self, url: str) -> Response:
         request = Request(
             url,
             headers={
@@ -145,15 +204,6 @@ class PlaylistItemsExtractor:
             },
         )
         try:
-            response = self._transport(request, self._timeout)
+            return self._transport(request, self._timeout)
         except TransportError:
             raise SpotifyExtractionException("Spotify API could not be reached.") from None
-        if response.status != 200:
-            raise SpotifyExtractionException(f"Spotify API returned HTTP {response.status}.")
-        try:
-            payload = json.loads(response.body)
-        except (ValueError, UnicodeError):
-            raise SpotifyExtractionException("Spotify API returned invalid JSON.") from None
-        if not isinstance(payload, dict):
-            raise SpotifyExtractionException("Spotify API returned an invalid object.")
-        return payload
