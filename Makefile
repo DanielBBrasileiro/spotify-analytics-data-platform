@@ -30,7 +30,8 @@ format-check:
 	$(BIN)/ruff format --check .
 
 test:
-	$(BIN)/pytest
+	$(BIN)/coverage run -m pytest
+	$(BIN)/coverage report
 
 check: lint format-check test
 

@@ -25,6 +25,7 @@ dependencies = []
 
 [project.optional-dependencies]
 dev = [
+    "coverage>=7.6,<8",
     "pytest>=8.0.0",
     "ruff>=0.5.0",
 ]
@@ -63,3 +64,11 @@ minversion = "8.0"
 testpaths = ["tests"]
 pythonpath = ["src"]
 addopts = "-ra -q"
+
+[tool.coverage.run]
+branch = true
+source = ["spotify_data_platform"]
+
+[tool.coverage.report]
+fail_under = 91
+show_missing = true
