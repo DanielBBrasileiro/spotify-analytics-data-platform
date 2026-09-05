@@ -1,0 +1,40 @@
+{
+  "added_at": null,
+  "added_by": null,
+  "is_local": true,
+  "item": {
+    "album": {
+      "album_type": null,
+      "artists": [],
+      "external_urls": {},
+      "href": null,
+      "id": null,
+      "images": [],
+      "name": "Synthetic Local Album",
+      "type": "album",
+      "uri": null
+    },
+    "artists": [
+      {
+        "external_urls": {},
+        "href": null,
+        "id": null,
+        "name": "Synthetic Local Artist",
+        "type": "artist",
+        "uri": null
+      }
+    ],
+    "disc_number": 0,
+    "duration_ms": 120000,
+    "explicit": false,
+    "external_ids": {},
+    "external_urls": {},
+    "href": null,
+    "id": null,
+    "name": "Synthetic Local Track",
+    "track_number": 0,
+    "type": "track",
+    "uri": "spotify:local:Synthetic:Album:Track:120",
+    "is_local": true
+  }
+}

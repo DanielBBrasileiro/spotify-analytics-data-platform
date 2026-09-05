@@ -1,0 +1,174 @@
+{
+  "href": "https://api.spotify.com/v1/playlists/6666666666666666666666/items?limit=50&offset=0",
+  "limit": 50,
+  "next": null,
+  "offset": 0,
+  "previous": null,
+  "total": 4,
+  "items": [
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180001,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000101"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000101",
+        "id": "0000000000000000000101",
+        "is_playable": true,
+        "name": "Synthetic Track 1",
+        "track_number": 1,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000101",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": true,
+      "item": {
+        "album": {
+          "album_type": null,
+          "artists": [],
+          "external_urls": {},
+          "href": null,
+          "id": null,
+          "images": [],
+          "name": "Synthetic Local Album",
+          "type": "album",
+          "uri": null
+        },
+        "artists": [
+          {
+            "external_urls": {},
+            "href": null,
+            "id": null,
+            "name": "Synthetic Local Artist",
+            "type": "artist",
+            "uri": null
+          }
+        ],
+        "disc_number": 0,
+        "duration_ms": 120000,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {},
+        "href": null,
+        "id": null,
+        "name": "Synthetic Local Track",
+        "track_number": 0,
+        "type": "track",
+        "uri": "spotify:local:Synthetic:Album:Track:120",
+        "is_local": true
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "description": "Synthetic episode for offline tests.",
+        "html_description": "<p>Synthetic episode.</p>",
+        "duration_ms": 600000,
+        "explicit": false,
+        "external_urls": {
+          "spotify": "https://open.spotify.com/episode/8888888888888888888888"
+        },
+        "href": "https://api.spotify.com/v1/episodes/8888888888888888888888",
+        "id": "8888888888888888888888",
+        "images": [],
+        "is_externally_hosted": false,
+        "is_playable": true,
+        "languages": [
+          "en"
+        ],
+        "name": "Synthetic Podcast Episode",
+        "release_date": "2026-01-02",
+        "release_date_precision": "day",
+        "type": "episode",
+        "uri": "spotify:episode:8888888888888888888888",
+        "show": {
+          "copyrights": [],
+          "description": "Synthetic show.",
+          "explicit": false,
+          "external_urls": {},
+          "href": "https://api.spotify.com/v1/shows/7777777777777777777777",
+          "html_description": "<p>Synthetic show.</p>",
+          "id": "7777777777777777777777",
+          "images": [],
+          "is_externally_hosted": false,
+          "languages": [
+            "en"
+          ],
+          "media_type": "audio",
+          "name": "Synthetic Show",
+          "publisher": "Synthetic Publisher",
+          "type": "show",
+          "uri": "spotify:show:7777777777777777777777",
+          "total_episodes": 1
+        }
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": null
+    }
+  ]
+}

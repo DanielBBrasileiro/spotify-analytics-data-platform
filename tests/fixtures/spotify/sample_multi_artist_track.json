@@ -1,0 +1,66 @@
+{
+  "album": {
+    "album_type": "album",
+    "total_tracks": 12,
+    "external_urls": {
+      "spotify": "https://open.spotify.com/album/9999999999999999999999"
+    },
+    "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+    "id": "9999999999999999999999",
+    "images": [],
+    "name": "Synthetic Test Album",
+    "release_date": "2026-01-01",
+    "release_date_precision": "day",
+    "type": "album",
+    "uri": "spotify:album:9999999999999999999999",
+    "artists": [
+      {
+        "external_urls": {
+          "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+        },
+        "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+        "id": "0000000000000000000001",
+        "name": "Synthetic Artist 1",
+        "type": "artist",
+        "uri": "spotify:artist:0000000000000000000001"
+      }
+    ]
+  },
+  "artists": [
+    {
+      "external_urls": {
+        "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+      },
+      "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+      "id": "0000000000000000000001",
+      "name": "Synthetic Artist 1",
+      "type": "artist",
+      "uri": "spotify:artist:0000000000000000000001"
+    },
+    {
+      "external_urls": {
+        "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+      },
+      "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+      "id": "0000000000000000000002",
+      "name": "Synthetic Artist 2",
+      "type": "artist",
+      "uri": "spotify:artist:0000000000000000000002"
+    }
+  ],
+  "disc_number": 1,
+  "duration_ms": 180001,
+  "explicit": false,
+  "external_ids": {},
+  "external_urls": {
+    "spotify": "https://open.spotify.com/track/0000000000000000000101"
+  },
+  "href": "https://api.spotify.com/v1/tracks/0000000000000000000101",
+  "id": "0000000000000000000101",
+  "is_playable": true,
+  "name": "Synthetic Track 1",
+  "track_number": 1,
+  "type": "track",
+  "uri": "spotify:track:0000000000000000000101",
+  "is_local": false
+}

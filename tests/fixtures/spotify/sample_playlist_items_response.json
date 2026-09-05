@@ -1,0 +1,3560 @@
+{
+  "href": "https://api.spotify.com/v1/playlists/6666666666666666666666/items?limit=50&offset=0",
+  "limit": 50,
+  "next": "https://api.spotify.com/v1/playlists/6666666666666666666666/items?limit=50&offset=50",
+  "offset": 0,
+  "previous": null,
+  "total": 52,
+  "items": [
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180001,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000101"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000101",
+        "id": "0000000000000000000101",
+        "is_playable": true,
+        "name": "Synthetic Track 1",
+        "track_number": 1,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000101",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180002,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000102"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000102",
+        "id": "0000000000000000000102",
+        "is_playable": true,
+        "name": "Synthetic Track 2",
+        "track_number": 2,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000102",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180003,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000103"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000103",
+        "id": "0000000000000000000103",
+        "is_playable": true,
+        "name": "Synthetic Track 3",
+        "track_number": 3,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000103",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180004,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000104"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000104",
+        "id": "0000000000000000000104",
+        "is_playable": true,
+        "name": "Synthetic Track 4",
+        "track_number": 4,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000104",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180005,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000105"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000105",
+        "id": "0000000000000000000105",
+        "is_playable": true,
+        "name": "Synthetic Track 5",
+        "track_number": 5,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000105",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180006,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000106"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000106",
+        "id": "0000000000000000000106",
+        "is_playable": true,
+        "name": "Synthetic Track 6",
+        "track_number": 6,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000106",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180007,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000107"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000107",
+        "id": "0000000000000000000107",
+        "is_playable": true,
+        "name": "Synthetic Track 7",
+        "track_number": 7,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000107",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180008,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000108"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000108",
+        "id": "0000000000000000000108",
+        "is_playable": true,
+        "name": "Synthetic Track 8",
+        "track_number": 8,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000108",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180009,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000109"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000109",
+        "id": "0000000000000000000109",
+        "is_playable": true,
+        "name": "Synthetic Track 9",
+        "track_number": 9,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000109",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180010,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000110"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000110",
+        "id": "0000000000000000000110",
+        "is_playable": true,
+        "name": "Synthetic Track 10",
+        "track_number": 10,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000110",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180011,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000111"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000111",
+        "id": "0000000000000000000111",
+        "is_playable": true,
+        "name": "Synthetic Track 11",
+        "track_number": 11,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000111",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180012,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000112"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000112",
+        "id": "0000000000000000000112",
+        "is_playable": true,
+        "name": "Synthetic Track 12",
+        "track_number": 12,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000112",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180013,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000113"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000113",
+        "id": "0000000000000000000113",
+        "is_playable": true,
+        "name": "Synthetic Track 13",
+        "track_number": 13,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000113",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180014,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000114"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000114",
+        "id": "0000000000000000000114",
+        "is_playable": true,
+        "name": "Synthetic Track 14",
+        "track_number": 14,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000114",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180015,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000115"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000115",
+        "id": "0000000000000000000115",
+        "is_playable": true,
+        "name": "Synthetic Track 15",
+        "track_number": 15,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000115",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180016,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000116"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000116",
+        "id": "0000000000000000000116",
+        "is_playable": true,
+        "name": "Synthetic Track 16",
+        "track_number": 16,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000116",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180017,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000117"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000117",
+        "id": "0000000000000000000117",
+        "is_playable": true,
+        "name": "Synthetic Track 17",
+        "track_number": 17,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000117",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180018,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000118"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000118",
+        "id": "0000000000000000000118",
+        "is_playable": true,
+        "name": "Synthetic Track 18",
+        "track_number": 18,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000118",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180019,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000119"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000119",
+        "id": "0000000000000000000119",
+        "is_playable": true,
+        "name": "Synthetic Track 19",
+        "track_number": 19,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000119",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180020,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000120"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000120",
+        "id": "0000000000000000000120",
+        "is_playable": true,
+        "name": "Synthetic Track 20",
+        "track_number": 20,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000120",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180021,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000121"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000121",
+        "id": "0000000000000000000121",
+        "is_playable": true,
+        "name": "Synthetic Track 21",
+        "track_number": 21,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000121",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180022,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000122"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000122",
+        "id": "0000000000000000000122",
+        "is_playable": true,
+        "name": "Synthetic Track 22",
+        "track_number": 22,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000122",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180023,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000123"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000123",
+        "id": "0000000000000000000123",
+        "is_playable": true,
+        "name": "Synthetic Track 23",
+        "track_number": 23,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000123",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180024,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000124"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000124",
+        "id": "0000000000000000000124",
+        "is_playable": true,
+        "name": "Synthetic Track 24",
+        "track_number": 24,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000124",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180025,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000125"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000125",
+        "id": "0000000000000000000125",
+        "is_playable": true,
+        "name": "Synthetic Track 25",
+        "track_number": 25,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000125",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180026,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000126"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000126",
+        "id": "0000000000000000000126",
+        "is_playable": true,
+        "name": "Synthetic Track 26",
+        "track_number": 26,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000126",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180027,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000127"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000127",
+        "id": "0000000000000000000127",
+        "is_playable": true,
+        "name": "Synthetic Track 27",
+        "track_number": 27,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000127",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180028,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000128"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000128",
+        "id": "0000000000000000000128",
+        "is_playable": true,
+        "name": "Synthetic Track 28",
+        "track_number": 28,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000128",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180029,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000129"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000129",
+        "id": "0000000000000000000129",
+        "is_playable": true,
+        "name": "Synthetic Track 29",
+        "track_number": 29,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000129",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180030,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000130"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000130",
+        "id": "0000000000000000000130",
+        "is_playable": true,
+        "name": "Synthetic Track 30",
+        "track_number": 30,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000130",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180031,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000131"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000131",
+        "id": "0000000000000000000131",
+        "is_playable": true,
+        "name": "Synthetic Track 31",
+        "track_number": 31,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000131",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180032,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000132"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000132",
+        "id": "0000000000000000000132",
+        "is_playable": true,
+        "name": "Synthetic Track 32",
+        "track_number": 32,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000132",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180033,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000133"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000133",
+        "id": "0000000000000000000133",
+        "is_playable": true,
+        "name": "Synthetic Track 33",
+        "track_number": 33,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000133",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180034,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000134"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000134",
+        "id": "0000000000000000000134",
+        "is_playable": true,
+        "name": "Synthetic Track 34",
+        "track_number": 34,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000134",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180035,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000135"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000135",
+        "id": "0000000000000000000135",
+        "is_playable": true,
+        "name": "Synthetic Track 35",
+        "track_number": 35,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000135",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180036,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000136"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000136",
+        "id": "0000000000000000000136",
+        "is_playable": true,
+        "name": "Synthetic Track 36",
+        "track_number": 36,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000136",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180037,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000137"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000137",
+        "id": "0000000000000000000137",
+        "is_playable": true,
+        "name": "Synthetic Track 37",
+        "track_number": 37,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000137",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180038,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000138"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000138",
+        "id": "0000000000000000000138",
+        "is_playable": true,
+        "name": "Synthetic Track 38",
+        "track_number": 38,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000138",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180039,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000139"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000139",
+        "id": "0000000000000000000139",
+        "is_playable": true,
+        "name": "Synthetic Track 39",
+        "track_number": 39,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000139",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180040,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000140"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000140",
+        "id": "0000000000000000000140",
+        "is_playable": true,
+        "name": "Synthetic Track 40",
+        "track_number": 40,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000140",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180041,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000141"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000141",
+        "id": "0000000000000000000141",
+        "is_playable": true,
+        "name": "Synthetic Track 41",
+        "track_number": 41,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000141",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180042,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000142"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000142",
+        "id": "0000000000000000000142",
+        "is_playable": true,
+        "name": "Synthetic Track 42",
+        "track_number": 42,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000142",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180043,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000143"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000143",
+        "id": "0000000000000000000143",
+        "is_playable": true,
+        "name": "Synthetic Track 43",
+        "track_number": 43,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000143",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180044,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000144"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000144",
+        "id": "0000000000000000000144",
+        "is_playable": true,
+        "name": "Synthetic Track 44",
+        "track_number": 44,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000144",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180045,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000145"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000145",
+        "id": "0000000000000000000145",
+        "is_playable": true,
+        "name": "Synthetic Track 45",
+        "track_number": 45,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000145",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180046,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000146"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000146",
+        "id": "0000000000000000000146",
+        "is_playable": true,
+        "name": "Synthetic Track 46",
+        "track_number": 46,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000146",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180047,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000147"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000147",
+        "id": "0000000000000000000147",
+        "is_playable": true,
+        "name": "Synthetic Track 47",
+        "track_number": 47,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000147",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180048,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000148"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000148",
+        "id": "0000000000000000000148",
+        "is_playable": true,
+        "name": "Synthetic Track 48",
+        "track_number": 48,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000148",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180049,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000149"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000149",
+        "id": "0000000000000000000149",
+        "is_playable": true,
+        "name": "Synthetic Track 49",
+        "track_number": 49,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000149",
+        "is_local": false
+      }
+    },
+    {
+      "added_at": null,
+      "added_by": null,
+      "is_local": false,
+      "item": {
+        "album": {
+          "album_type": "album",
+          "total_tracks": 12,
+          "external_urls": {
+            "spotify": "https://open.spotify.com/album/9999999999999999999999"
+          },
+          "href": "https://api.spotify.com/v1/albums/9999999999999999999999",
+          "id": "9999999999999999999999",
+          "images": [],
+          "name": "Synthetic Test Album",
+          "release_date": "2026-01-01",
+          "release_date_precision": "day",
+          "type": "album",
+          "uri": "spotify:album:9999999999999999999999",
+          "artists": [
+            {
+              "external_urls": {
+                "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+              },
+              "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+              "id": "0000000000000000000001",
+              "name": "Synthetic Artist 1",
+              "type": "artist",
+              "uri": "spotify:artist:0000000000000000000001"
+            }
+          ]
+        },
+        "artists": [
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000001"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000001",
+            "id": "0000000000000000000001",
+            "name": "Synthetic Artist 1",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000001"
+          },
+          {
+            "external_urls": {
+              "spotify": "https://open.spotify.com/artist/0000000000000000000002"
+            },
+            "href": "https://api.spotify.com/v1/artists/0000000000000000000002",
+            "id": "0000000000000000000002",
+            "name": "Synthetic Artist 2",
+            "type": "artist",
+            "uri": "spotify:artist:0000000000000000000002"
+          }
+        ],
+        "disc_number": 1,
+        "duration_ms": 180050,
+        "explicit": false,
+        "external_ids": {},
+        "external_urls": {
+          "spotify": "https://open.spotify.com/track/0000000000000000000150"
+        },
+        "href": "https://api.spotify.com/v1/tracks/0000000000000000000150",
+        "id": "0000000000000000000150",
+        "is_playable": true,
+        "name": "Synthetic Track 50",
+        "track_number": 50,
+        "type": "track",
+        "uri": "spotify:track:0000000000000000000150",
+        "is_local": false
+      }
+    }
+  ]
+}
