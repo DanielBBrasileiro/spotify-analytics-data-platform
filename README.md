@@ -10,8 +10,8 @@
 
 ---
 
-### Project Status: Foundation Revised / M1 Pre-Implementation
-> **Notice**: This repository is in **Milestone M0 (Project Foundation / Architecture Specification)**. Version 0.1.1 aligns the platform with the **2026 Spotify Web API specifications**, AWS Glue 5.1 (Spark 3.5.6 / Python 3.11), Apache Airflow 3.x (Task SDK & Deadline Alerts), and canonical composite snapshot grain modeling. Pipeline components are scheduled for incremental implementation across Milestones M1 through M9 per [BACKLOG.md](BACKLOG.md). Live cloud resources are deliberately not provisioned in this foundation phase to enforce zero ongoing cloud spend.
+### Project Status: M1 — Local Ingestion in Progress
+> **Implemented:** Refresh-token authentication and a paginated playlist extractor with version checks, bounded retries, and offline unit/integration tests. See [Local Ingestion](docs/LOCAL_INGESTION.md) for usage, payload contracts, and limitations. CI enforces lint, formatting, and at least 91% statement/branch coverage overall. Live Spotify access and the cloud pipeline have not been validated by these tests. The latest tagged release remains **v0.1.1**; subsequent components follow [BACKLOG.md](BACKLOG.md).
 
 ---
 
