@@ -1,0 +1,23 @@
+{
+  "collaborative": false,
+  "description": "Entirely synthetic playlist for offline tests.",
+  "external_urls": {
+    "spotify": "https://open.spotify.com/playlist/6666666666666666666666"
+  },
+  "href": "https://api.spotify.com/v1/playlists/6666666666666666666666",
+  "id": "6666666666666666666666",
+  "images": [],
+  "name": "Synthetic Playlist",
+  "owner": {
+    "external_urls": {},
+    "href": "https://api.spotify.com/v1/users/synthetic-user",
+    "id": "synthetic-user",
+    "type": "user",
+    "uri": "spotify:user:synthetic-user",
+    "display_name": "Synthetic User"
+  },
+  "public": false,
+  "snapshot_id": "synthetic-snapshot-v1",
+  "type": "playlist",
+  "uri": "spotify:playlist:6666666666666666666666"
+}

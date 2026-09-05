@@ -1,0 +1,47 @@
+{
+  "added_at": null,
+  "added_by": null,
+  "is_local": false,
+  "item": {
+    "description": "Synthetic episode for offline tests.",
+    "html_description": "<p>Synthetic episode.</p>",
+    "duration_ms": 600000,
+    "explicit": false,
+    "external_urls": {
+      "spotify": "https://open.spotify.com/episode/8888888888888888888888"
+    },
+    "href": "https://api.spotify.com/v1/episodes/8888888888888888888888",
+    "id": "8888888888888888888888",
+    "images": [],
+    "is_externally_hosted": false,
+    "is_playable": true,
+    "languages": [
+      "en"
+    ],
+    "name": "Synthetic Podcast Episode",
+    "release_date": "2026-01-02",
+    "release_date_precision": "day",
+    "type": "episode",
+    "uri": "spotify:episode:8888888888888888888888",
+    "show": {
+      "copyrights": [],
+      "description": "Synthetic show.",
+      "explicit": false,
+      "external_urls": {},
+      "href": "https://api.spotify.com/v1/shows/7777777777777777777777",
+      "html_description": "<p>Synthetic show.</p>",
+      "id": "7777777777777777777777",
+      "images": [],
+      "is_externally_hosted": false,
+      "languages": [
+        "en"
+      ],
+      "media_type": "audio",
+      "name": "Synthetic Show",
+      "publisher": "Synthetic Publisher",
+      "type": "show",
+      "uri": "spotify:show:7777777777777777777777",
+      "total_episodes": 1
+    }
+  }
+}

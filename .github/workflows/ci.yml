@@ -43,7 +43,7 @@ jobs:
         run: |
           ruff format --check .
 
-      - name: Run Unit Tests
+      - name: Run offline tests within five seconds
         run: |
-          coverage run -m pytest
+          timeout 5s coverage run -m pytest --durations=5
           coverage report
