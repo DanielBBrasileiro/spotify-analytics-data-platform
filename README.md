@@ -33,7 +33,7 @@ flowchart TD
     subgraph Lake["2. AWS Data Lake (us-east-1)"]
         Lambda["AWS Lambda Extractor<br/>(Python 3.12, Dynamic Token Refresh)"]
         S3Bronze[("Amazon S3 Bronze<br/>• Raw JSON Payloads<br/>• Immutable / Replayable<br/>• Partitioned by date & run_id")]
-        Glue["AWS Glue 5.1 / PySpark 3.5.6<br/>• Schema Enforcement<br/>• Item Type Validation<br/>• Explode Arrays & Deduplicate")]
+        Glue["AWS Glue 5.1 / PySpark 3.5.6<br/>• Schema Enforcement<br/>• Item Type Validation<br/>• Explode Arrays & Deduplicate"]
         S3Silver[("Amazon S3 Silver<br/>• Curated Parquet<br/>• Snappy Compressed<br/>• Partitioned by date")]
     end
 
@@ -41,7 +41,7 @@ flowchart TD
         SQS["Amazon SQS / S3 Events"]
         Snowpipe["Snowpipe Continuous Ingestion<br/>(Capturing Lineage Metadata)"]
         Landing[("LANDING Schema<br/>• 1:1 Parquet Relational Tables")]
-        dbt["dbt Core Engine<br/>• Staging Views<br/>• Dimensional Star Schema<br/>• Incremental Merge Marts")]
+        dbt["dbt Core Engine<br/>• Staging Views<br/>• Dimensional Star Schema<br/>• Incremental Merge Marts"]
         Core[("CORE & MARTS Schemas<br/>• dim_track, dim_artist, dim_album<br/>• bridge_track_artist<br/>• fact_playlist_snapshot")]
     end
 
@@ -63,7 +63,7 @@ flowchart TD
     %% Data Pipeline Flow
     SecMgr -.->|Fetch Token| Lambda
     Lambda -->|Token Exchange & GET| API
-    API -->|HTTPS JSON (50/page)| Lambda
+    API -->|"HTTPS JSON (50/page)"| Lambda
     Lambda -->|PutObject| S3Bronze
     S3Bronze -->|Read Payloads| Glue
     Glue -->|Write Parquet| S3Silver
@@ -165,7 +165,7 @@ erDiagram
 
     dim_track {
         string track_pk PK
-        string track_id NK
+        string track_id "Natural key"
         string track_name
         int duration_ms
         boolean is_explicit
@@ -173,13 +173,13 @@ erDiagram
 
     dim_artist {
         string artist_pk PK
-        string artist_id NK
+        string artist_id "Natural key"
         string artist_name
     }
 
     dim_album {
         string album_pk PK
-        string album_id NK
+        string album_id "Natural key"
         string album_name
         date release_date
         int total_tracks
@@ -187,7 +187,7 @@ erDiagram
 
     dim_playlist {
         string playlist_pk PK
-        string playlist_id NK
+        string playlist_id "Natural key"
         string playlist_name
     }
 
