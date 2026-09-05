@@ -99,6 +99,28 @@ separate backlog work. M1 tests do not demonstrate live Spotify authorization.
 
 ## Offline verification
 
+Issue #3 adds a [synthetic fixture corpus](../tests/fixtures/spotify/README.md)
+with a 50+2-item traversal, a single-page mixed-media scenario, and a 429 body.
+Integration tests feed these files through the real extractor with injected HTTP
+responses and sleep functions, without contacting Spotify or waiting on retries.
+
+`spotify_data_platform.extraction.items.parse_playlist_item(entry)` provides an
+opt-in inspection result: `kind`, `is_local`, and ordered `artist_ids`. It
+distinguishes tracks, episodes, unavailable items, and unsupported future media.
+Null and duplicate artist IDs retain their slots. Missing keys or malformed
+containers raise `SpotifyItemParseException` with no raw values in the message.
+Unknown fields are ignored, and the original entry is never mutated. The raw
+extractor does not call this parser or drop records; full schema enforcement and
+Silver normalization remain M3 responsibilities.
+
+CI gives the complete pytest command, including coverage startup, a five-second
+wall-clock budget using the Ubuntu runner's `timeout` command. Timeout exits fail
+the job. Checkout, dependency installation, linting, and reporting are outside
+this test budget; the total GitHub Actions job is not expected to finish in five
+seconds. `--durations=5` reports the slowest tests for diagnosis. Local
+`make check` keeps the same offline suite and coverage gate without imposing a
+machine-dependent deadline.
+
 Install the `dev` extra and run `make check`. Ruff validates lint and formatting;
 coverage runs pytest with branch measurement and requires at least 91% overall
 coverage. Tests inject HTTP responses and clocks, block socket connections, and

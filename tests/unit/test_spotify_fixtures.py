@@ -48,6 +48,10 @@ def test_full_page_and_tail_form_a_complete_contiguous_sequence(load_spotify_fix
     assert first["previous"] is None and last["next"] is None
     assert parse_qs(urlsplit(first["next"]).query) == {"limit": ["50"], "offset": ["50"]}
     assert len({entry["item"]["id"] for entry in first["items"] + last["items"]}) == 52
+    assert all(
+        1 <= entry["item"]["track_number"] <= entry["item"]["album"]["total_tracks"]
+        for entry in first["items"] + last["items"]
+    )
 
 
 def test_snapshot_id_belongs_to_metadata_not_items_pages(load_spotify_fixture):
