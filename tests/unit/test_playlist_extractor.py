@@ -88,6 +88,26 @@ def test_preserves_null_local_episode_and_duplicate_items():
     assert payload == original
 
 
+def test_short_page_uses_actual_count_and_never_follows_external_next():
+    first = page(0, 10, 12)
+    first["next"] = "https://untrusted.invalid/steal-token"
+    extractor, transport, _ = make_extractor(
+        [
+            response(metadata()),
+            response(first),
+            response(metadata()),
+            response(page(10, 2, 12)),
+            response(metadata()),
+        ]
+    )
+    assert len(extractor.extract(PLAYLIST_ID)["items"]) == 12
+    assert transport.call_args_list[3].args[0].full_url.endswith("/items?limit=50&offset=10")
+    assert all(
+        urlsplit(call.args[0].full_url).hostname == "api.spotify.com"
+        for call in transport.call_args_list
+    )
+
+
 @pytest.mark.parametrize("changed_after", [0, 1])
 def test_mutation_aborts_without_partial_output(changed_after):
     replies = [response(metadata()), response(page(0, 50, 51))]

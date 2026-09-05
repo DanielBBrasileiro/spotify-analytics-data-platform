@@ -1,7 +1,7 @@
 # Spotify Analytics Data Platform — Master Architecture Blueprint
 
 **Version:** 0.1.1
-**Status:** Foundation Revised / M1 Pre-Implementation
+**Status:** M1 In Progress / Local Authentication and Playlist Extraction Implemented
 **Author:** Daniel Barbosa
 **Target Environment:** AWS (us-east-1), Snowflake, Docker, Python 3.12, AWS Glue 5.1, Apache Airflow 3.x
 
@@ -204,8 +204,9 @@ s3://<platform-bucket>/
 ## 13. API Pagination Strategy
 
 - Under Spotify Web API specifications for `/v1/playlists/{id}/items`, the maximum `limit` is **50 items per request**.
-- The client initializes with `limit=50`, `offset=0` and loops until `offset >= total` or `next` is null.
-- During pagination, the client validates that `snapshot_id` remains constant across pages to prevent mid-extraction inconsistency.
+- The client initializes with `limit=50`, `offset=0`, advances by the actual item count, and validates that `total` and `next` agree before returning a complete result.
+- The items response does not contain `snapshot_id`. The client reads playlist metadata before pagination and checks `GET /v1/playlists/{id}?fields=snapshot_id` after every page. An observed version change aborts the entire extraction; this is optimistic validation, not a pinned server-side transaction.
+- See [Local Ingestion](LOCAL_INGESTION.md) for the implemented raw payload contract, request limits, and retry behavior.
 
 ---
 
@@ -213,7 +214,7 @@ s3://<platform-bucket>/
 
 - Spotify emits HTTP `429 Too Many Requests` when throttled, including a `Retry-After` header.
 - The Python client implements exponential backoff with jitter respecting the `Retry-After` value.
-- Maximum retry limit: 5 attempts. If exhausted, Lambda fails with a structured error, triggering Airflow retry policies.
+- Maximum retry limit: 5 retries after the initial attempt per API request. Exhausted HTTP 429 responses raise `RateLimitExceededException`; the future Lambda/Airflow adapters will report and handle that failure.
 
 ---
 
