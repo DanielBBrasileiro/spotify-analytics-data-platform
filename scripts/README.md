@@ -1,14 +1,17 @@
 # Utility Scripts
 
-This directory contains developer automation, data generation, and local testing utilities.
+This directory currently contains only this design README. Data generators, environment validators, consent/recovery utilities, and cost-audit scripts have not been implemented.
+
+Analytical demonstrations use fully synthetic data under [ADR-0008](../docs/adr/0008-synthetic-analytics-and-source-use-boundary.md).
+The responsibilities and directory structure below are targets, not current implementation.
 
 ---
 
-## Architectural Responsibility
+## Planned Architectural Responsibility
 
 - **Local Mocking & Fixture Generation**: Scripts to generate synthetic Spotify JSON payloads matching API contracts for offline unit and PySpark testing.
 - **Environment Bootstrapping**: Local environment setup and credential validation checks.
-- **Teardown Automation**: Verification scripts ensuring zero remaining cloud resources post-demonstration.
+- **Teardown Automation**: Planned checks for managed resources, retained storage, and residual billing after demonstrations.
 
 ---
 

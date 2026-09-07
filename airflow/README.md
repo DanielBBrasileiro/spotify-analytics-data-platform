@@ -1,10 +1,13 @@
 # Apache Airflow 3.x Orchestration
 
-This directory contains the orchestration definitions for the Spotify Analytics Data Platform.
+This directory currently contains only this design README. DAGs, Docker Compose, provider pins, and alerts are planned for M6.
+
+Analytical demonstrations use fully synthetic data under [ADR-0008](../docs/adr/0008-synthetic-analytics-and-source-use-boundary.md).
+The responsibilities and directory structure below are targets, not current implementation.
 
 ---
 
-## Architectural Responsibility
+## Planned Architectural Responsibility
 
 Per **ADR-0001**, Apache Airflow 3.x operates strictly as an **Orchestrator**, not an execution engine.
 
@@ -48,4 +51,15 @@ airflow/
 
 ## Local Development (Docker Compose)
 
-Airflow will be containerized locally using Docker Compose to prevent incurring managed cloud orchestration fees (such as AWS MWAA ~$350/month) during initial phases and portfolio demonstrations.
+Airflow will be containerized locally using Docker Compose to prevent incurring managed cloud orchestration fees (such as AWS MWAA; consult current pricing before comparing costs) during initial phases and portfolio demonstrations.
+
+
+## Runtime selection
+
+Target Airflow **>=3.1,<4**: Deadline Alerts were introduced in 3.1 and remain
+experimental in the reviewed [official guide](https://airflow.apache.org/docs/apache-airflow/stable/howto/deadline-alerts.html); the label
+"3.x" alone does not establish compatibility. M6 must select and pin an exact
+Airflow release, Task SDK, providers, and container dependencies together.
+Nothing is pinned or installed by this README. The
+[RUNBOOK](../docs/RUNBOOK.md) uses version-specific Airflow 3.1.0 CLI syntax as a
+reference and must be rechecked against the selected runtime.

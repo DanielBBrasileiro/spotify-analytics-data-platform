@@ -9,12 +9,12 @@ The platform requires an analytical storage and compute engine capable of:
 2. Native integration with dbt Core for versioned transformations, lineage, and documentation.
 3. Automated continuous ingestion from Amazon S3 via serverless mechanisms.
 4. Direct connectivity to BI reporting tools (Power BI).
-5. Elastic compute scaling with aggressive auto-suspend to strictly enforce portfolio cost constraints.
+5. Elastic compute scaling with aggressive auto-suspend to reduce idle costs within a measured portfolio budget; auto-suspend does not enforce a total spending cap.
 
 ## Decision
-We decide to use **Snowflake** as the primary analytical data warehouse, deployed in AWS US East (`us-east-1` co-located with our S3 data lake).
+We decide to use **Snowflake** as the primary analytical data warehouse, planned for AWS US East (`us-east-1` co-located with our S3 data lake).
 
-Architecture implementation details:
+Planned configuration (no DDL or deployed warehouse exists in this repository):
 1. **Separation of Compute and Storage**: Data persists in Snowflake micro-partitions while compute operates independently via virtual warehouses.
 2. **Layered Schema Hierarchy**:
    - `LANDING`: Snowpipe destination loading directly from S3 Silver Parquet.
@@ -39,7 +39,7 @@ Architecture implementation details:
 
 ### Positive Consequences
 - **Enterprise Standard**: Demonstrates industry-standard skills (Snowpipe, storage integrations, RBAC, dbt on Snowflake).
-- **Strict Cost Control**: Zero compute charges when the warehouse is suspended. With `AUTO_SUSPEND = 60`, test runs consume fractions of a credit.
+- **Reduced Idle Warehouse Cost**: Planned auto-suspension reduces idle warehouse consumption. Storage and serverless services are separate cost categories; no billed run or total cost cap has been validated.
 - **Optimized for dbt**: Snowflake SQL provides full support for window functions, surrogate key generation, and incremental merges.
 
 ### Negative Consequences

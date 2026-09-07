@@ -1,6 +1,6 @@
 # Contributing Guidelines
 
-Thank you for contributing to the **Spotify Analytics Data Platform**. This repository maintains a production-grade standard for code quality, documentation, testing, and Git hygiene.
+Thank you for contributing to the **Spotify Analytics Data Platform**. This repository targets production-oriented practices at portfolio scale for code quality, documentation, testing, and Git hygiene.
 
 ---
 

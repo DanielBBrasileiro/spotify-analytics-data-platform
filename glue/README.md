@@ -1,10 +1,13 @@
 # AWS Glue 5.1 / Apache Spark Processing Layer
 
-This directory contains the PySpark scripts and transformation jobs executed on AWS Glue.
+This directory currently contains only this design README. PySpark jobs, explicit schemas, and local Spark tests are planned for M3.
+
+Analytical demonstrations use fully synthetic data under [ADR-0008](../docs/adr/0008-synthetic-analytics-and-source-use-boundary.md).
+The responsibilities and directory structure below are targets, not current implementation.
 
 ---
 
-## Architectural Responsibility
+## Planned Architectural Responsibility
 
 Per **ADR-0005**, AWS Glue 5.1 (Apache Spark 3.5.6 / Python 3.11) handles technical extraction, schema enforcement, item validation, deduplication, and Parquet serialization from S3 Bronze to S3 Silver. It does **not** perform business dimensional modeling (which is reserved for dbt in Snowflake).
 
@@ -13,7 +16,7 @@ Per **ADR-0005**, AWS Glue 5.1 (Apache Spark 3.5.6 / Python 3.11) handles techni
 2. **Strict Schema Enforcement**: Apply explicit PySpark `StructType` definitions to prevent schema drift and silent type coercion.
 3. **Item Validation & Array Explosion**:
    - Inspect `item` structures: validate track items and route non-track items (e.g., episodes) to quarantine.
-   - Explode nested arrays (`track.artists`, album metadata) into relational tabular representations:
+   - Explode nested arrays (`item.artists`, album metadata) into relational tabular representations:
      - `artists` (artist metadata)
      - `albums` (album metadata, release date, track count)
      - `tracks` (track metadata, duration, explicit flag)
@@ -45,3 +48,12 @@ glue/
 
 - Unit tests and schema validations will be executed locally using pytest and a local PySpark session.
 - Cloud Glue jobs will be triggered on-demand by Airflow or during integration tests using minimal Data Processing Units (e.g., 2 DPUs, Glue 5.1).
+
+
+## Runtime boundary
+
+[Glue 5.1](https://docs.aws.amazon.com/glue/latest/dg/release-notes.html) uses
+Spark 3.5.6 and Python 3.11. Local ingestion and CI require Python >=3.12.
+Use separate environments; do not deploy the ingestion package unchanged into
+Glue or silently lower its Python requirement. Any shared schema/utility module
+must be deliberately packaged and tested for both runtimes when introduced.
