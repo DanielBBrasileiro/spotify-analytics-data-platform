@@ -6,79 +6,50 @@
 [![Code Style: Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 [![Release: v0.1.1](https://img.shields.io/badge/Release-v0.1.1-brightgreen.svg)](https://github.com/DanielBBrasileiro/spotify-analytics-data-platform/releases/tag/v0.1.1)
 
-> Production-oriented data engineering platform that ingests historical Spotify playlist snapshots using AWS Lambda, S3, Glue 5.1/PySpark, Snowflake, dbt Core, and Apache Airflow 3.x, with infrastructure as code, CI/CD, cross-tier data quality, and business intelligence in Power BI.
+> Data Engineering portfolio with an offline-tested Spotify API client and a planned AWS/Snowflake analytics pipeline demonstrated with fully synthetic playlist histories. The design covers lineage, replay, Spark/dbt boundaries, orchestration, and cost governance.
 
 ---
 
 ### Project Status: M1 — Local Ingestion Complete
-> **Implemented:** Refresh-token authentication, paginated/version-checked playlist extraction, synthetic 2026 fixtures and parser contracts, Pydantic run-lineage metadata, and immutable local Bronze persistence mirroring the future S3 hierarchy. See [Local Ingestion](docs/LOCAL_INGESTION.md) for usage, payload contracts, and limitations. CI enforces lint, formatting, and at least 91% statement/branch coverage overall. Live Spotify access and the cloud pipeline have not been validated by these tests. The latest tagged release remains **v0.1.1**; cloud ingestion begins in M2 and follows [BACKLOG.md](BACKLOG.md).
+
+| Component | Verified repository state |
+| --- | --- |
+| OAuth refresh client | Implemented in PR #38; initial browser consent is external |
+| Paginated extractor | Implemented in PR #39; optimistic source-version checks |
+| Synthetic fixtures and opt-in parser | Implemented in PR #41 |
+| Run metadata and local Bronze persistence | Implemented in PR #44; validated Pydantic lineage and immutable local writer |
+| Lambda, S3, Glue, Snowflake, dbt, Airflow, Terraform, Power BI | Planned; component directories contain design READMEs only |
+
+**Demo data:** portfolio analytics and future dashboards use fully synthetic
+histories. Live analytical use of Spotify data remains unresolved under the
+developer policy; OAuth consent alone is insufficient. See
+[ADR-0008](docs/adr/0008-synthetic-analytics-and-source-use-boundary.md).
+The API integration below is a conditional target architecture, not the demo's
+data source. A synthetic end-to-end runner has not yet been implemented.
+
+> **Implemented:** M1 now includes refresh-token authentication, paginated/version-checked extraction, synthetic fixtures/parser contracts, validated run metadata, and local immutable Bronze persistence. CI enforces lint, formatting, and at least 91% statement/branch coverage overall. Live Spotify access and the cloud pipeline have not been validated by these tests. The latest tagged release remains **v0.1.1**; cloud work starts in M2 and follows [BACKLOG.md](BACKLOG.md).
 
 ---
 
-## 1. Architecture Overview
+## 1. Target Architecture Overview
 
-The platform implements a decoupled lakehouse-to-warehouse architecture where compute workloads are delegated to specialized engines while Apache Airflow 3.x strictly coordinates scheduling, dependency management, and quality assertions.
+The target lakehouse-to-warehouse architecture delegates work to specialized engines. Planned Airflow orchestration coordinates scheduling and dependencies. Cloud resources, analytical transformations, and BI outputs have not been implemented or deployed by this repository.
 
 ```mermaid
 flowchart TD
-    subgraph Auth["OAuth 2.0 Auth Side-Flow"]
-        Operator["Operator Setup<br/>(One-Time Interactive)"] -->|Auth Code Consent| SpotifyAuth["Spotify Accounts Service"]
-        SpotifyAuth -->|Refresh Token| SecMgr[("AWS Secrets Manager<br/>(spotify/api/credentials)")]
-    end
-
-    subgraph Sources["1. Source Layer"]
-        API["Spotify Web API<br/>(/v1/playlists/{id}/items)"]
-    end
-
-    subgraph Lake["2. AWS Data Lake (us-east-1)"]
-        Lambda["AWS Lambda Extractor<br/>(Python 3.12, Dynamic Token Refresh)"]
-        S3Bronze[("Amazon S3 Bronze<br/>• Raw JSON Payloads<br/>• Immutable / Replayable<br/>• Partitioned by date & run_id")]
-        Glue["AWS Glue 5.1 / PySpark 3.5.6<br/>• Schema Enforcement<br/>• Item Type Validation<br/>• Explode Arrays & Deduplicate"]
-        S3Silver[("Amazon S3 Silver<br/>• Curated Parquet<br/>• Snappy Compressed<br/>• Partitioned by date")]
-    end
-
-    subgraph Warehouse["3. Snowflake Analytical Warehouse"]
-        SQS["Amazon SQS / S3 Events"]
-        Snowpipe["Snowpipe Continuous Ingestion<br/>(Capturing Lineage Metadata)"]
-        Landing[("LANDING Schema<br/>• 1:1 Parquet Relational Tables")]
-        dbt["dbt Core Engine<br/>• Staging Views<br/>• Dimensional Star Schema<br/>• Incremental Merge Marts"]
-        Core[("CORE & MARTS Schemas<br/>• dim_track, dim_artist, dim_album<br/>• bridge_track_artist<br/>• fact_playlist_snapshot")]
-    end
-
-    subgraph Serving["4. Serving & BI"]
-        PowerBI["Power BI Analytical Dashboard<br/>(DirectQuery / Import)"]
-    end
-
-    subgraph Orchestration["Airflow 3.x Orchestration (Local / Docker)"]
-        Airflow["Apache Airflow 3.x<br/>• Task SDK Coordinator<br/>• External Task Sensors<br/>• Deadline Alerts & Quality Gates"]
-    end
-
-    subgraph Foundation["Cross-Cutting Platform Governance"]
-        TF["Terraform (IaC)"]
-        GHA["GitHub Actions (CI/CD)"]
-        CW["CloudWatch & Audit Telemetry"]
-        Sec["AWS Secrets Manager & RBAC"]
-    end
-
-    %% Data Pipeline Flow
-    SecMgr -.->|Fetch Token| Lambda
-    Lambda -->|Token Exchange & GET| API
-    API -->|"HTTPS JSON (50/page)"| Lambda
-    Lambda -->|PutObject| S3Bronze
-    S3Bronze -->|Read Payloads| Glue
-    Glue -->|Write Parquet| S3Silver
-    S3Silver -->|S3 Event| SQS
-    SQS -->|Notify| Snowpipe
-    Snowpipe -->|Copy Into| Landing
-    Landing -->|Transform| dbt
-    dbt -->|Incremental Merge| Core
-    Core -->|Query| PowerBI
-
-    %% Orchestration
-    Airflow -.->|1. Trigger| Lambda
-    Airflow -.->|2. Trigger| Glue
-    Airflow -.->|3. Validate| Landing
-    Airflow -.->|4. Execute| dbt
+    Synthetic["Synthetic histories"] --> Ingest["Ingestion adapter: planned Lambda"]
+    Consent["Initial and periodic consent"] --> API["Spotify API: conditional integration"]
+    API -.-> Ingest
+    Ingest --> Bronze["S3 Bronze: raw JSON"]
+    Bronze --> Glue["Glue 5.1: Spark normalization"]
+    Glue --> Silver["S3 Silver: Parquet"]
+    Silver --> Snowpipe["Snowpipe: file ingestion"]
+    Snowpipe --> Landing["Snowflake Landing"]
+    Landing --> dbt["dbt: Staging, Core, Marts"]
+    dbt --> BI["Power BI: synthetic demo"]
+    Airflow["Planned Airflow orchestration"] -.-> Ingest
+    Airflow -.-> Glue
+    Airflow -.-> dbt
 ```
 
 ---
@@ -90,9 +61,9 @@ Music streaming metadata undergoes continuous changes as tracks enter, shift pos
 - **Missing Retention Metrics**: Unable to calculate how many consecutive days a track stays on a playlist.
 - **Unverified API Assumptions**: Relying on deprecated endpoints (`/tracks`) or removed popularity fields.
 
-### What This Platform Answers
-By persisting immutable daily snapshots of **monitored user-owned or collaborative playlists accessible under authorized Spotify application scopes**, this platform provides deep longitudinal analysis:
-1. **Track Lifecycle & Churn**: Exact entry date, exit date, and retention tenure (days present).
+### What the Synthetic Demonstration Will Explore
+The planned analytical models use **fully invented playlist histories** to demonstrate the following metrics. Future real API integration is restricted to owner/collaborator access and requires a separately established permitted use:
+1. **Track Lifecycle & Churn**: First/last observed presence and retention across captured daily observations; daily snapshots do not reveal unobserved intra-day changes.
 2. **Positional Dynamics**: Daily rank movement, best position achieved, and average position.
 3. **Artist Representation & Concentration**: Which artists occupy the greatest playlist share over time.
 4. **Playlist Volatility**: Quantifying turnover rates (daily additions vs. exits) across monitored playlists.
@@ -104,10 +75,10 @@ By persisting immutable daily snapshots of **monitored user-owned or collaborati
 
 | Layer | Technology | Architectural Rationale |
 | :--- | :--- | :--- |
-| **Language** | Python 3.12 | Modern runtime, native typing, robust SDKs (`boto3`, `requests`). |
-| **Authentication** | OAuth 2.0 Auth Code + Refresh Token | Complies with 2026 Spotify Development Mode restrictions for user-scoped playlist access. |
-| **Orchestration** | Apache Airflow 3.x | Task SDK (`airflow.sdk`) authoring, service-oriented execution, and Deadline Alerts. |
-| **Extraction** | AWS Lambda | Ephemeral serverless execution (< 30s); token refresh and paginated `/items` ingestion. |
+| **Language** | Python 3.12 | Local package and CI runtime; the implemented HTTP client uses the standard library. |
+| **Authentication** | OAuth 2.0 Auth Code + Refresh Token | User identity for owner/collaborator items access; periodic reauthorization and source-use limits apply. |
+| **Orchestration** | Apache Airflow 3.x | Planned >=3.1,<4 target for Task SDK and Deadline Alerts; exact version/providers will be pinned in M6. |
+| **Extraction** | AWS Lambda | Planned serverless adapter reusing the existing client; execution duration and total deadline remain unvalidated. |
 | **Data Lake** | Amazon S3 | Tiered storage: raw immutable JSON in Bronze, columnar Snappy-compressed Parquet in Silver. |
 | **Lake Processing** | AWS Glue 5.1 / PySpark | Managed Spark 3.5.6 / Python 3.11 for unnesting semi-structured items and schema enforcement. |
 | **Ingestion** | Snowflake Snowpipe | Serverless, continuous micro-batch loading from S3 into Landing tables with file audit metadata. |
@@ -125,11 +96,12 @@ The platform's engineering design is formalized through **Architecture Decision 
 
 - **[ADR-0001: Airflow as Orchestrator, Not Execution Engine](docs/adr/0001-airflow-as-orchestrator.md)**: Airflow never processes data in worker memory. Compute is delegated to Lambda, Glue 5.1, and Snowflake.
 - **[ADR-0002: S3 Bronze as Durable Immutable Landing Layer](docs/adr/0002-s3-as-durable-landing-zone.md)**: Preserves raw API responses under deterministic partitions (`ingestion_date=YYYY-MM-DD/run_id=<id>/`) enabling full replayability.
-- **[ADR-0003: Apache Parquet for Curated Data](docs/adr/0003-parquet-for-curated-data.md)**: Snappy-compressed columnar format provides up to 75% storage savings and accelerates warehouse loading.
-- **[ADR-0004: Snowflake as Central Analytical Warehouse](docs/adr/0004-snowflake-as-analytical-warehouse.md)**: Elastic compute scaling with automated 60-second auto-suspension to strictly control costs.
+- **[ADR-0003: Apache Parquet for Curated Data](docs/adr/0003-parquet-for-curated-data.md)**: Planned Snappy-compressed columnar format; storage savings and loading performance require measurement.
+- **[ADR-0004: Snowflake as Central Analytical Warehouse](docs/adr/0004-snowflake-as-analytical-warehouse.md)**: Planned compute sizing and 60-second auto-suspension to reduce idle costs.
 - **[ADR-0005: Separate Spark and dbt Responsibilities](docs/adr/0005-separate-spark-and-dbt-responsibilities.md)**: Spark handles semi-structured array explosion; dbt handles modular SQL dimensional modeling.
 - **[ADR-0006: Historical Playlist Snapshots](docs/adr/0006-historical-playlist-snapshots.md)**: Pinned to canonical daily grain `(playlist_id + snapshot_date + track_position)` with `spotify_snapshot_id` lineage.
-- **[ADR-0007: Spotify Authorization Code & Refresh Token](docs/adr/0007-spotify-authorization-code-and-refresh-token.md)**: Replaces Client Credentials with two-phase Auth Code + stored refresh token for scheduled ingestion.
+- **[ADR-0007: Spotify Authorization Code & Refresh Token](docs/adr/0007-spotify-authorization-code-and-refresh-token.md)**: Initial consent plus periodic reauthorization; refresh-token rotation is currently process-local.
+- **[ADR-0008: Synthetic Analytics and Source Use](docs/adr/0008-synthetic-analytics-and-source-use-boundary.md)**: Defines the synthetic portfolio scope and unresolved live analytical use.
 
 ---
 
@@ -217,25 +189,22 @@ Detailed schema definitions, canonical grain evaluations, and data dictionaries 
 
 ## 7. Cost Governance ($20/Month Portfolio Budget Target)
 
-To ensure this portfolio project can be run and demonstrated economically, the architecture operates under a strict budget ceiling:
+The **USD 20/month** figure is an operational planning target, not a hard spending
+cap. No billing evidence or enforced cloud controls are established by this repo.
 
-| Metric | Budget Target | Governance Type | Notes |
-| :--- | :--- | :--- | :--- |
-| **Monthly Ceiling** | **≤ $20.00 USD / month** | **Operational Target & Alert Threshold** | Monitored via AWS Budgets and Snowflake Resource Monitors. |
-| **Idle Cost** | **$0.00 - $2.00 / month** | Estimated Range | Zero always-on EC2 instances, EMR clusters, or NAT Gateways. |
-| **Single Run Cost** | **< $0.25 USD / run** | Estimated Execution Cost | Ephemeral Lambda (< 30s), Glue 5.1 job (~2 min), Snowflake `X-Small` warehouse. |
+Planned controls include local Airflow, on-demand Glue, an X-Small Snowflake
+warehouse with `AUTO_SUSPEND = 60`, seven-day log retention, and budget alerts.
+Actual costs depend on workload, retries, storage, region, account eligibility,
+and serverless charges. Teardown requires resource and billing verification.
 
-Key cost control mechanisms:
-- **Snowflake**: Virtual warehouse configured as `X-Small` with `AUTO_SUSPEND = 60` seconds and `AUTO_RESUME = TRUE`.
-- **Airflow**: Runs locally in Docker Compose during development, eliminating AWS MWAA fees (~$350/month base).
-- **Log Retention**: CloudWatch logs expire after 7 days.
-- **Teardown**: All cloud resources are managed via Terraform and can be destroyed instantly (`terraform destroy`).
-
-Full budget breakdown available in [`docs/COST_STRATEGY.md`](docs/COST_STRATEGY.md).
+See [Cost Strategy](docs/COST_STRATEGY.md) for assumptions and implementation status.
 
 ---
 
 ## 8. Repository Structure
+
+Component directory descriptions below indicate intended scope. Only `src/`,
+`tests/`, local tooling, and CI currently contain executable implementation.
 
 ```
 .
@@ -252,8 +221,8 @@ Full budget breakdown available in [`docs/COST_STRATEGY.md`](docs/COST_STRATEGY.
 │   ├── SECURITY.md           # OAuth 2.0 token lifecycle, IAM least privilege, RBAC
 │   ├── OBSERVABILITY.md      # Structured telemetry schema (pipeline_run_id & snapshot_id)
 │   ├── RUNBOOK.md            # Incident triage playbooks and backfill procedures
-│   ├── REFERENCES.md         # Official 2026 API, Glue 5.1, and Airflow 3 citations
-│   └── adr/                  # Architectural Decision Records (ADR 0001 - 0007)
+│   ├── REFERENCES.md         # Source restrictions, runtime references, and review dates
+│   └── adr/                  # Architectural Decision Records (ADR 0001 - 0008)
 │
 ├── src/
 │   └── spotify_data_platform/# Core Python package
@@ -290,7 +259,8 @@ Full budget breakdown available in [`docs/COST_STRATEGY.md`](docs/COST_STRATEGY.
 ### Prerequisites
 - Python 3.12+ (managed via `pyenv` or `asdf`)
 - Git & GitHub CLI (`gh`)
-- Docker & Docker Compose (for local Airflow 3.x)
+- Docker & Docker Compose will be needed for M6 Airflow; neither is required for the current offline suite.
+- Glue 5.1 will use a separate Python 3.11 / Spark 3.5.6 environment. The Python >=3.12 ingestion package is not installable unchanged into that runtime.
 
 ### Quick Start
 1. **Clone the repository**:
@@ -304,10 +274,10 @@ Full budget breakdown available in [`docs/COST_STRATEGY.md`](docs/COST_STRATEGY.
    make setup
    ```
 
-3. **Configure local environment variables**:
+3. **Optional integration configuration** (unnecessary for offline tests; see ADR-0008 before live use):
    ```bash
    cp .env.example .env
-   # Edit .env with your local non-production placeholders
+   # Keep placeholders; the client reads process environment, not .env automatically
    ```
 
 4. **Run static analysis and tests**:

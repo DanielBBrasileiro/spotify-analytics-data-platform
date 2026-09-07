@@ -1,7 +1,8 @@
 # Spotify Analytics Data Platform — Master Architecture Blueprint
 
-**Version:** 0.1.1
-**Status:** M1 Complete / Local Ingestion Contract Implemented
+**Architecture baseline:** v0.1.1
+**Documentation revision:** 2026-09-09 (Issue #42; no new release tag)
+**Status:** M1 Complete / Issues #1–#4 Implemented
 **Author:** Daniel Barbosa
 **Target Environment:** AWS (us-east-1), Snowflake, Docker, Python 3.12, AWS Glue 5.1, Apache Airflow 3.x
 
@@ -9,7 +10,17 @@
 
 ## 1. Executive Summary
 
-The **Spotify Analytics Data Platform** is an enterprise-grade data platform engineered to extract, process, model, and analyze longitudinal Spotify playlist snapshots. Unlike introductory data engineering tutorials that overwrite state daily or collapse ETL logic into monolithic scripts, this platform enforces production standards: strict decoupling between orchestration and execution, immutable data lake storage, distributed Spark transformations for unnesting semi-structured JSON, continuous automated Snowflake ingestion via Snowpipe, Kimball dimensional modeling with dbt Core, automated data testing, and target-governed infrastructure as code.
+The **Spotify Analytics Data Platform** is a portfolio-scale Data Engineering
+project with an offline-tested authentication client, paginated extractor,
+synthetic fixtures/parser, validated run-lineage metadata, and immutable local
+Bronze persistence. The cloud lake, Spark transformations, warehouse, dbt models,
+orchestration, and BI described below are a target design, not deployed components
+or proven production behavior.
+
+Portfolio analytics uses fully synthetic playlist histories under
+[ADR-0008](adr/0008-synthetic-analytics-and-source-use-boundary.md). Live analytical
+use of Spotify data remains unresolved; API consent alone does not establish
+permission. A synthetic end-to-end runner remains future work.
 
 Version 0.1.1 formally aligns the platform with the 2026 Spotify Web API specifications, AWS Glue 5.1 runtimes, Apache Airflow 3.x architecture, and mathematically sound canonical fact grain modeling.
 
@@ -17,10 +28,10 @@ Version 0.1.1 formally aligns the platform with the 2026 Spotify Web API specifi
 
 ## 2. Project Objectives
 
-1. **Demonstrate Senior/Staff Engineering Practices**: Implement production-grade architecture, infrastructure as code, CI/CD, modular code, and rigorous documentation suitable for international senior data engineer evaluations.
-2. **Longitudinal Analytical Capability**: Ingest and model historical playlist snapshots to measure track longevity, playlist churn, artist concentration, position movement, and composition shifts over time across monitored user-owned or collaborative playlists.
+1. **Demonstrate Data Engineering Judgment**: Build modular code, meaningful tests, explicit contracts, and incremental infrastructure definitions that can be explained in international technical interviews.
+2. **Longitudinal Analytical Capability**: Ingest and model historical playlist snapshots to measure track longevity, playlist churn, artist concentration, position movement, and composition shifts over time across fully synthetic playlist histories.
 3. **Strict Separation of Concerns**: Maintain Apache Airflow 3.x strictly as an orchestrator, AWS Glue 5.1/PySpark as the data lake processing engine, Snowflake as the analytical warehouse, and dbt Core as the business modeling tool.
-4. **Budget & Cost Governance**: Design the entire infrastructure around a portfolio budget target ceiling of **$20.00 USD/month**, leveraging serverless architectures, ephemeral execution, and aggressive warehouse auto-suspension.
+4. **Budget & Cost Governance**: Design the entire infrastructure around an operational portfolio budget target of **$20.00 USD/month**, leveraging serverless architectures, ephemeral execution, and aggressive warehouse auto-suspension.
 5. **Secure Credential Architecture**: Zero secrets committed, OAuth 2.0 Authorization Code flow with refresh token persistence in AWS Secrets Manager, least-privilege IAM policies, and encrypted storage.
 
 ---
@@ -28,7 +39,7 @@ Version 0.1.1 formally aligns the platform with the 2026 Spotify Web API specifi
 ## 3. Non-Goals
 
 - **Real-Time Streaming**: This platform does not ingest Kafka/Kinesis streams. Spotify's API does not emit real-time event streams; a batch snapshot cadence (daily/hourly) is the technically appropriate pattern.
-- **Arbitrary Global Editorial Scraping**: The platform does not claim or attempt unsupported scraping of arbitrary public Spotify editorial playlists without authorized access. Monitored playlists are user-owned, followed, or collaborative playlists accessible under authorized application scopes.
+- **Arbitrary Global Editorial Scraping**: The platform does not claim or attempt unsupported scraping of arbitrary public Spotify editorial playlists without authorized access. The items endpoint requires the authorized user to own the playlist or be a collaborator; following a playlist alone is insufficient. Permitted use remains a separate requirement.
 - **Over-Engineered Infrastructure**: Kubernetes (EKS), Apache Flink, or Databricks are explicitly excluded to prevent unnecessary cost and administrative complexity.
 - **Airflow Compute Monolith**: Airflow will not execute data extraction or data transformation in worker memory.
 - **Production Commercial SLA**: This is a portfolio demonstration platform; 99.999% high-availability guarantees and multi-region failover are out of scope.
@@ -37,7 +48,7 @@ Version 0.1.1 formally aligns the platform with the 2026 Spotify Web API specifi
 
 ## 4. Business Use Cases
 
-1. **Track Churn & Retention Analysis**: Determine the exact entry date, exit date, and retention tenure (days present) of tracks within monitored playlists.
+1. **Track Churn & Retention Analysis**: Determine observed entries, exits, and retention across synthetic daily observations; do not infer exact changes between captures.
 2. **Artist Concentration & Representation**: Analyze which artists occupy the greatest share of playlist real estate and how artist representation shifts over months.
 3. **Playlist Volatility Tracking**: Quantify turnover rates (daily additions vs. removals) across monitored playlists to evaluate curation dynamics.
 4. **Positional Trajectory**: Track daily chart and rank movement, measuring best position achieved and average position over a song's lifecycle.
@@ -49,7 +60,7 @@ Version 0.1.1 formally aligns the platform with the 2026 Spotify Web API specifi
 
 1. **Idempotent Data Lake Ingestion**: Safely re-run ingestion pipelines for any historical date without creating duplicate records or corrupting warehouse state.
 2. **Schema Drift Quarantine**: Prevent upstream Spotify JSON changes from breaking downstream warehouse queries through explicit PySpark schema enforcement and item-type validation.
-3. **Automated Snowpipe Loading**: Ingest partitioned Parquet files into Snowflake within seconds of creation via Amazon S3 event notifications.
+3. **Automated Snowpipe Loading**: Ingest partitioned Parquet files into Snowflake after creation, with latency to be measured via Amazon S3 event notifications.
 4. **Deterministic Merge Backfills**: Enable arbitrary historical backfills and retries using dbt SQL `MERGE` on a canonical composite unique key.
 5. **Source Version Tracking**: Track upstream playlist mutations via Spotify's native `snapshot_id`.
 
@@ -59,57 +70,19 @@ Version 0.1.1 formally aligns the platform with the 2026 Spotify Web API specifi
 
 ```mermaid
 flowchart TD
-    subgraph Auth["OAuth 2.0 Authentication"]
-        Operator["Operator Setup<br/>(One-Time Interactive)"] -->|Auth Code Consent| SpotifyAuth["Spotify Accounts Service"]
-        SpotifyAuth -->|Refresh Token| SecMgr[("AWS Secrets Manager<br/>(spotify/api/credentials)")]
-    end
-
-    subgraph Source["Source Layer"]
-        API["Spotify Web API<br/>(/v1/playlists/{id}/items)"]
-    end
-
-    subgraph Orchestration["Orchestration Layer (Local / Docker)"]
-        Airflow["Apache Airflow 3.x<br/>• Task SDK Coordination<br/>• External Service Operators<br/>• Deadline Alerts & Quality Gates"]
-    end
-
-    subgraph Lake["AWS Data Lake (us-east-1)"]
-        Lambda["AWS Lambda Extractor<br/>(Python 3.12, Secrets Manager)"]
-        S3Bronze[("Amazon S3 Bronze<br/>• Immutable Raw JSON<br/>• partitioned by date/run_id")]
-        Glue["AWS Glue 5.1 / PySpark 3.5.6<br/>• Schema Enforcement<br/>• Explode Arrays<br/>• Deduplication"]
-        S3Silver[("Amazon S3 Silver<br/>• Curated Parquet<br/>• Snappy Compressed")]
-    end
-
-    subgraph Warehouse["Snowflake Analytical Warehouse"]
-        SQS["AWS SQS / S3 Event Notification"]
-        Snowpipe["Snowpipe Continuous Ingestion"]
-        Landing["LANDING Schema<br/>(1:1 Silver Parquet Mapping + Metadata)"]
-        dbt["dbt Core Engine<br/>• Staging Views<br/>• Dimensional Core<br/>• Analytical Marts"]
-        Core["CORE & MARTS Schemas<br/>• Star Schema Tables<br/>• Longitudinal Marts"]
-    end
-
-    subgraph Consumption["Serving & BI"]
-        PowerBI["Power BI Dashboard<br/>(DirectQuery / Scheduled Import)"]
-    end
-
-    %% Flow connections
-    SecMgr -.->|Fetch Token| Lambda
-    Lambda -->|Refresh Token Exchange & GET| API
-    API -->|HTTPS JSON (50 items/page)| Lambda
-    Lambda -->|PutObject| S3Bronze
-    S3Bronze -->|Read Raw JSON| Glue
-    Glue -->|Write Parquet| S3Silver
-    S3Silver -->|S3 Event| SQS
-    SQS -->|Trigger Load| Snowpipe
-    Snowpipe -->|Copy Into| Landing
-    Landing -->|Transform| dbt
-    dbt -->|Incremental Merge| Core
-    Core -->|Query| PowerBI
-
-    %% Orchestration triggers
-    Airflow -.->|1. Trigger| Lambda
-    Airflow -.->|2. Trigger| Glue
-    Airflow -.->|3. Validate Load| Landing
-    Airflow -.->|4. Execute| dbt
+    Synthetic["Synthetic histories"] --> Ingest["Ingestion adapter: planned Lambda"]
+    Consent["Initial and periodic consent"] --> API["Spotify API: conditional integration"]
+    API -.-> Ingest
+    Ingest --> Bronze["S3 Bronze: raw JSON"]
+    Bronze --> Glue["Glue 5.1: Spark normalization"]
+    Glue --> Silver["S3 Silver: Parquet"]
+    Silver --> Snowpipe["Snowpipe: file ingestion"]
+    Snowpipe --> Landing["Snowflake Landing"]
+    Landing --> dbt["dbt: Staging, Core, Marts"]
+    dbt --> BI["Power BI: synthetic demo"]
+    Airflow["Planned Airflow orchestration"] -.-> Ingest
+    Airflow -.-> Glue
+    Airflow -.-> dbt
 ```
 
 ---
@@ -132,14 +105,18 @@ flowchart TD
 
 ---
 
-## 8. Data Flow
+## 8. Planned Data Flow
 
-1. **Extraction (T0)**: Airflow triggers the Lambda extractor with target playlist IDs, `snapshot_date`, and generated physical `pipeline_run_id`.
-2. **Token Refresh & Bronze Landing (T0 + 30s)**: Lambda retrieves the refresh token from Secrets Manager, obtains a short-lived access token from Spotify Accounts, paginates `GET /v1/playlists/{id}/items` (limit=50), captures `spotify_snapshot_id`, and writes raw JSON to `s3://<bucket>/bronze/spotify/playlist_tracks/ingestion_date=YYYY-MM-DD/run_id=<run_id>/playlist_<id>.json`.
-3. **Silver Transformation (T0 + 60s)**: Airflow triggers the AWS Glue 5.1 PySpark job. The job reads Bronze JSON, enforces explicit StructType schemas, validates item types (extracting tracks and quarantining non-tracks), explodes artist relationships, deduplicates entities, and writes Snappy Parquet to S3 Silver partitioned by `ingestion_date`.
-4. **Warehouse Landing (T0 + 120s)**: S3 object creation triggers an SQS event consumed by Snowpipe, loading Parquet partitions into Snowflake `LANDING` tables along with file audit metadata (`METADATA$FILENAME`, `METADATA$FILE_ROW_NUMBER`).
-5. **Dimensional Modeling (T0 + 180s)**: Airflow validates row counts in Landing and triggers `dbt build`. dbt updates staging views, incrementally merges core dimensions, merges `fact_playlist_snapshot` on `snapshot_pk`, and refreshes analytical marts.
-6. **Reporting (T0 + 300s)**: Power BI queries curated models in Snowflake `MARTS`.
+The API/auth steps describe only the conditional integration. The synthetic demo
+will supply invented observations without Spotify credentials; its adapter remains
+to be implemented. Downstream processing is the same planned design.
+
+1. **Extraction**: Airflow triggers the Lambda extractor with target playlist IDs, `snapshot_date`, and generated physical `pipeline_run_id`.
+2. **Token Refresh & Bronze Landing**: Lambda retrieves the refresh token from Secrets Manager, obtains a short-lived access token from Spotify Accounts, paginates `GET /v1/playlists/{id}/items` (limit=50), captures `spotify_snapshot_id`, and writes raw JSON to `s3://<bucket>/bronze/spotify/playlist_tracks/ingestion_date=YYYY-MM-DD/run_id=<run_id>/playlist_<id>.json`.
+3. **Silver Transformation**: Airflow triggers the AWS Glue 5.1 PySpark job. The job reads Bronze JSON, enforces explicit StructType schemas, validates item types (extracting tracks and quarantining non-tracks), explodes artist relationships, deduplicates entities, and writes Snappy Parquet to S3 Silver partitioned by `ingestion_date`.
+4. **Warehouse Landing**: S3 object creation triggers an SQS event consumed by Snowpipe, loading Parquet partitions into Snowflake `LANDING` tables along with file audit metadata (`METADATA$FILENAME`, `METADATA$FILE_ROW_NUMBER`).
+5. **Dimensional Modeling**: Airflow validates row counts in Landing and triggers `dbt build`. dbt updates staging views, incrementally merges core dimensions, merges `fact_playlist_snapshot` on `snapshot_pk`, and refreshes analytical marts.
+6. **Reporting**: Power BI queries curated models in Snowflake `MARTS`.
 
 ---
 
@@ -179,7 +156,7 @@ s3://<platform-bucket>/
 
 ## 10. File Formats
 
-- **Bronze Layer**: UTF-8 JSON. Preserves 100% of raw API payloads, nested structures, and response headers for complete auditability.
+- **Bronze Layer**: UTF-8 JSON. Preserves decoded JSON bodies, nested values, order, nulls, and unknown fields. The current extractor returns metadata, pages, and consolidated items; response headers and original wire bytes are not persisted.
 - **Silver Layer**: Apache Parquet with Snappy compression. Columnar, strictly typed, splittable, and optimized for Snowflake ingestion.
 - **Metadata Layer**: JSON execution manifests documenting run telemetry and audit metrics.
 
@@ -195,7 +172,7 @@ s3://<platform-bucket>/
 ## 12. Spotify Extraction Strategy
 
 - **Endpoint**: `/v1/playlists/{playlist_id}/items`.
-- **Authentication**: OAuth 2.0 Authorization Code Flow with Refresh Token. Initial user consent provides the `refresh_token`; scheduled executions dynamically request short-lived bearer tokens via `POST https://accounts.spotify.com/api/token` (`grant_type=refresh_token`).
+- **Authentication**: Authorization Code with periodic reauthorization per ADR-0007. Refresh tokens last six months from authorization; routine access-token refresh does not renew that period. The local client handles `invalid_grant`; browser setup, durable token storage, and expiry alerts remain planned.
 - **Scopes**: `playlist-read-private`, `playlist-read-collaborative`.
 - **Source Lineage**: Captures `spotify_snapshot_id` returned on the playlist response.
 
@@ -237,9 +214,9 @@ s3://<platform-bucket>/
 
 ## 17. Spark Transformation Strategy
 
-- Implemented on **AWS Glue 5.1** running Apache Spark 3.5.6 and Python 3.11.
+- Planned for **AWS Glue 5.1**, Apache Spark 3.5.6 and Python 3.11. Keep this environment separate from the local Python >=3.12 package; shared code requires explicit runtime compatibility validation.
 - Ingests raw Bronze JSON using explicit `StructType` schemas.
-- Validates item structure: checks `item.track` (or `item.episode`), extracting supported music tracks and quarantining non-track items.
+- Validates item structure: checks the wrapper's `item.type` (`track` or `episode`), extracting supported music tracks and quarantining non-track items.
 - Explodes nested artist arrays to produce normalized `tracks` and `track_artists` datasets.
 - Coalesces output partitions to avoid tiny-file fragmentation.
 
@@ -265,7 +242,7 @@ s3://<platform-bucket>/
 ## 20. Snowpipe Design
 
 - Configured with `AUTO_INGEST = TRUE` via Amazon SQS notifications.
-- **Idempotency Clarification**: Snowpipe file-load tracking guarantees that a specific S3 object is not loaded multiple times by the pipe. However, **Snowpipe does NOT provide application business deduplication**. Business deduplication is enforced downstream in dbt via canonical keys and SQL `MERGE`.
+- **Idempotency Clarification**: Snowpipe tracks loaded files subject to its load-history semantics. This is separate from business deduplication, which is planned in dbt through canonical keys and controlled merge/replay behavior.
 
 ---
 
@@ -348,10 +325,16 @@ Refer to [`docs/DATA_MODEL.md`](DATA_MODEL.md) for full ERD and schema dictionar
 
 ## 26. Idempotency
 
-Idempotency is enforced end-to-end:
-- Bronze: Scoped by execution `run_id`.
-- Silver: Parquet partitions overwritten atomically per `ingestion_date`.
-- Snowflake Core / Marts: Enforced via `MERGE` on deterministic surrogate keys (`snapshot_pk`).
+Idempotency is a layer-specific design goal; it is not yet validated end-to-end:
+- Bronze: planned append-only artifacts scoped by physical `run_id`.
+- Silver: partition publication/replacement semantics remain to be implemented;
+  multiple object writes must not be described as an atomic S3 transaction.
+- Snowflake: planned merge on deterministic business keys. M5 must define the
+  canonical observation per date and removal of obsolete slots when replacing a
+  snapshot with fewer items, including empty playlists.
+
+Historical replay requires previously captured Bronze data. A fresh API call
+cannot reconstruct an unobserved past playlist by assigning it an older date.
 
 ---
 
@@ -359,7 +342,7 @@ Idempotency is enforced end-to-end:
 
 1. **Spark Tier**: Deduplicates artist and album entities extracted across multiple tracks within the run batch.
 2. **Staging Tier**: Uses `ROW_NUMBER() OVER (PARTITION BY ... ORDER BY _loaded_at DESC)` to isolate the most recent landing record per slot.
-3. **Core Tier**: dbt `MERGE` guarantees a single row per canonical unique key.
+3. **Core Tier**: Planned dbt merge uses `snapshot_pk`; source uniqueness, canonical-run selection, and obsolete-slot handling require implementation and tests.
 
 ---
 
@@ -417,7 +400,7 @@ Structured JSON telemetry captures execution and version metadata:
 - Zero hardcoded secrets in version control.
 - OAuth 2.0 Authorization Code Flow with Refresh Token stored in AWS Secrets Manager.
 - Short-lived operational access tokens (1 hour).
-- Encryption at rest (SSE-S3 / KMS, Snowflake TDE) and in transit (TLS 1.3).
+- Planned encryption at rest (SSE-S3 / KMS, Snowflake-managed encryption) and secure TLS in transit. The local transport verifies certificates; no negotiated TLS version has been measured.
 
 ---
 
@@ -440,9 +423,9 @@ Structured JSON telemetry captures execution and version metadata:
 
 ## 36. Terraform Strategy
 
-- All cloud resources defined in `infra/terraform/`.
+- Future cloud resources will be defined in `infra/terraform/`; it currently contains only a design README.
 - Modular layout (`modules/s3`, `modules/iam`, `modules/lambda`, `modules/glue`, `modules/monitoring`).
-- Plan and validate in CI; zero live infrastructure deployed without explicit user confirmation.
+- Terraform validation/planning in CI is future M8 work. Cloud deployment requires explicit owner authorization.
 
 ---
 
@@ -450,22 +433,22 @@ Structured JSON telemetry captures execution and version metadata:
 
 - GitHub Actions executes static checks on pull requests and pushes to `main`.
 - Tools: Ruff (`ruff check .`, `ruff format --check .`), pytest (`pytest`).
-- Zero cloud credentials required; runs completely offline.
+- Tests require no cloud credentials and block network calls. CI checkout and dependency installation still use the network.
 
 ---
 
 ## 38. Testing Strategy
 
 - Unit Tests: Offline tests using synthetic Spotify 2026 JSON fixtures.
-- PySpark Tests: Local SparkSession validating unnesting and schema enforcement.
-- Warehouse Tests: dbt schema assertions and singular SQL tests.
+- Planned M3 tests: Local SparkSession validating unnesting and schema enforcement.
+- Planned M5 tests: dbt schema assertions and singular SQL tests.
 
 ---
 
 ## 39. Local Development
 
 - Local Python 3.12 virtualenv managed via `uv` or `pip`.
-- Airflow 3.x containerized via Docker Compose.
+- Future Airflow environment targets >=3.1,<4 because Deadline Alerts start in 3.1; exact runtime and provider versions will be pinned in M6. No Compose environment exists yet.
 - Validated run-lineage metadata and immutable local Bronze JSON persistence mirror
   the future S3 object hierarchy under the gitignored `data/` directory.
 - Fast inner-loop feedback via `make check`.
@@ -474,33 +457,33 @@ Structured JSON telemetry captures execution and version metadata:
 
 ## 40. Cloud Development
 
-- Deployed on-demand via Terraform into `us-east-1`.
-- Clean teardown via `terraform destroy` post-demonstration.
+- Future authorized deployments target `us-east-1`, after Terraform implementation.
+- Review teardown scope and verify resources and billing afterward; no destroy workflow is currently implemented.
 
 ---
 
 ## 41. Cost Controls
 
 - Portfolio budget target: **≤ $20.00 USD / month** (operational alert threshold).
-- AWS Lambda Free Tier (400,000 GB-seconds and 1M requests/month).
+- Verify current pricing and account-specific credits/Free Tier eligibility before deployment; no allowance or zero-cost outcome is assumed.
 - Snowflake `X-Small` warehouse with `AUTO_SUSPEND = 60`.
-- CloudWatch log retention capped at 7 days.
+- Planned CloudWatch log retention: 7 days; retention does not eliminate ingestion/storage charges.
 - Zero always-on compute (no MWAA, no NAT Gateways, no EMR).
 
 ---
 
 ## 42. Failure Scenarios
 
-1. **Token Invalidation / Expiration**: Secrets Manager refresh token rejected (`invalid_grant`); extractor emits alert for operator re-authorization.
+1. **Token Invalidation / Expiration**: The local client raises `InvalidGrantException` for `invalid_grant`; future cloud adapters must emit a sanitized operator notification. No alert is implemented today.
 2. **API Rate Limiting (429)**: Backoff with jitter respecting `Retry-After`.
-3. **Mid-Pagination Playlist Mutation**: `spotify_snapshot_id` changes during pagination; extraction aborts and restarts to preserve atomic snapshot integrity.
+3. **Mid-Pagination Playlist Mutation**: A changed metadata `snapshot_id` raises `SnapshotChangedException` without returning a partial result. The caller must restart the whole read. This is optimistic validation, not a pinned or atomic server-side snapshot; restart is not automatic in the current extractor.
 4. **dbt Test Assertion Failure**: Pipeline halts, preventing bad data from materializing in `MARTS`.
 
 ---
 
 ## 43. Recovery Scenarios
 
-1. **Token Re-Authorization**: Operator runs one-time setup utility to refresh Secrets Manager with a valid refresh token.
+1. **Token Reauthorization**: Operator repeats consent after expiry/revocation. No setup utility or Secrets Manager persistence adapter is implemented yet; follow ADR-0007 and the local runbook boundary.
 2. **Historical Backfill**: Re-run Glue ETL over Bronze history, followed by dbt merge backfill.
 3. **Partition Purge**: Delete target Silver partition and re-trigger pipeline for that date.
 

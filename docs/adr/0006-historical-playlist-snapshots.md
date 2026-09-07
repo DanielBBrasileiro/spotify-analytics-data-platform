@@ -9,7 +9,7 @@ Standard music API tutorial pipelines overwrite current playlist state on each r
 - Retention duration (days on playlist).
 - Playlist rank movements, volatility, and artist representation shifts over time.
 
-To build an enterprise data platform, we must preserve historical snapshot states. However, the snapshot model must define a mathematically sound canonical grain that guarantees idempotency across pipeline retries and arbitrary historical backfills.
+The portfolio models historical observations at an explicit daily grain. These warehouse semantics are planned and require implementation tests. Analytical demonstrations use synthetic histories under [ADR-0008](0008-synthetic-analytics-and-source-use-boundary.md).
 
 ## Decision
 We decide to model playlist track membership as an **immutable, append-only historical snapshot series** anchored by a deterministic daily canonical grain and upstream source-version lineage:
@@ -48,7 +48,7 @@ If the platform evolves from a daily snapshot cadence to intra-day snapshots (e.
 ## Consequences
 
 ### Positive Consequences
-- **Strict Idempotency**: Backfills and retries are mathematically deterministic and safe against accidental row duplication.
+- **Deterministic Business Keys**: Planned merge keys support repeatable processing; canonical-run selection, source deduplication, and obsolete-slot handling still require implementation and validation.
 - **Upstream Change Detection**: `spotify_snapshot_id` enables downstream models to identify whether playlist contents changed between consecutive pipeline runs.
 - **Rich Temporal Analytics**: Powers queries for daily entry/exit churn, track longevity, and positional volatility.
 
@@ -57,7 +57,7 @@ If the platform evolves from a daily snapshot cadence to intra-day snapshots (e.
 - **Date Filtering Required**: Queries must filter on `snapshot_date` or consume pre-aggregated marts to avoid scanning entire history.
 
 ## Risks
-- Upstream playlist modified midway through extraction pagination. Mitigated by comparing `spotify_snapshot_id` across paginated chunks and aborting if the snapshot ID shifts during pagination.
+- Upstream playlist modified midway through extraction pagination. The implemented extractor reads `snapshot_id` from playlist metadata before pagination and after each page. It raises `SnapshotChangedException` on an observed change. Items pages do not carry `snapshot_id`; these checks are optimistic and do not provide a pinned server-side read.
 
 ## Review Conditions
 Review if monitored playlists scale to tens of thousands of items or intra-day cadences, requiring change-data-capture (CDC) event logs.
