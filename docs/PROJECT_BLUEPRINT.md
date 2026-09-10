@@ -1,7 +1,7 @@
 # Spotify Analytics Data Platform — Master Architecture Blueprint
 
 **Version:** 0.1.1
-**Status:** M1 In Progress / Local Authentication and Playlist Extraction Implemented
+**Status:** M1 Complete / Local Ingestion Contract Implemented
 **Author:** Daniel Barbosa
 **Target Environment:** AWS (us-east-1), Snowflake, Docker, Python 3.12, AWS Glue 5.1, Apache Airflow 3.x
 
@@ -466,6 +466,8 @@ Structured JSON telemetry captures execution and version metadata:
 
 - Local Python 3.12 virtualenv managed via `uv` or `pip`.
 - Airflow 3.x containerized via Docker Compose.
+- Validated run-lineage metadata and immutable local Bronze JSON persistence mirror
+  the future S3 object hierarchy under the gitignored `data/` directory.
 - Fast inner-loop feedback via `make check`.
 
 ---

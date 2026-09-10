@@ -10,6 +10,12 @@ The platform applies structured telemetry anchored by two distinct identifiers:
 1. **`pipeline_run_id` (UUID v4)**: A non-deterministic physical execution identifier generated per pipeline run to track processing lineage across Lambda, Glue, Snowflake, and dbt.
 2. **`spotify_snapshot_id` (String)**: An upstream version identifier emitted directly by Spotify representing the state of the playlist. It enables upstream mutation detection and idempotency verification.
 
+M1 implements the core per-playlist execution fields as the Pydantic
+`PipelineRunMetadata` contract in `spotify_data_platform.ingestion`. The complete
+cross-tier event schema below adds component/version/duration metrics that are populated
+by later cloud and observability milestones. Core telemetry is not injected into the
+immutable Bronze source snapshot JSON.
+
 ---
 
 ## 2. Standard Telemetry Event Schema

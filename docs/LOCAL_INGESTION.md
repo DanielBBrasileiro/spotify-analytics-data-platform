@@ -94,8 +94,64 @@ is consulted before every attempt, including after a rate-limit wait.
 
 `timeout` is a per-socket-operation timeout, not a total extraction deadline.
 The snapshot is assembled in memory; `pages` and `items` duplicate content when
-serialized. Persistence, run IDs, business dates, and ingestion manifests remain
-separate backlog work. M1 tests do not demonstrate live Spotify authorization.
+serialized. M1 tests do not demonstrate live Spotify authorization.
+
+## Run metadata and local Bronze persistence (Issue #4)
+
+`PipelineRunMetadata` is the validated execution-lineage contract used to keep
+physical execution identity separate from the logical business observation date.
+It requires a UUID v4 `pipeline_run_id`, the verified Spotify source version,
+playlist ID, `snapshot_date`, timezone-aware capture timestamp, extracted record
+count, and lifecycle status. Capture timestamps are normalized to UTC.
+
+```python
+from datetime import UTC, date, datetime
+from uuid import uuid4
+
+from spotify_data_platform.ingestion import (
+    LocalBronzeWriter,
+    PipelineRunMetadata,
+    RunStatus,
+)
+
+run = PipelineRunMetadata(
+    pipeline_run_id=uuid4(),
+    spotify_snapshot_id=snapshot["spotify_snapshot_id"],
+    playlist_id=snapshot["playlist_id"],
+    snapshot_date=date.today(),
+    snapshot_timestamp=datetime.now(UTC),
+    records_extracted=len(snapshot["items"]),
+    status=RunStatus.SUCCESS,
+)
+
+path = LocalBronzeWriter().write(snapshot, run)
+```
+
+The default writer mirrors the future S3 Bronze key hierarchy under the gitignored
+`data/` directory:
+
+```text
+data/bronze/spotify/playlist_tracks/
+  ingestion_date=YYYY-MM-DD/
+    run_id=<pipeline_run_id>/
+      playlist_<playlist_id>.json
+```
+
+`snapshot_date` is the canonical business observation date. `ingestion_date` is
+instead derived from the actual **UTC capture timestamp**, so a retry or historical
+backfill can target an earlier business date without falsifying its physical landing
+date. A new execution receives a new UUID v4 and therefore a new run directory.
+
+Local Bronze files preserve the extraction envelope as JSON without injecting
+telemetry into the source payload. The writer checks playlist/source-version lineage
+and the raw item count before publishing. Only complete `SUCCESS` observations are
+landed. Publication is no-clobber and atomic at the final-path boundary: an existing
+object is never overwritten and temporary files are removed on failure. This mirrors
+ADR-0002's append-only rule while keeping AWS S3 calls out of M1.
+
+The metadata model supports the broader observability lifecycle states (`RUNNING`,
+`SUCCESS`, `FAILED`, `PARTIAL`), but persisted failure/run manifests are intentionally
+separate from Bronze raw objects and remain later observability work.
 
 ## Offline verification
 
@@ -126,5 +182,7 @@ coverage runs pytest with branch measurement and requires at least 91% overall
 coverage. Tests inject HTTP responses and clocks, block socket connections, and
 use synthetic credentials only. An integration test exercises the real OAuth,
 HTTP, and extraction components with a scripted urllib boundary, including token
-rotation and expiry during a rate-limit wait. These tests establish local behavior, not live
-Spotify access or cloud deployment readiness.
+rotation and expiry during a rate-limit wait. A second integration path extracts a
+checked-in Spotify fixture and lands it through the real local Bronze writer, proving
+the path and raw JSON round trip without network access. These tests establish local
+behavior, not live Spotify access or cloud deployment readiness.

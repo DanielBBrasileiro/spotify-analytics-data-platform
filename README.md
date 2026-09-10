@@ -10,8 +10,8 @@
 
 ---
 
-### Project Status: M1 — Local Ingestion in Progress
-> **Implemented:** Refresh-token authentication and a paginated playlist extractor with version checks, bounded retries, and offline unit/integration tests. See [Local Ingestion](docs/LOCAL_INGESTION.md) for usage, payload contracts, and limitations. CI enforces lint, formatting, and at least 91% statement/branch coverage overall. Live Spotify access and the cloud pipeline have not been validated by these tests. The latest tagged release remains **v0.1.1**; subsequent components follow [BACKLOG.md](BACKLOG.md).
+### Project Status: M1 — Local Ingestion Complete
+> **Implemented:** Refresh-token authentication, paginated/version-checked playlist extraction, synthetic 2026 fixtures and parser contracts, Pydantic run-lineage metadata, and immutable local Bronze persistence mirroring the future S3 hierarchy. See [Local Ingestion](docs/LOCAL_INGESTION.md) for usage, payload contracts, and limitations. CI enforces lint, formatting, and at least 91% statement/branch coverage overall. Live Spotify access and the cloud pipeline have not been validated by these tests. The latest tagged release remains **v0.1.1**; cloud ingestion begins in M2 and follows [BACKLOG.md](BACKLOG.md).
 
 ---
 
@@ -329,7 +329,7 @@ Full budget breakdown available in [`docs/COST_STRATEGY.md`](docs/COST_STRATEGY.
 ## 10. Phased Implementation Roadmap
 
 - [x] **Milestone M0 — Project Foundation & Architecture Blueprint** (Completed & Revised in v0.1.1)
-- [ ] **Milestone M1 — Local Spotify Ingestion** (Auth Code client, pagination, mock fixtures, parser tests)
+- [x] **Milestone M1 — Local Spotify Ingestion** (Auth Code client, pagination, fixtures/parser tests, run metadata, local Bronze persistence)
 - [ ] **Milestone M2 — AWS Lambda & Bronze Data Lake** (Serverless extractor, S3 Bronze, Secrets Manager)
 - [ ] **Milestone M3 — Glue / PySpark & Silver Layer** (Glue 5.1, StructType schemas, array explosion, Parquet)
 - [ ] **Milestone M4 — Snowflake & Snowpipe** (Storage integration, Snowpipe auto-ingest, Landing tables)

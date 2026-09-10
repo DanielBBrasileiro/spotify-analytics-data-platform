@@ -9,7 +9,7 @@ This backlog establishes the structured, phased implementation roadmap for the *
 | Milestone | Title | Status | Target Scope |
 | :--- | :--- | :--- | :--- |
 | **M0** | **Project Foundation & Architecture Blueprint** | **COMPLETED (v0.1.1)** | Repository bootstrapping, architecture blueprint, ADRs, cost governance, CI |
-| **M1** | **Local Spotify Ingestion** | Ready for Dev | Auth Code + refresh-token client, `/items` pagination (limit=50), snapshot_id, fixtures, unit tests |
+| **M1** | **Local Spotify Ingestion** | **COMPLETED** | Auth Code + refresh-token client, `/items` pagination (limit=50), snapshot_id, fixtures, run metadata, local Bronze persistence |
 | **M2** | **AWS Lambda & Bronze Data Lake** | Planned | Serverless extractor, S3 Bronze immutable storage, Secrets Manager refresh token, CloudWatch |
 | **M3** | **Glue / PySpark & Silver Layer** | Planned | AWS Glue 5.1 (Spark 3.5.6 / Python 3.11), StructType schemas, item validation, Parquet Silver |
 | **M4** | **Snowflake & Snowpipe** | Planned | Storage integration, external stage, Snowpipe auto-ingest, Landing tables with audit metadata |
