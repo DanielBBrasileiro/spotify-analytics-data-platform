@@ -9,6 +9,7 @@ import pytest
 
 from spotify_data_platform._http import Response, TransportError
 from spotify_data_platform.extraction import (
+    PageFetchTelemetry,
     PaginationException,
     PlaylistItemsExtractor,
     RateLimitExceededException,
@@ -106,6 +107,60 @@ def test_short_page_uses_actual_count_and_never_follows_external_next():
         urlsplit(call.args[0].full_url).hostname == "api.spotify.com"
         for call in transport.call_args_list
     )
+
+
+def test_page_callback_reports_only_version_checked_progress():
+    first = page(0, 2, 3)
+    second = page(2, 1, 3)
+    callback = Mock()
+    clock = Mock(side_effect=[10.0, 10.025, 20.0, 20.04])
+    extractor, _, _ = make_extractor(
+        [
+            response(metadata()),
+            response(first),
+            response(metadata()),
+            response(second),
+            response(metadata()),
+        ],
+        on_page=callback,
+        clock=clock,
+    )
+
+    extractor.extract(PLAYLIST_ID)
+
+    first_event = callback.call_args_list[0].args[0]
+    assert first_event == PageFetchTelemetry(
+        playlist_id=PLAYLIST_ID,
+        spotify_snapshot_id="version-one",
+        page_number=1,
+        offset=0,
+        records_in_page=2,
+        total_records=3,
+        duration_ms=first_event.duration_ms,
+    )
+    assert first_event.duration_ms == pytest.approx(25.0)
+    second_event = callback.call_args_list[1].args[0]
+    assert second_event == PageFetchTelemetry(
+        playlist_id=PLAYLIST_ID,
+        spotify_snapshot_id="version-one",
+        page_number=2,
+        offset=2,
+        records_in_page=1,
+        total_records=3,
+        duration_ms=second_event.duration_ms,
+    )
+    assert second_event.duration_ms == pytest.approx(40.0)
+
+
+def test_page_callback_is_not_emitted_for_a_changed_snapshot():
+    callback = Mock()
+    extractor, _, _ = make_extractor(
+        [response(metadata()), response(page()), response(metadata("version-two"))],
+        on_page=callback,
+    )
+    with pytest.raises(SnapshotChangedException):
+        extractor.extract(PLAYLIST_ID)
+    callback.assert_not_called()
 
 
 @pytest.mark.parametrize("changed_after", [0, 1])

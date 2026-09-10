@@ -6,6 +6,7 @@ import random
 import re
 import time
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import Any, Protocol, TypedDict
 from urllib.parse import urlencode
 from urllib.request import Request
@@ -29,6 +30,19 @@ class PlaylistSnapshot(TypedDict):
     playlist: dict[str, Any]
     pages: list[dict[str, Any]]
     items: list[Any]
+
+
+@dataclass(frozen=True)
+class PageFetchTelemetry:
+    """Sanitized progress emitted after one page passes source-version validation."""
+
+    playlist_id: str
+    spotify_snapshot_id: str
+    page_number: int
+    offset: int
+    records_in_page: int
+    total_records: int
+    duration_ms: float
 
 
 class SpotifyExtractionException(Exception):
@@ -65,6 +79,8 @@ class PlaylistItemsExtractor:
         transport: Callable[[Request, float], Response] = send,
         sleep: Callable[[float], None] = time.sleep,
         jitter: Callable[[], float] = random.random,
+        on_page: Callable[[PageFetchTelemetry], None] | None = None,
+        clock: Callable[[], float] = time.monotonic,
     ) -> None:
         if not math.isfinite(timeout) or timeout <= 0:
             raise ValueError("timeout must be finite and positive.")
@@ -82,6 +98,8 @@ class PlaylistItemsExtractor:
         self._max_retry_wait = max_retry_wait
         self._sleep = sleep
         self._jitter = jitter
+        self._on_page = on_page
+        self._clock = clock
 
     def extract(self, playlist_id: str) -> PlaylistSnapshot:
         """Preserve item order, nulls, duplicates, and unknown source fields."""
@@ -97,6 +115,7 @@ class PlaylistItemsExtractor:
             if len(pages) >= self._max_pages:
                 raise PaginationException("Configured page limit exceeded.")
             offset = len(items)
+            page_started_at = self._clock()
             payload = self._get_json(
                 base_url + "/items?" + urlencode({"limit": 50, "offset": offset})
             )
@@ -105,6 +124,18 @@ class PlaylistItemsExtractor:
             if self._snapshot_id(current) != snapshot_id:
                 raise SnapshotChangedException(
                     "Playlist changed during extraction; restart required."
+                )
+            if self._on_page is not None:
+                self._on_page(
+                    PageFetchTelemetry(
+                        playlist_id=playlist_id,
+                        spotify_snapshot_id=snapshot_id,
+                        page_number=len(pages) + 1,
+                        offset=offset,
+                        records_in_page=len(payload["items"]),
+                        total_records=total,
+                        duration_ms=max(0.0, (self._clock() - page_started_at) * 1000.0),
+                    )
                 )
             pages.append(payload)
             items.extend(payload["items"])

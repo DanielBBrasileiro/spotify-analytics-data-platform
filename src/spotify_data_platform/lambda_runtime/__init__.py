@@ -15,12 +15,16 @@ from .handler import (
     lambda_handler,
 )
 from .s3_writer import S3BronzeWriteError, S3BronzeWriter
+from .telemetry import JsonLogFormatter, LambdaEvent, LambdaTelemetryLogger, configure_lambda_logger
 
 __all__ = [
     "CredentialProviderError",
     "LambdaConfigurationError",
+    "LambdaEvent",
     "LambdaExtractionRequest",
     "LambdaExtractorService",
+    "LambdaTelemetryLogger",
+    "JsonLogFormatter",
     "S3BronzeWriteError",
     "S3BronzeWriter",
     "SecretsManagerCredentialProvider",
@@ -28,5 +32,6 @@ __all__ = [
     "get_default_auth_client",
     "get_default_credentials",
     "invalidate_runtime_caches",
+    "configure_lambda_logger",
     "lambda_handler",
 ]
