@@ -37,13 +37,16 @@ Spotify Web API (/v1/playlists/{id}/items)
 ```
 
 ### Key Security Characteristics:
-1. **Initial Interactive Authorization**: Executed once by the operator using Spotify's Authorization Code Flow with minimal scopes (`playlist-read-private`, `playlist-read-collaborative`).
-2. **Refresh Token Storage**: Stored securely in **AWS Secrets Manager** (`spotify/api/credentials`) containing:
+1. **Interactive Authorization**: Initial authorization and periodic reauthorization are external operator steps using Spotify's Authorization Code Flow with minimal scopes (`playlist-read-private`, `playlist-read-collaborative`).
+2. **Cloud Credential Retrieval**: The Issue #7 runtime reads **AWS Secrets Manager** (`spotify/api/credentials`) containing:
    - `client_id`
    - `client_secret`
    - `refresh_token`
-3. **Transient Access Tokens**: The operational bearer token is requested dynamically at the start of pipeline execution, cached strictly in runtime memory, and automatically expires after 3600 seconds.
-4. **Token Revocation & Rotation**: If a refresh token is compromised or revoked by the user, the secret in AWS Secrets Manager is updated with a newly issued token without code modification.
+   The JSON is validated and secret values are excluded from runtime error messages and object representations.
+3. **Local-Only Fallback**: `ENVIRONMENT=local` reads the three Spotify values from process environment. Cloud modes do not fall back to those variables when Secrets Manager fails.
+4. **Warm-Container Cache**: Credentials and the `SpotifyAuthClient` instance are cached in process memory, reducing `GetSecretValue` calls and preserving access-token/refresh-token state while the container remains warm. AWS also recommends client-side caching to improve speed and reduce Secrets Manager API cost.
+5. **Invalid Grant Recovery Boundary**: `invalid_grant` clears cached credential/auth state. After the operator reauthorizes and updates the secret, a subsequent invocation can retrieve the new value. The runtime never retries the rejected refresh token automatically.
+6. **Rotation Limitation**: If Spotify returns a new refresh token during a successful access-token refresh, the warm auth client uses it in memory. Issue #7 does not write that rotated token back to Secrets Manager; adding `PutSecretValue` would require a separate IAM/security review.
 
 ---
 
@@ -51,6 +54,7 @@ Spotify Web API (/v1/playlists/{id}/items)
 
 - Developers configure local environments using named AWS CLI profiles (e.g., `AWS_PROFILE=spotify-dev`) using temporary session credentials or AWS SSO rather than long-lived static IAM access keys.
 - Local configuration is stored in a non-tracked `.env` file created from `.env.example`.
+- The runtime only selects environment credentials when `ENVIRONMENT=local`; test and cloud failures must not silently downgrade to static environment secrets.
 
 ---
 
