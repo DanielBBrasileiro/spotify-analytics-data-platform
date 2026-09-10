@@ -10,7 +10,7 @@ This backlog establishes the structured, phased implementation roadmap for the *
 | :--- | :--- | :--- | :--- |
 | **M0** | **Project Foundation & Architecture Blueprint** | **COMPLETED (v0.1.1)** | Repository bootstrapping, architecture blueprint, ADRs, cost governance, CI |
 | **M1** | **Local Spotify Ingestion** | **COMPLETED** | Auth Code + refresh-token client, `/items` pagination (limit=50), snapshot_id, fixtures, run metadata, local Bronze persistence |
-| **M2** | **AWS Lambda & Bronze Data Lake** | In Progress (3/4) | Serverless extractor, S3 Bronze immutable storage, Secrets Manager refresh token, CloudWatch |
+| **M2** | **AWS Lambda & Bronze Data Lake** | **COMPLETED** | Serverless extractor runtime, immutable S3 Bronze contract, Secrets Manager credential provider, structured Lambda telemetry |
 | **M3** | **Glue / PySpark & Silver Layer** | Planned | AWS Glue 5.1 (Spark 3.5.6 / Python 3.11), StructType schemas, item validation, Parquet Silver |
 | **M4** | **Snowflake & Snowpipe** | Planned | Storage integration, external stage, Snowpipe auto-ingest, Landing tables with audit metadata |
 | **M5** | **dbt Analytics Engineering** | Planned | Staging views, Kimball star schema, incremental merge fact model (`snapshot_pk`), marts |
@@ -47,12 +47,13 @@ This backlog establishes the structured, phased implementation roadmap for the *
   - *Context*: Serverless execution decouples extraction from local machines.
   - *Objective*: Package the existing auth/extractor contracts into a lightweight AWS Lambda handler with immutable S3 Bronze publication. The `< 30s` target requires a future live benchmark; Secrets Manager retrieval remains Issue #7.
 - **#7 [M2] Integrate AWS Secrets Manager for API credentials in Lambda**
-  - *Status*: Implemented on the Issue #7 branch; closes when its PR merges.
+  - *Status*: Completed in PR #47; credential-boundary hardening followed in PR #48.
   - *Context*: Secure credential management for `client_id`, `client_secret`, and `refresh_token`.
   - *Objective*: Fetch credentials dynamically from AWS Secrets Manager for cloud execution, cache them across warm invocations, and use environment credentials only for explicit local mode.
 - **#8 [M2] Add CloudWatch structured JSON logging to Lambda**
+  - *Status*: Completed in PR #49.
   - *Context*: Ingestion observability requires structured telemetry in log streams.
-  - *Objective*: Configure Python logging to emit JSON events containing `pipeline_run_id`, `spotify_snapshot_id`, latency, and record counts.
+  - *Objective*: Configure Python logging to emit single-line JSON lifecycle events containing `pipeline_run_id`, playlist/source-version correlation, latency, and record counts. CloudWatch infrastructure/retention remains unprovisioned until M8.
 
 ### Milestone M3: Glue / PySpark & Silver Layer
 - **#9 [M3] Define explicit PySpark StructType schemas for Bronze & Silver**

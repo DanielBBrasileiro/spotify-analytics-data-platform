@@ -434,11 +434,19 @@ Cross-tier validation gates:
 
 ## 32. Observability
 
-Structured JSON telemetry captures execution and version metadata:
-- Execution Lineage: `pipeline_run_id` (UUID v4), `snapshot_date`, `snapshot_timestamp`.
-- Upstream Version: `spotify_snapshot_id`.
-- Metrics: Records extracted, validated, written raw, written curated, loaded snowflake, rejected, and tier durations.
-- Destination: CloudWatch Logs (Lambda & Glue), Airflow task logs, Snowflake `COPY_HISTORY`, and dbt run artifacts.
+M2 implements structured JSON telemetry for the Lambda ingestion boundary. Every
+event carries `pipeline_run_id`, `playlist_id`, `snapshot_date`, event `timestamp`,
+`duration_ms`, status, component/version fields, and a `spotify_snapshot_id` key.
+The source version is `null` for events emitted before playlist metadata establishes it.
+
+Implemented Lambda events are `EXTRACTION_START`, `PAGINATION_PAGE_FETCHED`,
+`S3_WRITE_SUCCESS`, `EXTRACTION_COMPLETE`, and sanitized `EXTRACTION_FAILED`.
+Page events are emitted only after the page passes source-version validation; failure
+events expose only the exception type, not exception text, credentials, or payloads.
+
+CloudWatch capture is a deployment target, not a provisioned resource. Log groups,
+retention, alarms, metric filters, Glue telemetry, Airflow task logs, Snowflake
+`COPY_HISTORY`, dbt artifacts, and cross-tier metrics remain later milestone work.
 
 ---
 

@@ -1,6 +1,7 @@
 """Local extraction of version-checked Spotify playlist snapshots."""
 
 from .playlist import (
+    PageFetchTelemetry,
     PaginationException,
     PlaylistItemsExtractor,
     RateLimitExceededException,
@@ -10,6 +11,7 @@ from .playlist import (
 
 __all__ = [
     "PaginationException",
+    "PageFetchTelemetry",
     "PlaylistItemsExtractor",
     "RateLimitExceededException",
     "SnapshotChangedException",
