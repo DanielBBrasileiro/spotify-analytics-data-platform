@@ -1,6 +1,5 @@
 """Filesystem adapter mirroring the future immutable S3 Bronze object layout."""
 
-import json
 import os
 import tempfile
 from collections.abc import Mapping
@@ -9,7 +8,8 @@ from typing import Any
 
 from spotify_data_platform.storage import build_bronze_playlist_key
 
-from .models import PipelineRunMetadata, RunStatus
+from .bronze import BronzeSnapshotValidationError, serialize_bronze_snapshot
+from .models import PipelineRunMetadata
 
 
 class LocalBronzePersistenceError(Exception):
@@ -37,11 +37,10 @@ class LocalBronzeWriter:
 
     def write(self, snapshot: Mapping[str, Any], metadata: PipelineRunMetadata) -> Path:
         """Validate lineage and atomically publish a source-preserving JSON snapshot."""
-        self._validate_snapshot(snapshot, metadata)
         try:
-            serialized = json.dumps(snapshot, ensure_ascii=False, indent=2) + "\n"
-        except (TypeError, ValueError) as exc:
-            raise LocalBronzePersistenceError("Snapshot is not JSON serializable.") from exc
+            serialized = serialize_bronze_snapshot(snapshot, metadata).decode("utf-8")
+        except BronzeSnapshotValidationError as exc:
+            raise LocalBronzePersistenceError(str(exc)) from exc
 
         destination = self.destination_for(metadata)
         destination.parent.mkdir(parents=True, exist_ok=True)
@@ -72,27 +71,3 @@ class LocalBronzeWriter:
         finally:
             if temporary is not None:
                 temporary.unlink(missing_ok=True)
-
-    @staticmethod
-    def _validate_snapshot(snapshot: Mapping[str, Any], metadata: PipelineRunMetadata) -> None:
-        if metadata.status is not RunStatus.SUCCESS:
-            raise LocalBronzePersistenceError(
-                "Only complete SUCCESS snapshots may be persisted to Bronze."
-            )
-        if snapshot.get("playlist_id") != metadata.playlist_id:
-            raise LocalBronzePersistenceError("Snapshot playlist_id does not match run metadata.")
-        if snapshot.get("spotify_snapshot_id") != metadata.spotify_snapshot_id:
-            raise LocalBronzePersistenceError(
-                "Snapshot spotify_snapshot_id does not match run metadata."
-            )
-        items = snapshot.get("items")
-        if not isinstance(items, list):
-            raise LocalBronzePersistenceError("Snapshot items must be an array.")
-        if len(items) != metadata.records_extracted:
-            raise LocalBronzePersistenceError(
-                "Snapshot item count does not match records_extracted metadata."
-            )
-        if not isinstance(snapshot.get("playlist"), dict) or not isinstance(
-            snapshot.get("pages"), list
-        ):
-            raise LocalBronzePersistenceError("Snapshot does not match the extraction envelope.")
