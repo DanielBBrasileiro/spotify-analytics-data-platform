@@ -6,7 +6,8 @@ The portfolio demonstration uses fully synthetic data under
 [ADR-0008](adr/0008-synthetic-analytics-and-source-use-boundary.md). The live API
 example below documents the implemented interface; it is not the default demo
 path or permission to analyze live Spotify content. Live analytical use remains
-unresolved. No synthetic runner or persistent Bronze writer exists yet.
+unresolved. M1 includes local Bronze persistence for offline/synthetic inputs; no
+synthetic end-to-end runner or cloud S3 writer exists yet.
 
 The local package and CI use Python 3.12. Future Glue 5.1 jobs use Python 3.11
 and Spark 3.5.6 in a separate environment; do not install this Python >=3.12 package

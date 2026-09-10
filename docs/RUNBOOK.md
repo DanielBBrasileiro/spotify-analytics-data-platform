@@ -2,9 +2,10 @@
 
 ## 1. Current operating boundary
 
-M1 implements local authentication, extraction, fixtures, and parsing. Metadata
-and local persistence remain Issue #4. Lambda, Glue, Snowflake, dbt, Airflow,
-Secrets Manager adapters, and recovery scripts are not implemented/deployed.
+M1 implements local authentication, extraction, fixtures/parsing, validated run
+metadata, and immutable local Bronze persistence. Lambda, S3 API integration, Glue,
+Snowflake, dbt, Airflow, Secrets Manager adapters, and recovery scripts are not
+implemented/deployed.
 Cloud procedures below are future runbook specifications, not executable setup.
 Analytical demos use synthetic data under
 [ADR-0008](adr/0008-synthetic-analytics-and-source-use-boundary.md).
@@ -18,6 +19,7 @@ Analytical demos use synthetic data under
 | `RateLimitExceededException` | Stops after the request retry/wait budget | Inspect cadence and throttling; do not immediately loop on the failed call |
 | `PaginationException` | Rejects contradictory pagination metadata | Inspect sanitized metadata and contract changes before retrying |
 | HTTP 401/403 or transport failure | Raises `SpotifyExtractionException`; no automatic retry | Verify credentials, owner/collaborator access, and connectivity as applicable |
+| Local Bronze collision | Raises `LocalBronzePersistenceError` and preserves the existing object | Treat the run directory as immutable; use a new UUID v4 for a new physical execution |
 
 The extractor obtains `snapshot_id` from playlist metadata before pagination and
 after every page, including the last. `/items` pages do not contain that version.
@@ -34,6 +36,12 @@ expiry reminder, or secure persistence adapter exists yet. See
 Never put tokens in logs, chat, command-line arguments, or committed examples.
 The client reads process environment or an injected mapping; copying `.env.example`
 does not load `.env` automatically. Offline tests require no credentials.
+
+Successful local snapshots are written under
+`data/bronze/spotify/playlist_tracks/ingestion_date=YYYY-MM-DD/run_id=<uuid>/`.
+The partition date comes from the UTC capture timestamp, while `snapshot_date`
+remains the logical business date. The local writer uses no-clobber publication and
+does not inject telemetry into the source snapshot JSON.
 
 ## 3. Planned cloud recovery
 

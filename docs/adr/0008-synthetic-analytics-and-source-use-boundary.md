@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted for the portfolio demonstration scope (2026-09-07).
+Accepted for the portfolio demonstration scope (2026-09-07); source terms rechecked
+2026-09-09.
 Live analytical use of Spotify data remains unresolved and is outside that scope.
 
 ## Context
@@ -31,9 +32,9 @@ project. This is a project scoping decision, not a claim of vendor approval.
 4. Preserve the planned engines, daily fact grain, source-version lineage, and
    physical execution IDs. This ADR changes the demonstration's data source scope,
    not the warehouse model or implementation boundaries.
-5. Continue M1 metadata/persistence development against synthetic fixtures.
-   A runnable synthetic end-to-end pipeline and cloud deployment remain future
-   work; this documentation change does not implement a source switch or runner.
+5. Keep the implemented M1 metadata/local-persistence boundary exercised with
+   synthetic fixtures. A runnable synthetic end-to-end pipeline and cloud deployment
+   remain future work; this ADR does not implement a source switch or runner.
 
 ## Alternatives Considered
 
@@ -65,7 +66,7 @@ The owner reviews any resulting architecture/source change before implementation
 
 ## References
 
-Checked 2026-09-07:
+Rechecked 2026-09-09:
 - [Spotify Developer Policy, III.13 and I.1](https://developer.spotify.com/policy)
 - [Spotify Developer Terms, II.8](https://developer.spotify.com/terms)
 - [Playlist items access contract](https://developer.spotify.com/documentation/web-api/reference/get-playlists-items)

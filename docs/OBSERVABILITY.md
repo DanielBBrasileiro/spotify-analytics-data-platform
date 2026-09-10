@@ -1,6 +1,6 @@
 # Observability & Pipeline Telemetry
 
-This document specifies planned telemetry and cross-tier monitoring for the synthetic portfolio demonstration. The local client emits sanitized exceptions; structured logging, manifests, CloudWatch, and warehouse audit queries are not implemented or deployed. Metadata begins in Issue #4; broader telemetry belongs to M2/M7.
+This document specifies planned telemetry and cross-tier monitoring for the synthetic portfolio demonstration. M1 implements validated per-playlist run metadata and local Bronze persistence; structured logging, aggregate run manifests, CloudWatch, and warehouse audit queries are not implemented or deployed. Broader telemetry belongs to M2/M7.
 
 ---
 
@@ -20,7 +20,11 @@ immutable Bronze source snapshot JSON.
 
 ## 2. Standard Telemetry Event Schema
 
-The following is a proposed completed-observation telemetry schema. It is not the implemented `PipelineRunMetadata` model (Issue #4 is open). Failures before playlist metadata is available cannot provide `spotify_snapshot_id`; failure-event contracts must handle that explicitly rather than inventing a source version.
+The following is a proposed completed-observation telemetry schema. It extends the
+implemented M1 `PipelineRunMetadata` model with component/version and downstream
+metrics that belong to later milestones. Failures before playlist metadata is
+available cannot provide `spotify_snapshot_id`; future failure-event contracts must
+handle that explicitly rather than inventing a source version.
 
 ```json
 {

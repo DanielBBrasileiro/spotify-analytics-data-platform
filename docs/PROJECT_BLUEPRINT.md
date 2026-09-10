@@ -326,7 +326,8 @@ Refer to [`docs/DATA_MODEL.md`](DATA_MODEL.md) for full ERD and schema dictionar
 ## 26. Idempotency
 
 Idempotency is a layer-specific design goal; it is not yet validated end-to-end:
-- Bronze: planned append-only artifacts scoped by physical `run_id`.
+- Bronze: M1 validates local append-only/no-clobber publication scoped by physical
+  `run_id`; the equivalent S3 persistence boundary remains M2 work.
 - Silver: partition publication/replacement semantics remain to be implemented;
   multiple object writes must not be described as an atomic S3 transaction.
 - Snowflake: planned merge on deterministic business keys. M5 must define the

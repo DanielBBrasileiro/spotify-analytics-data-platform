@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted; lifecycle and access wording revised 2026-09-07.
+Accepted; lifecycle and access wording revised 2026-09-07 and rechecked 2026-09-09.
 
 ## Context
 
@@ -64,7 +64,7 @@ or permitted source use, and before implementing consent or durable token storag
 
 ## References
 
-Checked 2026-09-07:
+Rechecked 2026-09-09:
 - [Authorization Code](https://developer.spotify.com/documentation/web-api/tutorials/code-flow)
 - [Refresh token lifecycle and invalid_grant](https://developer.spotify.com/documentation/web-api/tutorials/refreshing-tokens)
 - [Playlist items access](https://developer.spotify.com/documentation/web-api/reference/get-playlists-items)

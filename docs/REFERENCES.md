@@ -60,7 +60,7 @@ This platform draws conceptual inspiration from educational Spotify ETL patterns
 - [pytest Testing Framework](https://docs.pytest.org/en/stable/)
 
 
-## 3. Source and Runtime Review (2026-09-07)
+## 3. Source and Runtime Review (rechecked 2026-09-09)
 
 | Contract | Official evidence | Repository decision |
 | --- | --- | --- |
