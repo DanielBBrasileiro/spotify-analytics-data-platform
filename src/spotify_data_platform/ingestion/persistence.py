@@ -7,6 +7,8 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from spotify_data_platform.storage import build_bronze_playlist_key
+
 from .models import PipelineRunMetadata, RunStatus
 
 
@@ -26,16 +28,12 @@ class LocalBronzeWriter:
 
     def destination_for(self, metadata: PipelineRunMetadata) -> Path:
         """Return the Bronze path derived from physical capture lineage."""
-        ingestion_date = metadata.snapshot_timestamp.date().isoformat()
-        return (
-            self._root
-            / "bronze"
-            / "spotify"
-            / "playlist_tracks"
-            / f"ingestion_date={ingestion_date}"
-            / f"run_id={metadata.pipeline_run_id}"
-            / f"playlist_{metadata.playlist_id}.json"
+        key = build_bronze_playlist_key(
+            ingestion_date=metadata.snapshot_timestamp.date(),
+            pipeline_run_id=metadata.pipeline_run_id,
+            playlist_id=metadata.playlist_id,
         )
+        return self._root / Path(key)
 
     def write(self, snapshot: Mapping[str, Any], metadata: PipelineRunMetadata) -> Path:
         """Validate lineage and atomically publish a source-preserving JSON snapshot."""
