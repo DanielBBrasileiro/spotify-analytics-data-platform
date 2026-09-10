@@ -14,6 +14,7 @@ from spotify_data_platform.ingestion import (
     PipelineRunMetadata,
     RunStatus,
 )
+from spotify_data_platform.storage import build_bronze_playlist_key
 
 RUN_ID = UUID("123e4567-e89b-42d3-a456-426614174000")
 OTHER_RUN_ID = UUID("123e4567-e89b-42d3-a456-426614174001")
@@ -70,6 +71,16 @@ def test_destination_uses_capture_date_not_business_date(tmp_path):
         / f"playlist_{PLAYLIST_ID}.json"
     )
     assert "ingestion_date=2026-09-01" not in str(destination)
+
+
+def test_local_destination_reuses_canonical_s3_key_contract(tmp_path):
+    run = metadata()
+    expected_key = build_bronze_playlist_key(
+        ingestion_date=run.snapshot_timestamp.date(),
+        pipeline_run_id=run.pipeline_run_id,
+        playlist_id=run.playlist_id,
+    )
+    assert LocalBronzeWriter(tmp_path).destination_for(run) == tmp_path / expected_key
 
 
 def test_write_preserves_snapshot_values_and_does_not_inject_telemetry(tmp_path):

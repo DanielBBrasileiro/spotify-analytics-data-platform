@@ -145,6 +145,17 @@ flowchart TD
 
 ## 9. S3 Data Lake Strategy
 
+M2 centralizes Bronze object naming in `spotify_data_platform.storage` so local
+and future cloud writers share one key contract. `build_bronze_playlist_key(...)`
+returns the Hive-style object key and `build_bronze_playlist_uri(...)` adds a
+validated general-purpose bucket name. The helper accepts only a `date`, UUID v4,
+and 22-character playlist ID; callers cannot inject arbitrary prefixes or relative
+path segments. It performs no S3 API calls and does not provision buckets.
+
+For ingestion runs, `ingestion_date` is the UTC physical capture date. It remains
+distinct from the canonical business `snapshot_date`, which can intentionally
+differ during retries and historical backfills.
+
 ```
 s3://<platform-bucket>/
 ├── bronze/
