@@ -43,7 +43,7 @@ Spotify Web API (/v1/playlists/{id}/items)
    - `client_secret`
    - `refresh_token`
    The JSON is validated and secret values are excluded from runtime error messages and object representations.
-3. **Local-Only Fallback**: `ENVIRONMENT=local` reads the three Spotify values from process environment. Cloud modes do not fall back to those variables when Secrets Manager fails.
+3. **Local-Only Fallback**: `ENVIRONMENT=local` reads the three Spotify values from process environment only outside the managed Lambda runtime. If `AWS_LAMBDA_FUNCTION_NAME` is present, local mode is rejected. Cloud modes do not fall back to those variables when Secrets Manager fails.
 4. **Warm-Container Cache**: Credentials and the `SpotifyAuthClient` instance are cached in process memory, reducing `GetSecretValue` calls and preserving access-token/refresh-token state while the container remains warm. AWS also recommends client-side caching to improve speed and reduce Secrets Manager API cost.
 5. **Invalid Grant Recovery Boundary**: `invalid_grant` clears cached credential/auth state. After the operator reauthorizes and updates the secret, a subsequent invocation can retrieve the new value. The runtime never retries the rejected refresh token automatically.
 6. **Rotation Limitation**: If Spotify returns a new refresh token during a successful access-token refresh, the warm auth client uses it in memory. Issue #7 does not write that rotated token back to Secrets Manager; adding `PutSecretValue` would require a separate IAM/security review.
