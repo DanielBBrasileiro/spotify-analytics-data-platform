@@ -211,6 +211,18 @@ def test_lambda_handler_rejects_missing_bucket_before_auth(monkeypatch):
     auth_factory.assert_not_called()
 
 
+def test_invalid_event_is_rejected_before_runtime_factories(monkeypatch):
+    monkeypatch.setenv("S3_BUCKET_NAME", "spotify-analytics-data-platform-bronze-us-east-1")
+    with (
+        patch.object(handler_module, "get_default_auth_client") as auth_factory,
+        patch.object(handler_module, "_default_s3_client") as s3_factory,
+        pytest.raises(ValidationError),
+    ):
+        handler_module.lambda_handler({"playlist_ids": []}, None)
+    auth_factory.assert_not_called()
+    s3_factory.assert_not_called()
+
+
 def test_lambda_handler_invalidates_warm_credentials_after_invalid_grant(monkeypatch):
     auth = object()
     extractor = Mock()

@@ -7,7 +7,14 @@ from collections.abc import Mapping
 from threading import RLock
 from typing import Annotated, Any, Protocol
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, ValidationError
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    ValidationError,
+    field_serializer,
+)
 
 from spotify_data_platform.auth import SpotifyAuthClient
 
@@ -39,6 +46,12 @@ class SpotifyCredentials(BaseModel):
         repr=False
     )
 
+    @field_serializer("client_id", "client_secret", "refresh_token")
+    def redact_serialized_secret(self, value: str) -> str:
+        """Prevent accidental Pydantic serialization from exposing credentials."""
+        del value
+        return "<redacted>"
+
     @classmethod
     def from_env(cls, environ: Mapping[str, str]) -> "SpotifyCredentials":
         """Load local-only credentials from process environment values."""
@@ -62,7 +75,7 @@ class SecretsManagerCredentialProvider:
         self._lock = RLock()
 
     def get_credentials(self) -> SpotifyCredentials:
-        """Read the secret at most once per provider instance."""
+        """Cache the first successful secret read for this provider instance."""
         with self._lock:
             if self._cached is not None:
                 return self._cached
@@ -72,7 +85,12 @@ class SecretsManagerCredentialProvider:
                 raise CredentialProviderError(
                     "Could not retrieve Spotify credentials from Secrets Manager."
                 ) from None
-            secret = response.get("SecretString") if isinstance(response, Mapping) else None
+            try:
+                secret = response.get("SecretString") if isinstance(response, Mapping) else None
+            except Exception:
+                raise CredentialProviderError(
+                    "Secrets Manager response could not be read safely."
+                ) from None
             if not isinstance(secret, str) or not secret.strip():
                 raise CredentialProviderError(
                     "Secrets Manager response does not contain a valid SecretString."
@@ -120,6 +138,10 @@ def get_default_auth_client() -> SpotifyAuthClient:
 def _load_credentials(environ: Mapping[str, str]) -> SpotifyCredentials:
     environment = environ.get("ENVIRONMENT", "").strip().lower()
     if environment == "local":
+        if environ.get("AWS_LAMBDA_FUNCTION_NAME", "").strip():
+            raise CredentialProviderError(
+                "ENVIRONMENT=local is not permitted inside an AWS Lambda runtime."
+            )
         return SpotifyCredentials.from_env(environ)
     secret_id = environ.get("AWS_SECRETS_MANAGER_SECRET_NAME", "spotify/api/credentials")
     provider = SecretsManagerCredentialProvider(_default_secrets_client(), secret_id)
@@ -144,7 +166,12 @@ def _default_secrets_client() -> SecretsManagerClient:
         raise CredentialProviderError(
             "boto3 is unavailable; use the AWS Lambda runtime or package the AWS SDK."
         ) from None
-    return boto3.client("secretsmanager")
+    try:
+        return boto3.client("secretsmanager")
+    except Exception:
+        raise CredentialProviderError(
+            "Could not initialize the AWS Secrets Manager client."
+        ) from None
 
 
 def invalidate_runtime_caches() -> None:
