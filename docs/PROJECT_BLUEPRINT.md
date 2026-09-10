@@ -135,7 +135,7 @@ flowchart TD
 ## 8. Data Flow
 
 1. **Extraction (T0)**: Airflow triggers the Lambda extractor with target playlist IDs, `snapshot_date`, and generated physical `pipeline_run_id`.
-2. **Token Refresh & Bronze Landing (T0 + 30s)**: Lambda retrieves the refresh token from Secrets Manager, obtains a short-lived access token from Spotify Accounts, paginates `GET /v1/playlists/{id}/items` (limit=50), captures `spotify_snapshot_id`, and writes raw JSON to `s3://<bucket>/bronze/spotify/playlist_tracks/ingestion_date=YYYY-MM-DD/run_id=<run_id>/playlist_<id>.json`.
+2. **Token Refresh & Bronze Landing (target state)**: Lambda obtains credentials from the configured credential provider, refreshes a short-lived access token, paginates `GET /v1/playlists/{id}/items` (limit=50), captures `spotify_snapshot_id`, and writes raw JSON to `s3://<bucket>/bronze/spotify/playlist_tracks/ingestion_date=YYYY-MM-DD/run_id=<run_id>/playlist_<id>.json`. Issue #6 currently uses environment-injected credentials; Issue #7 replaces the cloud path with Secrets Manager. The `< 30s` runtime objective is not yet a measured guarantee.
 3. **Silver Transformation (T0 + 60s)**: Airflow triggers the AWS Glue 5.1 PySpark job. The job reads Bronze JSON, enforces explicit StructType schemas, validates item types (extracting tracks and quarantining non-tracks), explodes artist relationships, deduplicates entities, and writes Snappy Parquet to S3 Silver partitioned by `ingestion_date`.
 4. **Warehouse Landing (T0 + 120s)**: S3 object creation triggers an SQS event consumed by Snowpipe, loading Parquet partitions into Snowflake `LANDING` tables along with file audit metadata (`METADATA$FILENAME`, `METADATA$FILE_ROW_NUMBER`).
 5. **Dimensional Modeling (T0 + 180s)**: Airflow validates row counts in Landing and triggers `dbt build`. dbt updates staging views, incrementally merges core dimensions, merges `fact_playlist_snapshot` on `snapshot_pk`, and refreshes analytical marts.
@@ -155,6 +155,19 @@ path segments. It performs no S3 API calls and does not provision buckets.
 For ingestion runs, `ingestion_date` is the UTC physical capture date. It remains
 distinct from the canonical business `snapshot_date`, which can intentionally
 differ during retries and historical backfills.
+
+Issue #6 adds the Lambda runtime adapter on top of this contract. The handler
+validates `playlist_ids`, UUID v4 `pipeline_run_id`, and `snapshot_date`, reuses the
+M1 OAuth/extraction code, creates one `PipelineRunMetadata` record per successful
+playlist observation, and publishes the source-preserving JSON with conditional
+`PutObject(IfNoneMatch="*")`. S3 writes request SSE-S3 encryption and never silently
+replace an existing canonical object. Local and S3 writers share the same Bronze
+validation/serialization function.
+
+The deployment entrypoint is `lambda/src/extractor.py`; the tested implementation
+resides in `spotify_data_platform.lambda_runtime`. No bucket, IAM role, Lambda
+function, or secret is provisioned by Issues #5/#6. Secrets Manager integration is
+Issue #7 and structured lifecycle logging is Issue #8.
 
 ```
 s3://<platform-bucket>/

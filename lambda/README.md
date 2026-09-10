@@ -1,38 +1,55 @@
 # AWS Lambda Extraction Layer
 
-This directory houses the serverless extractor functions responsible for calling the Spotify Web API and landing raw snapshots in Amazon S3.
+This directory contains the thin AWS Lambda deployment entrypoint. The tested
+runtime implementation lives in `src/spotify_data_platform/lambda_runtime/` so the
+same package code is exercised locally and deployed to Lambda.
 
 ---
 
 ## Architectural Responsibility
 
-- **Short-Lived Execution**: Runs within a serverless container with a timeout bounded to standard API calls (typically < 30 seconds).
-- **OAuth 2.0 Token Refresh**: Dynamically retrieves `client_id`, `client_secret`, and `refresh_token` from AWS Secrets Manager (`spotify/api/credentials`), exchanges the refresh token with Spotify Accounts for a short-lived access token (valid for 1 hour), and caches the token in runtime memory (ADR-0007).
+- **Validated Invocation Contract**: accepts `playlist_ids`, a UUID v4
+  `pipeline_run_id`, and canonical `snapshot_date`; malformed or duplicate playlist
+  inputs are rejected before extraction.
+- **OAuth 2.0 Token Refresh**: Issue #6 reuses the existing `SpotifyAuthClient` and
+  currently obtains credentials from the process environment. AWS Secrets Manager
+  retrieval and warm-container credential caching are Issue #7.
 - **Get Playlist Items Ingestion**: Calls `GET /v1/playlists/{playlist_id}/items` using pagination (`limit=50`, `offset=0`), capturing upstream `spotify_snapshot_id`.
 - **Immutable Landing**: Ingests complete playlist and item responses without mutating or cleaning data, persisting raw JSON directly to the Bronze layer:
   `s3://<bucket>/bronze/spotify/playlist_tracks/ingestion_date=YYYY-MM-DD/run_id=<run_id>/playlist_<id>.json`
-- **Structured Observability**: Emits JSON log events to Amazon CloudWatch containing `pipeline_run_id`, `spotify_snapshot_id`, playlist identifiers, response codes, record counts, and elapsed latency.
+- **Conditional S3 Publication**: `PutObject` uses `IfNoneMatch="*"` and explicit
+  SSE-S3 (`AES256`). Existing keys return an immutable-collision error instead of
+  being overwritten. A transient conditional `409` is retried once.
+- **Execution Summary**: successful invocations return HTTP-style status, aggregate
+  record counts, per-playlist source versions/S3 URIs, and elapsed milliseconds.
+- **Structured Observability**: lifecycle JSON logging is intentionally deferred to
+  Issue #8; the current summary is not a replacement for CloudWatch event logs.
 
 ---
 
-## Planned Directory Structure
+## Current Directory Structure
 
 ```
 lambda/
 ├── src/
-│   ├── extractor.py           # Main Lambda handler
-│   ├── spotify_auth.py        # Token exchange and in-memory caching logic
-│   ├── spotify_client.py      # HTTP client, pagination, and retry logic
-│   ├── s3_writer.py           # S3 Bronze upload utility
-│   └── logger.py              # Structured JSON logging formatter
-├── tests/
-│   └── test_extractor.py      # Local Lambda handler unit tests (mocked boto3/requests)
-├── requirements.txt           # Runtime dependencies (boto3, requests, etc.)
-└── Dockerfile                 # Container image for packaging if dependencies exceed zip limits
+│   └── extractor.py           # Thin deployment entrypoint
+└── README.md
+
+src/spotify_data_platform/lambda_runtime/
+├── handler.py                 # Event validation + extraction orchestration
+└── s3_writer.py               # Immutable conditional S3 Bronze writer
 ```
 
----
+Tests remain under the repository-wide `tests/` tree. They inject HTTP and S3
+boundaries, and the default suite blocks outbound sockets. `boto3` is loaded only
+when the production S3 client is constructed; AWS Lambda provides an SDK version in
+the managed Python runtime. Packaging an explicitly pinned SDK remains a deployment
+decision rather than a requirement for offline tests.
 
-## Cost Optimization
+## Verification Boundary
 
-Lambda executes for under 30 seconds per run and is scheduled on a daily cadence, consuming < 8 GB-seconds per day, which falls well within the AWS Lambda perpetual free tier (400,000 GB-seconds and 1M requests per month).
+Issue #6 has no live AWS benchmark. The `< 30s` acceptance target must be measured
+against monitored playlists after deployment configuration exists. Local tests prove
+event validation, real auth/extraction integration through mocked HTTP, canonical S3
+keys, conditional upload semantics, and sanitized failures without consuming AWS
+resources or credentials.
