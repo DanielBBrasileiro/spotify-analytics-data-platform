@@ -40,6 +40,12 @@ def test_spotify_credentials_are_validated_trimmed_frozen_and_redacted():
     assert credentials.client_secret == "synthetic-secret"
     assert credentials.refresh_token == "synthetic-refresh"
     assert "synthetic" not in repr(credentials)
+    assert credentials.model_dump() == {
+        "client_id": "<redacted>",
+        "client_secret": "<redacted>",
+        "refresh_token": "<redacted>",
+    }
+    assert "synthetic" not in credentials.model_dump_json()
     with pytest.raises(ValidationError):
         credentials.client_id = "changed"
 
@@ -96,6 +102,18 @@ def test_local_environment_missing_secret_field_is_sanitized():
     assert "very-secret-value" not in str(exc_info.value)
 
 
+def test_local_mode_is_rejected_inside_real_lambda_runtime():
+    env = {
+        "ENVIRONMENT": "local",
+        "AWS_LAMBDA_FUNCTION_NAME": "spotify-extractor",
+        "SPOTIFY_CLIENT_ID": "synthetic-id",
+        "SPOTIFY_CLIENT_SECRET": "synthetic-secret",
+        "SPOTIFY_REFRESH_TOKEN": "synthetic-refresh",
+    }
+    with pytest.raises(CredentialProviderError, match="not permitted"):
+        credentials_module._load_credentials(env)
+
+
 def test_cloud_provider_reads_expected_secret_and_caches_result():
     client = Mock()
     client.get_secret_value.return_value = {"SecretString": VALID_SECRET}
@@ -133,6 +151,19 @@ def test_secrets_manager_api_failure_is_sanitized():
     assert "upstream secret details" not in str(exc_info.value)
 
 
+def test_secrets_manager_response_accessor_failure_is_sanitized():
+    class ExplodingResponse(dict):
+        def get(self, key, default=None):
+            del key, default
+            raise RuntimeError("do-not-leak-response-details")
+
+    client = Mock()
+    client.get_secret_value.return_value = ExplodingResponse()
+    with pytest.raises(CredentialProviderError, match="read safely") as exc_info:
+        SecretsManagerCredentialProvider(client, SECRET_ID).get_credentials()
+    assert "do-not-leak" not in str(exc_info.value)
+
+
 @pytest.mark.parametrize(
     "response",
     [
@@ -168,6 +199,23 @@ def test_invalid_secret_schema_is_sanitized():
     assert "do-not-leak" not in str(exc_info.value)
 
 
+@pytest.mark.parametrize(
+    "secret_string",
+    [
+        "null",
+        "[]",
+        '"scalar"',
+        '{"client_id":1,"client_secret":"secret","refresh_token":"refresh"}',
+        '{"client_id":"id","client_secret":"secret","refresh_token":"refresh","extra":1}',
+    ],
+)
+def test_json_with_wrong_credential_shape_fails_closed(secret_string):
+    client = Mock()
+    client.get_secret_value.return_value = {"SecretString": secret_string}
+    with pytest.raises(CredentialProviderError):
+        SecretsManagerCredentialProvider(client, SECRET_ID).get_credentials()
+
+
 def test_non_local_environment_uses_secrets_manager_default_id():
     client = Mock()
     client.get_secret_value.return_value = {"SecretString": VALID_SECRET}
@@ -175,6 +223,24 @@ def test_non_local_environment_uses_secrets_manager_default_id():
         credentials = credentials_module._load_credentials({"ENVIRONMENT": "prod"})
     assert credentials.client_id == "synthetic-id"
     client.get_secret_value.assert_called_once_with(SecretId=SECRET_ID)
+
+
+@pytest.mark.parametrize("environment", ["prod", "dev", "", "production-typo"])
+def test_non_local_modes_never_fallback_to_spotify_environment_secrets(environment):
+    env = {
+        "ENVIRONMENT": environment,
+        "SPOTIFY_CLIENT_ID": "environment-id",
+        "SPOTIFY_CLIENT_SECRET": "do-not-use-environment-secret",
+        "SPOTIFY_REFRESH_TOKEN": "environment-refresh",
+    }
+    client = Mock()
+    client.get_secret_value.side_effect = RuntimeError("synthetic aws failure")
+    with (
+        patch.object(credentials_module, "_default_secrets_client", return_value=client),
+        pytest.raises(CredentialProviderError, match="Could not retrieve") as exc_info,
+    ):
+        credentials_module._load_credentials(env)
+    assert "do-not-use-environment-secret" not in str(exc_info.value)
 
 
 def test_custom_secret_id_is_used_in_cloud_environment():
@@ -227,6 +293,43 @@ def test_default_auth_client_uses_cached_credentials(monkeypatch):
     auth_factory.assert_called_once_with("id", "secret", "refresh")
 
 
+def test_default_auth_client_concurrent_callers_share_one_construction():
+    credentials = SpotifyCredentials(
+        client_id="id", client_secret="secret", refresh_token="refresh"
+    )
+    auth = object()
+    with (
+        patch.object(
+            credentials_module, "get_default_credentials", return_value=credentials
+        ) as loader,
+        patch.object(credentials_module, "SpotifyAuthClient", return_value=auth) as auth_factory,
+        ThreadPoolExecutor(max_workers=16) as pool,
+    ):
+        results = list(pool.map(lambda _: credentials_module.get_default_auth_client(), range(64)))
+    assert results == [auth] * 64
+    loader.assert_called_once_with()
+    auth_factory.assert_called_once_with("id", "secret", "refresh")
+
+
+def test_cache_invalidation_forces_next_cloud_read(monkeypatch):
+    monkeypatch.setenv("ENVIRONMENT", "prod")
+    client = Mock()
+    client.get_secret_value.side_effect = [
+        {"SecretString": VALID_SECRET},
+        {
+            "SecretString": (
+                '{"client_id":"new-id","client_secret":"new-secret","refresh_token":"new-refresh"}'
+            )
+        },
+    ]
+    with patch.object(credentials_module, "_default_secrets_client", return_value=client):
+        first = credentials_module.get_default_auth_client()
+        credentials_module.invalidate_runtime_caches()
+        second = credentials_module.get_default_auth_client()
+    assert first is not second
+    assert client.get_secret_value.call_count == 2
+
+
 def test_default_secrets_client_uses_boto3_runtime_module(monkeypatch):
     client = object()
     boto3 = types.SimpleNamespace(client=Mock(return_value=client))
@@ -246,3 +349,13 @@ def test_default_secrets_client_reports_missing_sdk(monkeypatch):
     monkeypatch.setattr(credentials_module.importlib, "import_module", fake_import)
     with pytest.raises(CredentialProviderError, match="boto3 is unavailable"):
         credentials_module._default_secrets_client()
+
+
+def test_default_secrets_client_sanitizes_sdk_client_construction_failure(monkeypatch):
+    boto3 = types.SimpleNamespace(
+        client=Mock(side_effect=RuntimeError("do-not-leak-sdk-client-details"))
+    )
+    monkeypatch.setitem(sys.modules, "boto3", boto3)
+    with pytest.raises(CredentialProviderError, match="Could not initialize") as exc_info:
+        credentials_module._default_secrets_client()
+    assert "do-not-leak" not in str(exc_info.value)

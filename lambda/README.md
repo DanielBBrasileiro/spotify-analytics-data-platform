@@ -62,9 +62,10 @@ The Secrets Manager JSON contract is exactly:
 }
 ```
 
-Values are validated without being included in exception messages or model
-representations. Cloud failures do **not** silently fall back to environment
-credentials. The process cache intentionally trades immediate secret refresh for
+Values are validated without being included in exception messages, model
+representations, or Pydantic serialization. Cloud failures do **not** silently fall
+back to environment credentials, and `ENVIRONMENT=local` is rejected when the
+managed Lambda runtime marker is present. The process cache intentionally trades immediate secret refresh for
 fewer API calls; an `invalid_grant` invalidates it. Durable write-back if Spotify
 returns a rotated refresh token is not implemented by Issue #7 and would require a
 separately reviewed Secrets Manager write permission.
