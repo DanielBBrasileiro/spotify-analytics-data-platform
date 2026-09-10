@@ -9,6 +9,7 @@ from uuid import UUID, uuid1
 import pytest
 from pydantic import ValidationError
 
+from spotify_data_platform.auth import InvalidGrantException
 from spotify_data_platform.lambda_runtime import (
     LambdaConfigurationError,
     LambdaExtractionRequest,
@@ -168,7 +169,7 @@ def test_default_s3_client_reports_missing_sdk_without_installing_it(monkeypatch
         handler_module._default_s3_client()
 
 
-def test_lambda_handler_assembles_default_runtime_from_environment(monkeypatch):
+def test_lambda_handler_assembles_default_runtime_from_credential_provider(monkeypatch):
     auth = object()
     extractor = Mock()
     s3_client = object()
@@ -178,9 +179,7 @@ def test_lambda_handler_assembles_default_runtime_from_environment(monkeypatch):
 
     monkeypatch.setenv("S3_BUCKET_NAME", "spotify-analytics-data-platform-bronze-us-east-1")
     with (
-        patch.object(
-            handler_module.SpotifyAuthClient, "from_env", return_value=auth
-        ) as auth_factory,
+        patch.object(handler_module, "get_default_auth_client", return_value=auth) as auth_factory,
         patch.object(
             handler_module, "PlaylistItemsExtractor", return_value=extractor
         ) as extractor_factory,
@@ -205,8 +204,30 @@ def test_lambda_handler_assembles_default_runtime_from_environment(monkeypatch):
 def test_lambda_handler_rejects_missing_bucket_before_auth(monkeypatch):
     monkeypatch.delenv("S3_BUCKET_NAME", raising=False)
     with (
-        patch.object(handler_module.SpotifyAuthClient, "from_env") as auth_factory,
+        patch.object(handler_module, "get_default_auth_client") as auth_factory,
         pytest.raises(LambdaConfigurationError, match="S3_BUCKET_NAME"),
     ):
         handler_module.lambda_handler(request_payload(playlist_ids=[PLAYLIST_A]), None)
     auth_factory.assert_not_called()
+
+
+def test_lambda_handler_invalidates_warm_credentials_after_invalid_grant(monkeypatch):
+    auth = object()
+    extractor = Mock()
+    writer = Mock()
+    service = Mock()
+    service.run.side_effect = InvalidGrantException("reauthorization required")
+    monkeypatch.setenv("S3_BUCKET_NAME", "spotify-analytics-data-platform-bronze-us-east-1")
+
+    with (
+        patch.object(handler_module, "get_default_auth_client", return_value=auth),
+        patch.object(handler_module, "PlaylistItemsExtractor", return_value=extractor),
+        patch.object(handler_module, "_default_s3_client", return_value=object()),
+        patch.object(handler_module, "S3BronzeWriter", return_value=writer),
+        patch.object(handler_module, "LambdaExtractorService", return_value=service),
+        patch.object(handler_module, "invalidate_runtime_caches") as invalidate,
+        pytest.raises(InvalidGrantException),
+    ):
+        handler_module.lambda_handler(request_payload(playlist_ids=[PLAYLIST_A]), None)
+
+    invalidate.assert_called_once_with()

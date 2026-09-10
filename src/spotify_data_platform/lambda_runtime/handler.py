@@ -10,10 +10,11 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
 
-from spotify_data_platform.auth import SpotifyAuthClient
+from spotify_data_platform.auth import InvalidGrantException
 from spotify_data_platform.extraction import PlaylistItemsExtractor
 from spotify_data_platform.ingestion import PipelineRunMetadata, RunStatus
 
+from .credentials import get_default_auth_client, invalidate_runtime_caches
 from .s3_writer import S3BronzeWriter, S3Client
 
 PlaylistId = Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9]{22}$")]
@@ -116,14 +117,18 @@ class LambdaExtractorService:
 
 
 def lambda_handler(event: Mapping[str, Any], context: Any) -> dict[str, Any]:
-    """AWS entrypoint using environment credentials until Issue #7 adds Secrets Manager."""
+    """AWS entrypoint using the environment-aware cached credential provider."""
     del context
     request = LambdaExtractionRequest.model_validate(event)
     bucket = _required_env("S3_BUCKET_NAME")
-    auth = SpotifyAuthClient.from_env()
+    auth = get_default_auth_client()
     extractor = PlaylistItemsExtractor(auth)
     writer = S3BronzeWriter(bucket, _default_s3_client())
-    return LambdaExtractorService(extractor, writer).run(request)
+    try:
+        return LambdaExtractorService(extractor, writer).run(request)
+    except InvalidGrantException:
+        invalidate_runtime_caches()
+        raise
 
 
 def _required_env(name: str, environ: Mapping[str, str] | None = None) -> str:
