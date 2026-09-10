@@ -135,7 +135,7 @@ flowchart TD
 ## 8. Data Flow
 
 1. **Extraction (T0)**: Airflow triggers the Lambda extractor with target playlist IDs, `snapshot_date`, and generated physical `pipeline_run_id`.
-2. **Token Refresh & Bronze Landing (target state)**: Lambda obtains credentials from the configured credential provider, refreshes a short-lived access token, paginates `GET /v1/playlists/{id}/items` (limit=50), captures `spotify_snapshot_id`, and writes raw JSON to `s3://<bucket>/bronze/spotify/playlist_tracks/ingestion_date=YYYY-MM-DD/run_id=<run_id>/playlist_<id>.json`. Issue #6 currently uses environment-injected credentials; Issue #7 replaces the cloud path with Secrets Manager. The `< 30s` runtime objective is not yet a measured guarantee.
+2. **Token Refresh & Bronze Landing (target state)**: Lambda obtains credentials from the configured credential provider, refreshes a short-lived access token, paginates `GET /v1/playlists/{id}/items` (limit=50), captures `spotify_snapshot_id`, and writes raw JSON to `s3://<bucket>/bronze/spotify/playlist_tracks/ingestion_date=YYYY-MM-DD/run_id=<run_id>/playlist_<id>.json`. Issue #7 supplies Secrets Manager credentials for non-local execution and explicit environment credentials only for local mode. The `< 30s` runtime objective is not yet a measured guarantee.
 3. **Silver Transformation (T0 + 60s)**: Airflow triggers the AWS Glue 5.1 PySpark job. The job reads Bronze JSON, enforces explicit StructType schemas, validates item types (extracting tracks and quarantining non-tracks), explodes artist relationships, deduplicates entities, and writes Snappy Parquet to S3 Silver partitioned by `ingestion_date`.
 4. **Warehouse Landing (T0 + 120s)**: S3 object creation triggers an SQS event consumed by Snowpipe, loading Parquet partitions into Snowflake `LANDING` tables along with file audit metadata (`METADATA$FILENAME`, `METADATA$FILE_ROW_NUMBER`).
 5. **Dimensional Modeling (T0 + 180s)**: Airflow validates row counts in Landing and triggers `dbt build`. dbt updates staging views, incrementally merges core dimensions, merges `fact_playlist_snapshot` on `snapshot_pk`, and refreshes analytical marts.
@@ -166,8 +166,14 @@ validation/serialization function.
 
 The deployment entrypoint is `lambda/src/extractor.py`; the tested implementation
 resides in `spotify_data_platform.lambda_runtime`. No bucket, IAM role, Lambda
-function, or secret is provisioned by Issues #5/#6. Secrets Manager integration is
-Issue #7 and structured lifecycle logging is Issue #8.
+function, or secret is provisioned by Issues #5/#6/#7. Issue #7 adds an environment-
+aware credential provider: explicit local mode reads process environment, while
+cloud mode calls Secrets Manager `GetSecretValue` for the configured secret id.
+Credentials and the auth client are cached for a warm container; `invalid_grant`
+invalidates both caches so an operator-updated secret can be read on a later
+invocation. Secret values are never included in provider error messages. Durable
+write-back of a rotated refresh token is not part of Issue #7 because it would add
+Secrets Manager write permissions. Structured lifecycle logging remains Issue #8.
 
 ```
 s3://<platform-bucket>/
@@ -515,7 +521,7 @@ Structured JSON telemetry captures execution and version metadata:
 
 ## 42. Failure Scenarios
 
-1. **Token Invalidation / Expiration**: Secrets Manager refresh token rejected (`invalid_grant`); extractor emits alert for operator re-authorization.
+1. **Token Invalidation / Expiration**: A rejected refresh token (`invalid_grant`) clears the process-local credential/auth cache and raises `InvalidGrantException`. Structured operator notification is Issue #8/later orchestration work; the runtime does not claim an alert today.
 2. **API Rate Limiting (429)**: Backoff with jitter respecting `Retry-After`.
 3. **Mid-Pagination Playlist Mutation**: `spotify_snapshot_id` changes during pagination; extraction aborts and restarts to preserve atomic snapshot integrity.
 4. **dbt Test Assertion Failure**: Pipeline halts, preventing bad data from materializing in `MARTS`.
@@ -524,7 +530,7 @@ Structured JSON telemetry captures execution and version metadata:
 
 ## 43. Recovery Scenarios
 
-1. **Token Re-Authorization**: Operator runs one-time setup utility to refresh Secrets Manager with a valid refresh token.
+1. **Token Re-Authorization**: Operator repeats the external authorization flow and updates Secrets Manager with the new refresh token. No setup utility or Secrets Manager write path is implemented in M2.
 2. **Historical Backfill**: Re-run Glue ETL over Bronze history, followed by dbt merge backfill.
 3. **Partition Purge**: Delete target Silver partition and re-trigger pipeline for that date.
 
