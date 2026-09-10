@@ -1,114 +1,111 @@
 # Observability & Pipeline Telemetry
 
-This document defines the observability framework, structured logging schema, audit mechanisms, and cross-tier monitoring strategy for the Spotify Analytics Data Platform.
+This document separates the **implemented M2 Lambda telemetry contract** from future
+cross-tier observability. The repository currently validates logging offline; it does
+not provision or claim a live CloudWatch deployment.
 
 ---
 
-## 1. Observability Strategy
+## 1. Correlation Model
 
-The platform applies structured telemetry anchored by two distinct identifiers:
-1. **`pipeline_run_id` (UUID v4)**: A non-deterministic physical execution identifier generated per pipeline run to track processing lineage across Lambda, Glue, Snowflake, and dbt.
-2. **`spotify_snapshot_id` (String)**: An upstream version identifier emitted directly by Spotify representing the state of the playlist. It enables upstream mutation detection and idempotency verification.
+Two identifiers remain intentionally distinct:
 
-M1 implements the core per-playlist execution fields as the Pydantic
-`PipelineRunMetadata` contract in `spotify_data_platform.ingestion`. The complete
-cross-tier event schema below adds component/version/duration metrics that are populated
-by later cloud and observability milestones. Core telemetry is not injected into the
-immutable Bronze source snapshot JSON.
+1. **`pipeline_run_id` (UUID v4)** identifies one physical execution and is supplied
+   by the invocation contract.
+2. **`spotify_snapshot_id`** identifies the upstream playlist version once playlist
+   metadata has established it. The key is present on every Lambda lifecycle event,
+   but its value is `null` before that point instead of inventing a source version.
 
----
+`snapshot_date` is the logical business observation date. Event `timestamp` is the
+UTC time at which a log record is emitted. `snapshot_timestamp` belongs to the
+successful observation metadata and is included on `EXTRACTION_COMPLETE`; it is not a
+required field on events emitted before a successful capture exists.
 
-## 2. Standard Telemetry Event Schema
-
-All pipeline components emit JSON-structured log events adhering to the following schema:
-
-```json
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "PipelineExecutionTelemetry",
-  "type": "object",
-  "required": [
-    "pipeline_run_id",
-    "source",
-    "playlist_id",
-    "spotify_snapshot_id",
-    "snapshot_date",
-    "snapshot_timestamp",
-    "pipeline_version",
-    "status"
-  ],
-  "properties": {
-    "pipeline_run_id": { "type": "string", "format": "uuid" },
-    "source": { "type": "string", "example": "spotify_web_api" },
-    "playlist_id": { "type": "string" },
-    "spotify_snapshot_id": { "type": "string" },
-    "snapshot_date": { "type": "string", "format": "date" },
-    "snapshot_timestamp": { "type": "string", "format": "date-time" },
-    "pipeline_version": { "type": "string", "example": "0.1.1" },
-    "records_extracted": { "type": "integer", "minimum": 0 },
-    "records_validated": { "type": "integer", "minimum": 0 },
-    "records_written_raw": { "type": "integer", "minimum": 0 },
-    "records_written_curated": { "type": "integer", "minimum": 0 },
-    "records_loaded_snowflake": { "type": "integer", "minimum": 0 },
-    "records_rejected": { "type": "integer", "minimum": 0 },
-    "lambda_duration_sec": { "type": "number", "minimum": 0 },
-    "glue_duration_sec": { "type": "number", "minimum": 0 },
-    "dbt_duration_sec": { "type": "number", "minimum": 0 },
-    "total_pipeline_duration_sec": { "type": "number", "minimum": 0 },
-    "status": { "type": "string", "enum": ["RUNNING", "SUCCESS", "FAILED", "PARTIAL"] },
-    "error_message": { "type": ["string", "null"] }
-  }
-}
-```
+Core run metadata remains separate from raw Bronze JSON; telemetry is never injected
+into source payloads.
 
 ---
 
-## 3. Component Logging Channels
+## 2. Implemented Lambda Event Schema
 
-| Component | Destination | Format | Key Metrics Logged |
-| :--- | :--- | :--- | :--- |
-| **AWS Lambda** | Amazon CloudWatch Logs (`/aws/lambda/spotify-extractor`) | JSON | API response codes, pagination counts, latency, `spotify_snapshot_id`, S3 PutObject status |
-| **AWS Glue 5.1** | Amazon CloudWatch Logs (`/aws-glue/jobs/spotify-silver-transformation`) | JSON / Text | Input row counts, schema validation errors, items exploded, output Parquet partitions |
-| **Snowpipe** | Snowflake Ingestion History (`SNOWFLAKE.ACCOUNT_USAGE.COPY_HISTORY`) | SQL Table | Files loaded, rows parsed, byte sizes, parse error counts |
-| **dbt Core** | dbt Artifacts (`target/run_results.json`, `target/manifest.json`) | JSON | Model build durations, rows merged, test assertion pass/fail counts |
-| **Apache Airflow 3**| Airflow Task Logs (`airflow/logs/`) | Text / Structured | Task lifecycle events, Deadline Alerts, sensor evaluation intervals |
+Every structured Lambda event contains these fields:
 
----
+| Field | Contract |
+| --- | --- |
+| `timestamp` | UTC ISO-8601 event emission time. |
+| `event` | Stable lifecycle event name. |
+| `level` | `INFO` or `ERROR`. |
+| `source` | `spotify_web_api`. |
+| `component` | `lambda`. |
+| `pipeline_version` | Repository package version. |
+| `pipeline_run_id` | UUID v4 physical execution identifier. |
+| `playlist_id` | 22-character playlist identifier. |
+| `spotify_snapshot_id` | String once known, otherwise `null`. |
+| `snapshot_date` | Logical observation date (`YYYY-MM-DD`). |
+| `duration_ms` | Non-negative elapsed duration for the event scope. |
+| `status` | `RUNNING`, `SUCCESS`, or `FAILED`. |
 
-## 4. Operational Auditing & Quality Verification
+Event-specific scalar fields may be added, but cannot overwrite the correlation
+fields above.
 
-### Snowflake Landing Verification Query
-Verify that Snowpipe successfully loaded the Parquet files produced by Glue:
+### Lifecycle Events
 
-```sql
-SELECT
-    TABLE_NAME,
-    ROW_COUNT,
-    LAST_ALTERED
-FROM SPOTIFY_ANALYTICS.INFORMATION_SCHEMA.TABLES
-WHERE TABLE_SCHEMA = 'LANDING'
-ORDER BY TABLE_NAME;
-```
+| Event | Additional fields | Semantics |
+| --- | --- | --- |
+| `EXTRACTION_START` | none | Playlist processing started; source version may be unknown. |
+| `PAGINATION_PAGE_FETCHED` | `page_number`, `offset`, `records_in_page`, `total_records` | Emitted only after pagination validation and a matching source-version check. |
+| `S3_WRITE_SUCCESS` | `records_extracted`, `s3_uri` | Immutable conditional Bronze publication succeeded. |
+| `EXTRACTION_COMPLETE` | `records_extracted`, `snapshot_timestamp` | Playlist extraction and Bronze landing completed successfully. |
+| `EXTRACTION_FAILED` | `error_type` | Failure record contains only the exception class name, never exception text/body. |
 
-### Snowpipe Ingestion Status Query
-```sql
-SELECT
-    PIPE_NAME,
-    FILE_NAME,
-    STATUS,
-    ROW_COUNT,
-    ERROR_MESSAGE,
-    LAST_LOAD_TIME
-FROM TABLE(INFORMATION_SCHEMA.COPY_HISTORY(
-    TABLE_NAME=>'SPOTIFY_ANALYTICS.LANDING.LANDING_TRACKS',
-    START_TIME=>DATEADD(hours, -2, CURRENT_TIMESTAMP())
-));
-```
+`JsonLogFormatter` serializes telemetry as compact single-line JSON. The dedicated
+Lambda logger owns exactly one JSON stream handler across warm invocations and disables
+propagation. If an unstructured record reaches that logger, its free-form message is
+suppressed rather than copied into the JSON output.
 
 ---
 
-## 5. Cost-Conscious Monitoring Design
+## 3. Current Coverage Boundary
 
-- **No Paid Third-Party Observability Tools**: Avoid Datadog, New Relic, or commercial APM subscriptions.
-- **CloudWatch Retention**: Capped at **7 days** to eliminate log storage accumulation costs.
-- **Basic Metric Alarms**: Single CloudWatch alarm triggering on Lambda error count > 0.
+Issue #8 instruments playlist processing after the event, non-secret bucket setting,
+credential provider, and logger runtime have been constructed. Validation/configuration
+failures that occur before the `LambdaExtractorService` starts do not yet emit a
+run-level failure event.
+
+The offline suite verifies lifecycle ordering, page telemetry, failure sanitization,
+single-line JSON, warm-handler idempotency, and zero additional service timing calls
+when telemetry is not configured. Network and DNS are blocked during tests.
+
+---
+
+## 4. CloudWatch Deployment Boundary
+
+Managed AWS Lambda captures application logging streams into CloudWatch Logs when the
+function is deployed with the corresponding execution permissions/configuration. M2
+only implements the application-side JSON logging contract.
+
+The following remain unprovisioned and belong to later infrastructure/observability
+work:
+
+- CloudWatch log-group retention policy;
+- metric filters and alarms;
+- dashboards or third-party APM;
+- Glue structured telemetry;
+- Airflow task/event correlation;
+- Snowflake load-history monitoring;
+- dbt artifacts and cross-tier quality metrics.
+
+No live CloudWatch log delivery has been validated by the current test suite.
+
+---
+
+## 5. Future Cross-Tier Observability
+
+M7 extends the Lambda correlation model across Glue, Snowflake, dbt, and Airflow. The
+future schema may add records validated/written/loaded/rejected, per-tier durations,
+warehouse load metadata, and explicit failure-event contracts for stages where a
+Spotify source version does not exist.
+
+Snowflake auditing queries and CloudWatch alarms should be added only after their
+corresponding resources exist and can be integration-tested; documentation must not
+present illustrative queries or cost controls as deployed behavior.

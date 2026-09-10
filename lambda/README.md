@@ -27,8 +27,10 @@ same package code is exercised locally and deployed to Lambda.
   being overwritten. A transient conditional `409` is retried once.
 - **Execution Summary**: successful invocations return HTTP-style status, aggregate
   record counts, per-playlist source versions/S3 URIs, and elapsed milliseconds.
-- **Structured Observability**: lifecycle JSON logging is intentionally deferred to
-  Issue #8; the current summary is not a replacement for CloudWatch event logs.
+- **Structured Observability**: Issue #8 emits compact JSON lifecycle events for
+  extraction start, each version-checked page, successful S3 publication, completion,
+  and sanitized failures. `spotify_snapshot_id` is `null` until the source version is
+  known; exception messages and raw payloads are never included in failure telemetry.
 
 ---
 
@@ -37,13 +39,15 @@ same package code is exercised locally and deployed to Lambda.
 ```
 lambda/
 ├── src/
-│   └── extractor.py           # Thin deployment entrypoint
+│   ├── extractor.py           # Thin deployment entrypoint
+│   └── logger.py              # Deployment exports for JSON telemetry
 └── README.md
 
 src/spotify_data_platform/lambda_runtime/
 ├── credentials.py             # Secrets Manager + local credential provider/cache
 ├── handler.py                 # Event validation + extraction orchestration
-└── s3_writer.py               # Immutable conditional S3 Bronze writer
+├── s3_writer.py               # Immutable conditional S3 Bronze writer
+└── telemetry.py               # JSON formatter + lifecycle telemetry logger
 ```
 
 Tests remain under the repository-wide `tests/` tree. They inject HTTP and S3
@@ -70,10 +74,33 @@ fewer API calls; an `invalid_grant` invalidates it. Durable write-back if Spotif
 returns a rotated refresh token is not implemented by Issue #7 and would require a
 separately reviewed Secrets Manager write permission.
 
+## Telemetry Contract
+
+The runtime emits the following event names:
+
+| Event | Meaning |
+| --- | --- |
+| `EXTRACTION_START` | Playlist processing started; `spotify_snapshot_id` may still be `null`. |
+| `PAGINATION_PAGE_FETCHED` | One page passed pagination and source-version validation. |
+| `S3_WRITE_SUCCESS` | The immutable Bronze object was conditionally published. |
+| `EXTRACTION_COMPLETE` | One playlist completed successfully. |
+| `EXTRACTION_FAILED` | Playlist processing failed; only `error_type` is recorded, never exception text. |
+
+Every structured event contains `timestamp`, `event`, `level`, `source`, `component`,
+`pipeline_version`, `pipeline_run_id`, `playlist_id`, `spotify_snapshot_id`,
+`snapshot_date`, `duration_ms`, and `status`. The dedicated logger owns exactly one
+JSON stream handler across warm invocations. Unexpected unstructured messages have
+their free-form text suppressed instead of being copied into telemetry.
+
+When deployed in managed Lambda, these standard logging streams are intended to be
+captured by CloudWatch Logs. This repository has **not** provisioned a log group,
+retention policy, metric filters, alarms, or a live Lambda deployment yet.
+
 ## Verification Boundary
 
-Issues #6/#7 have no live AWS benchmark. The `< 30s` acceptance target must be measured
+M2 has no live AWS benchmark. The `< 30s` acceptance target must be measured
 against monitored playlists after deployment configuration exists. Local tests prove
 event validation, real auth/extraction integration through mocked HTTP, canonical S3
 keys, conditional upload semantics, cached Secrets Manager retrieval, local fallback,
-and sanitized failures without consuming AWS resources or credentials.
+page-level telemetry, single-line JSON formatting, warm logger idempotency, and
+sanitized failures without consuming AWS resources or credentials.

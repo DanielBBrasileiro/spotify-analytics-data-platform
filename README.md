@@ -10,8 +10,8 @@
 
 ---
 
-### Project Status: M1 — Local Ingestion Complete
-> **Implemented:** Refresh-token authentication, paginated/version-checked playlist extraction, synthetic 2026 fixtures and parser contracts, Pydantic run-lineage metadata, and immutable local Bronze persistence mirroring the future S3 hierarchy. See [Local Ingestion](docs/LOCAL_INGESTION.md) for usage, payload contracts, and limitations. CI enforces lint, formatting, and at least 91% statement/branch coverage overall. Live Spotify access and the cloud pipeline have not been validated by these tests. The latest tagged release remains **v0.1.1**; cloud ingestion begins in M2 and follows [BACKLOG.md](BACKLOG.md).
+### Project Status: M2 — Lambda & Bronze Runtime Complete
+> **Implemented and offline-validated:** refresh-token authentication, paginated/version-checked extraction, synthetic fixtures, Pydantic run lineage, immutable local Bronze persistence, canonical S3 object naming, a validated AWS Lambda handler, conditional no-clobber S3 publication, cached Secrets Manager credential retrieval, and structured JSON lifecycle telemetry. The test suite blocks network/DNS and uses mocked AWS boundaries, so no live Spotify access or AWS deployment is claimed. Lambda, S3, Secrets Manager, CloudWatch resources, IAM, and billing guardrails are still unprovisioned; Terraform deployment remains M8. The latest tagged release remains **v0.1.1**. See [BACKLOG.md](BACKLOG.md) for the next milestone.
 
 ---
 
