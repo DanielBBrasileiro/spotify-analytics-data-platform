@@ -21,7 +21,9 @@ classifiers = [
     "Topic :: Database",
     "Topic :: Scientific/Engineering :: Information Analysis",
 ]
-dependencies = []
+dependencies = [
+    "pydantic>=2.8,<3",
+]
 
 [project.optional-dependencies]
 dev = [
