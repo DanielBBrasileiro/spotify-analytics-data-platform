@@ -1,10 +1,13 @@
 # Snowflake Data Warehouse Architecture
 
-This directory contains Snowflake DDL scripts, RBAC definitions, storage integrations, and Snowpipe configurations.
+This directory currently contains only this design README. DDL, RBAC, storage integrations, Snowpipe, and validation queries are planned for M4.
+
+Analytical demonstrations use fully synthetic data under [ADR-0008](../docs/adr/0008-synthetic-analytics-and-source-use-boundary.md).
+The responsibilities and directory structure below are targets, not current implementation.
 
 ---
 
-## Architectural Responsibility
+## Planned Architectural Responsibility
 
 Snowflake serves as the centralized analytical data warehouse. It provides:
 1. **Automated Continuous Ingestion**: Snowpipe listens for Amazon S3 event notifications (via SQS) and loads curated Parquet files directly into Landing tables.

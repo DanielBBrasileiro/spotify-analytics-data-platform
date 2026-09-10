@@ -1,46 +1,70 @@
-# ADR-0007: Use Spotify Authorization Code Flow with Stored Refresh Token for Automated Ingestion
+# ADR-0007: Use Authorization Code with Refresh Tokens and Periodic Reauthorization
 
 ## Status
-Accepted
+
+Accepted; lifecycle and access wording revised 2026-09-07 and rechecked 2026-09-09.
 
 ## Context
-Initial pipeline designs assumed the Spotify Web API could be accessed using the OAuth 2.0 **Client Credentials Flow**. While Client Credentials provides simple application-level authentication without user interaction, it carries critical architectural limitations under Spotify's modern API access model:
-1. **Scope and Endpoint Restrictions**: Client Credentials tokens cannot access private playlists, collaborative playlists, or user-curated libraries. Under Spotify's 2026 Development Mode guidelines, applications are restricted to resources explicitly accessible by authorized application users with appropriate scopes (`playlist-read-private`, `playlist-read-collaborative`).
-2. **Access Boundary**: The Client Credentials flow does not associate requests with an authorized user identity, causing playlist inspection endpoints to reject requests or return truncated/empty results for user-governed playlists.
-3. **Automated Scheduled Execution**: Production pipelines (orchestrated by Airflow and executed by AWS Lambda) require automated, non-interactive execution without human intervention at scheduled run times.
+
+The Spotify integration needs a user-scoped token. The current playlist items
+endpoint accepts playlists owned by the authorized user or playlists on which
+that user is a collaborator. Following a playlist alone is insufficient. Client
+Credentials does not supply this user identity. Technical access must also respect
+the source-use boundary in [ADR-0008](0008-synthetic-analytics-and-source-use-boundary.md).
 
 ## Decision
-We decide to adopt a **two-phase authentication architecture**:
-1. **Initial Interactive Consent (One-Time Setup)**: A developer/operator runs an initial interactive setup utility executing the **OAuth 2.0 Authorization Code Flow** to authenticate the user and obtain an initial `access_token` and long-lived `refresh_token` with scopes:
-   - `playlist-read-private`
-   - `playlist-read-collaborative`
-2. **Secure Token Storage**: The resulting `refresh_token`, along with `client_id` and `client_secret`, is securely persisted in **AWS Secrets Manager** (`spotify/api/credentials`) for cloud execution, or in a local non-committed `.env` file for local development.
-3. **Automated Runtime Refresh**: During scheduled pipeline executions, the extractor (AWS Lambda or local script) retrieves the `refresh_token` from Secrets Manager, exchanges it with Spotify's token endpoint (`https://accounts.spotify.com/api/token`) using `grant_type=refresh_token`, and acquires a short-lived `access_token` (valid for 1 hour) to execute playlist `/items` requests non-interactively.
+
+1. **Interactive authorization and reauthorization:** use Authorization Code for
+   this confidential client. Initial consent occurs outside the implemented client.
+   Dashboard-app refresh tokens have a six-month lifetime measured from user
+   authorization. Exchanging access tokens does not extend it. Obtain new consent
+   after expiration or revocation; do not describe consent as permanently one-off.
+2. **Access-token exchange:** use `POST https://accounts.spotify.com/api/token`
+   with HTTP Basic client authentication and `grant_type=refresh_token`.
+   `expires_in` describes the access token, normally one hour. The implemented
+   client uses the returned TTL and a monotonic expiry buffer.
+3. **Failure handling:** `invalid_grant` raises `InvalidGrantException`, clears
+   the rejected refresh token and cached access token, and blocks further exchanges from
+   that client instance. Operator reauthorization is required; retrying that
+   refresh token cannot repair the grant.
+4. **Storage and rotation:** local callers inject credentials or process
+   environment values. The client does not load `.env` files. Rotated refresh
+   tokens are retained in memory only. Secure durable persistence belongs to M2's
+   Secrets Manager adapter and must be designed before unattended cloud use.
+5. **Access scopes:** retain the documented `playlist-read-private` and
+   `playlist-read-collaborative` intent; verify the exact scopes for each endpoint
+   when implementing consent. Scopes do not override ownership/collaboration checks.
+
+## Implementation Boundary
+
+`SpotifyAuthClient` and offline tests are implemented (Issue #1 / PR #38).
+Initial browser consent tooling, authorization-date tracking, expiry reminders,
+Secrets Manager writes, and Lambda/Airflow recovery alerts are planned. Neither
+live authentication nor cloud token persistence has been validated by this suite.
 
 ## Alternatives Considered
-- **Client Credentials Flow**:
-  - *Pros*: Completely headless; requires no initial browser-based user consent.
-  - *Cons*: Cannot read private or collaborative playlists; violates 2026 Spotify Development Mode access constraints.
-- **Authorization Code Flow with Proof Key for Code Exchange (PKCE)**:
-  - *Pros*: Mitigates authorization code interception attacks for public clients (e.g., mobile apps or Single Page Applications) that cannot securely store a `client_secret`.
-  - *Cons*: Our extraction runtime (AWS Lambda / Airflow backend) is a confidential server-side client with a dedicated secret store (AWS Secrets Manager). Standard Authorization Code flow with confidential client secret authentication is fully secure and standard for server-to-server daemon integration.
-- **Manual Static Bearer Token Injection**:
-  - *Pros*: Minimal setup code.
-  - *Cons*: Spotify access tokens expire after 3600 seconds (1 hour). Static tokens break automated daily scheduling and fail production reliability standards.
+
+- **Client Credentials:** useful for supported application-level endpoints, but
+  insufficient for this user-scoped playlist contract.
+- **Authorization Code with PKCE:** appropriate for public clients that cannot
+  protect a secret; reconsider if a browser/mobile client is introduced.
+- **Static bearer token:** short lifetime prevents durable scheduled operation.
 
 ## Consequences
 
-### Positive Consequences
-- **Full Playlist Access**: Successfully accesses user-owned, followed, and collaborative playlists under authorized scopes.
-- **Non-Interactive Scheduling**: Lambda and Airflow execute on schedule using automated token refresh without requiring manual user intervention.
-- **Least Privilege & Security**: The long-lived secret stored in Secrets Manager is the refresh token; the operational access token is transient, cached in memory, and expires automatically.
-
-### Negative Consequences
-- **One-Time Bootstrap Step**: Requires an initial interactive authorization step to generate the initial refresh token prior to automated execution.
-- **Token Invalidation Risk**: If the user revokes application access in their Spotify account, the refresh token becomes invalid and requires manual re-authorization.
-
-## Risks
-- Refresh token revocation or expiration if unused for extended periods. Mitigated by error detection in Lambda emitting a dedicated alert when token refresh fails with `invalid_grant`.
+Scheduled exchanges can run without user interaction while the grant is valid.
+Periodic operator participation is part of the intended operating model. Future
+automation must record authorization timing explicitly; neither access-token TTL
+nor refresh-token rotation proves a renewed six-month grant.
 
 ## Review Conditions
-Review if Spotify introduces API key or service-account capabilities for backend data access that eliminate user-consent requirements.
+
+Review when Spotify changes token lifetime, playlist access, authorization flows,
+or permitted source use, and before implementing consent or durable token storage.
+
+## References
+
+Rechecked 2026-09-09:
+- [Authorization Code](https://developer.spotify.com/documentation/web-api/tutorials/code-flow)
+- [Refresh token lifecycle and invalid_grant](https://developer.spotify.com/documentation/web-api/tutorials/refreshing-tokens)
+- [Playlist items access](https://developer.spotify.com/documentation/web-api/reference/get-playlists-items)

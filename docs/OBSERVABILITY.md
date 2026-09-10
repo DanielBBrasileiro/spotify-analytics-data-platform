@@ -1,12 +1,12 @@
 # Observability & Pipeline Telemetry
 
-This document defines the observability framework, structured logging schema, audit mechanisms, and cross-tier monitoring strategy for the Spotify Analytics Data Platform.
+This document specifies planned telemetry and cross-tier monitoring for the synthetic portfolio demonstration. M1 implements validated per-playlist run metadata and local Bronze persistence; structured logging, aggregate run manifests, CloudWatch, and warehouse audit queries are not implemented or deployed. Broader telemetry belongs to M2/M7.
 
 ---
 
 ## 1. Observability Strategy
 
-The platform applies structured telemetry anchored by two distinct identifiers:
+Planned telemetry distinguishes physical execution and source-version identifiers:
 1. **`pipeline_run_id` (UUID v4)**: A non-deterministic physical execution identifier generated per pipeline run to track processing lineage across Lambda, Glue, Snowflake, and dbt.
 2. **`spotify_snapshot_id` (String)**: An upstream version identifier emitted directly by Spotify representing the state of the playlist. It enables upstream mutation detection and idempotency verification.
 
@@ -20,7 +20,11 @@ immutable Bronze source snapshot JSON.
 
 ## 2. Standard Telemetry Event Schema
 
-All pipeline components emit JSON-structured log events adhering to the following schema:
+The following is a proposed completed-observation telemetry schema. It extends the
+implemented M1 `PipelineRunMetadata` model with component/version and downstream
+metrics that belong to later milestones. Failures before playlist metadata is
+available cannot provide `spotify_snapshot_id`; future failure-event contracts must
+handle that explicitly rather than inventing a source version.
 
 ```json
 {
@@ -75,7 +79,9 @@ All pipeline components emit JSON-structured log events adhering to the followin
 
 ---
 
-## 4. Operational Auditing & Quality Verification
+## 4. Planned Operational Auditing & Quality Verification
+
+Queries below are design examples for future M4/M7 integration validation, not tested commands against an existing warehouse.
 
 ### Snowflake Landing Verification Query
 Verify that Snowpipe successfully loaded the Parquet files produced by Glue:
@@ -110,5 +116,5 @@ FROM TABLE(INFORMATION_SCHEMA.COPY_HISTORY(
 ## 5. Cost-Conscious Monitoring Design
 
 - **No Paid Third-Party Observability Tools**: Avoid Datadog, New Relic, or commercial APM subscriptions.
-- **CloudWatch Retention**: Capped at **7 days** to eliminate log storage accumulation costs.
+- **CloudWatch Retention**: Planned **7 days** to limit retained volume; storage and ingestion costs still require measurement.
 - **Basic Metric Alarms**: Single CloudWatch alarm triggering on Lambda error count > 0.

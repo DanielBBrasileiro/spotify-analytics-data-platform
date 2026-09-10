@@ -21,21 +21,37 @@ This backlog establishes the structured, phased implementation roadmap for the *
 
 ---
 
+## Source Scope and Current Progress
+
+Issues #1, #2, #3, and #4 are closed through PRs #38, #39, #41, and #44,
+respectively. M1 is complete; PR #40 repaired README diagrams. Maintenance
+Issue #42 reconciles these documents with the implemented M1 boundary and the
+planned cloud/analytics milestones.
+
+[ADR-0008](docs/adr/0008-synthetic-analytics-and-source-use-boundary.md) governs
+all analytical milestones below: build demonstrations with fully synthetic data.
+Live analytical use remains unresolved. Cloud handlers and source integration
+descriptions are future capabilities, not permission to use live Spotify content.
+
 ## Detailed Milestone Issues
 
 ### Milestone M1: Local Spotify Ingestion
 - **#1 [M1] Implement Spotify API OAuth client and authentication abstraction**
+  - *Status*: Completed in [PR #38](https://github.com/DanielBBrasileiro/spotify-analytics-data-platform/pull/38).
   - *Context*: Modern Spotify Web API access requires OAuth 2.0 Authorization Code flow with user consent and token refresh (ADR-0007).
   - *Objective*: Build a robust Python authentication client that manages token refresh, in-memory caching, and expiration handling using a stored `refresh_token`.
 - **#2 [M1] Implement paginated playlist items extractor**
+  - *Status*: Completed in [PR #39](https://github.com/DanielBBrasileiro/spotify-analytics-data-platform/pull/39).
   - *Context*: Playlist item inspection uses `GET /v1/playlists/{id}/items` with a maximum pagination limit of 50 items per request.
-  - *Objective*: Build a pagination engine that retrieves all items, handles HTTP 429 rate limits, validates item types, and yields consolidated atomic snapshots.
+  - *Objective*: Build a pagination engine that retrieves all items, handles HTTP 429 rate limits and returns raw observations after optimistic version checks. Item classification is a separate opt-in parser delivered in #3.
 - **#3 [M1] Add Spotify response fixtures and unit parser tests**
+  - *Status*: Completed in [PR #41](https://github.com/DanielBBrasileiro/spotify-analytics-data-platform/pull/41).
   - *Context*: Offline unit testing must validate API parsing without live network dependencies.
   - *Objective*: Create synthetic 2026 API fixtures (items, multi-artist tracks, nullable fields, rate limits, `spotify_snapshot_id`) and pytest parser suites.
 - **#4 [M1] Define ingestion run metadata model and local persistence**
   - *Context*: Ingestion runs must attach standard telemetry (`pipeline_run_id` as non-deterministic execution UUID, `snapshot_date`, `spotify_snapshot_id`).
-  - *Objective*: Implement Pydantic domain models validating run telemetry and landing raw JSON locally matching S3 Bronze layout.
+  - *Status*: Completed in [PR #44](https://github.com/DanielBBrasileiro/spotify-analytics-data-platform/pull/44).
+  - *Objective*: Validate run telemetry and persist raw JSON locally matching the future S3 Bronze layout; no AWS calls. Preserve UUID v4 execution identity, UTC capture time, source version, and business date as distinct fields.
 
 ### Milestone M2: AWS Lambda & Bronze Data Lake
 - **#5 [M2] Define S3 Bronze object layout and naming convention**
@@ -43,7 +59,7 @@ This backlog establishes the structured, phased implementation roadmap for the *
   - *Objective*: Formalize and implement S3 client utilities writing to `bronze/spotify/playlist_tracks/ingestion_date=YYYY-MM-DD/run_id=<id>/`.
 - **#6 [M2] Implement AWS Lambda Spotify raw extractor handler**
   - *Context*: Serverless execution decouples extraction from local machines.
-  - *Objective*: Package the extractor into a lightweight AWS Lambda handler with short-lived execution (< 30s) and dynamic token refresh.
+  - *Objective*: Package the extractor into a lightweight AWS Lambda handler with a measured execution budget and dynamic token refresh.
 - **#7 [M2] Integrate AWS Secrets Manager for API credentials in Lambda**
   - *Context*: Secure credential management for `client_id`, `client_secret`, and `refresh_token`.
   - *Objective*: Update Lambda handler to fetch credentials dynamically from AWS Secrets Manager using `boto3`.
@@ -102,14 +118,14 @@ This backlog establishes the structured, phased implementation roadmap for the *
 ### Milestone M6: Airflow Orchestration
 - **#23 [M6] Create local Docker Compose Airflow environment**
   - *Context*: Cost-effective orchestration testing requires containerized local Airflow.
-  - *Objective*: Create `docker-compose.yml`, custom Dockerfile for Apache Airflow 3.x with AWS and Snowflake providers.
+  - *Objective*: Create `docker-compose.yml`, custom Dockerfile targeting Airflow >=3.1,<4 with exact runtime/provider versions selected and pinned during M6.
 - **#24 [M6] Implement end-to-end daily orchestration DAG**
   - *Context*: Coordinating Lambda, Glue 5.1, Snowpipe, and dbt in a scheduled workflow.
   - *Objective*: Build `spotify_daily_snapshot_dag` using the Airflow 3 Task SDK (`airflow.sdk`).
 - **#25 [M6] Add external execution operators (Lambda, Glue, Snowflake, dbt)**
   - *Context*: Enforcing Airflow as orchestrator requires external operator integration.
   - *Objective*: Configure operators for Lambda invocation, Glue 5.1 execution, Snowflake landing checks, and dbt run.
-- **#26 [M6] Implement pipeline retries, SLA sensors, and failure alerts**
+- **#26 [M6] Implement pipeline retries, Deadline Alerts, and failure notifications**
   - *Context*: Production pipelines must handle transient network or service failures.
   - *Objective*: Add exponential retry policies, S3 Bronze sensors, and Airflow 3 Deadline Alerts for monitoring.
 
@@ -122,7 +138,7 @@ This backlog establishes the structured, phased implementation roadmap for the *
   - *Objective*: Create a reporting utility that aggregates metrics across CloudWatch, Snowflake, and dbt into run manifests with `spotify_snapshot_id`.
 - **#29 [M7] Implement automated incident response and replay runbook scripts**
   - *Context*: Operational runbooks must be backed by actionable automation.
-  - *Objective*: Build CLI recovery scripts for replaying failed dates, refreshing expired tokens, and purging corrupted partitions.
+  - *Objective*: Build CLI recovery scripts for replaying failed dates, guiding operator reauthorization after refresh-token expiration, and purging corrupted partitions.
 
 ### Milestone M8: Terraform & CI/CD Hardening
 - **#30 [M8] Provision AWS resources (S3, IAM, Lambda, Glue) with Terraform**

@@ -1,10 +1,13 @@
 # dbt Core Analytics Engineering
 
-This directory contains the dbt Core project running transformations natively on Snowflake.
+This directory currently contains only this design README. The dbt project, SQL models, adapter configuration, and tests are planned for M5.
+
+Analytical demonstrations use fully synthetic data under [ADR-0008](../docs/adr/0008-synthetic-analytics-and-source-use-boundary.md).
+The responsibilities and directory structure below are targets, not current implementation.
 
 ---
 
-## Architectural Responsibility
+## Planned Architectural Responsibility
 
 Per **ADR-0005**, dbt Core is responsible for in-warehouse analytical transformations, dimensional modeling, business metrics, and data testing inside Snowflake.
 
@@ -34,12 +37,12 @@ Per **ADR-0005**, dbt Core is responsible for in-warehouse analytical transforma
 
 ## Incremental Merge & Backfill Strategy
 
-Per **ADR-0006**, `fact_playlist_snapshot` uses:
+Per **ADR-0006**, `fact_playlist_snapshot` is planned to use:
 - `materialized = 'incremental'`
 - `incremental_strategy = 'merge'`
 - `unique_key = 'snapshot_pk'` (computed from `playlist_id + snapshot_date + track_position`)
 
-Normal runs merge the target `snapshot_date`. Backfills accept explicit date ranges (`start_date` / `end_date`), enabling idempotent historical reprocessing.
+Planned runs merge a selected `snapshot_date`; replay accepts explicit date ranges from retained raw history. M5 must implement canonical observation selection, unique merge inputs, and cleanup of obsolete positions after shorter or empty replacement snapshots. No end-to-end idempotency claim is validated yet.
 
 ---
 

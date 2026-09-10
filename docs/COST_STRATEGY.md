@@ -1,118 +1,89 @@
 # Cost Strategy & Budget Governance
 
-This document establishes the financial and operational guardrails for the Spotify Analytics Data Platform.
+## 1. Status and budget target
 
----
+The **USD 20/month** figure is an operational portfolio planning target, not a hard
+cross-provider spending cap. This repository has no Terraform implementation or
+validated cloud billing evidence. Budgets, warehouse monitors, lifecycle rules,
+and teardown automation below are planned controls.
 
-## 1. Portfolio Budget Target
+Earlier documentation included idle, per-run, and monthly dollar estimates and
+assumed Free Tier coverage. Those figures were not backed by measurements or a
+current account-specific quote. They are not retained as spending promises.
+Use synthetic data for demonstrations under
+[ADR-0008](adr/0008-synthetic-analytics-and-source-use-boundary.md).
 
-| Metric | Target Limit | Governance Type | Notes |
-| :--- | :--- | :--- | :--- |
-| **Monthly Budget Target** | **≤ $20.00 USD / month** | **Operational Target & Alert Threshold** | Target ceiling for portfolio demonstration runs. |
-| **Target Steady-State (Idle)** | **$0.00 - $2.00 USD / month** | Estimated Range | When pipelines and warehouses are suspended. |
-| **Single Full Pipeline Run** | **< $0.25 USD / run** | Estimated Execution Cost | Ephemeral Lambda, Glue 5.1 job, and dbt merge run. |
+## 2. Planned cost controls
 
-> [!IMPORTANT]
-> The $20.00/month figure is an **operational portfolio budget target and alert threshold**, not a hard cloud provider stop guarantee. Cloud billing alarms notify operators when thresholds are crossed but do not instantaneously cut off all running services without configured automated shutdown scripts. All numeric figures below are conservative estimates based on official documentation and typical consumption patterns.
+| Area | Intended control | Limitation / current state |
+| --- | --- | --- |
+| Development | Current Python tests run offline; future Spark/Airflow run locally | Spark and Compose environments are not implemented |
+| AWS orchestration | Local Airflow instead of MWAA | No current price comparison or savings measurement |
+| AWS network | Avoid an unnecessary NAT Gateway or always-on EC2 | Infrastructure design still requires implementation review |
+| Lambda | On-demand execution with bounded duration and retries | No live duration, memory, or request benchmark |
+| Glue | On-demand jobs and measured worker/runtime sizing | No job deployed or billed run measured |
+| Snowflake warehouse | X-Small, AUTO_SUSPEND=60, AUTO_RESUME=TRUE | Planned settings; idle/resume billing must be included |
+| Snowpipe and storage | Monitor ingestion, stored bytes, and requests separately | Warehouse suspension does not suspend every serverless/storage charge |
+| Logs | Seven-day CloudWatch retention | Not configured; ingestion charges still apply |
+| Secrets | Minimal secret count and API requests | No persisted live secret or verified entitlement |
 
----
+## 3. Build a workload-based estimate before deployment
 
-## 2. Architectural Cost Principles
+Record region, currency, estimate date, account/trial eligibility, and applicable
+rates from official pricing pages. A useful worksheet should include:
 
-1. **Zero Always-On Compute**: No permanently running EC2 instances, EMR clusters, or Kubernetes nodes. Compute is provisioned ephemerally or invoked serverless.
-2. **Aggressive Auto-Suspend**: Snowflake virtual warehouses auto-suspend after 60 seconds of inactivity.
-3. **Local-First Development**: Airflow 3.x, unit tests, and PySpark transformations run locally in Docker or Python virtualenvs. Cloud services are invoked only for integration verification and portfolio demonstrations.
-4. **No Managed Cloud Orchestrator (No MWAA)**: AWS MWAA (Managed Workflows for Apache Airflow) incurs a baseline cost of ~$0.49/hour (~$350/month estimated base). MWAA is explicitly excluded; Airflow runs in Docker locally or via on-demand triggers.
-5. **No NAT Gateways**: AWS NAT Gateways incur an estimated baseline of ~$0.045/hour (~$32/month base) plus data processing fees. Lambda functions run outside VPC to eliminate NAT Gateway requirements.
-6. **Reproducible Ephemeral Infrastructure**: All cloud infrastructure is declared in Terraform and can be spun up for live demos and immediately destroyed (`terraform destroy`).
+- **Lambda:** invocation count plus memory in GB multiplied by billed seconds;
+  include throttling waits and retries rather than assuming every run is short.
+- **Glue:** workers/DPUs multiplied by billed runtime, including startup, minimum
+  billing, retries, and actual worker-type rules.
+- **Snowflake:** warehouse credits multiplied by the account's price per credit;
+  include resumes, idle time before suspension, and service-specific minimums.
+- **Snowpipe:** account-applicable serverless ingestion charges, separately from
+  warehouse credits; do not model it as free because the warehouse is suspended.
+- **Storage and APIs:** Bronze/Silver retention, object requests, transfer, logs,
+  and secret storage/access. Append-only run history adds storage over time.
 
----
+Apply credits or free allowances only after verifying eligibility and unused
+account allowance. Reconcile estimated versus actual usage after a permitted
+test deployment. No billing check is performed by `make check`.
 
-## 3. Cost Component Categorization
+## 4. Planned operating modes
 
-### A. Expected Low-Cost / Free Tier Components
+1. **Current local development:** offline synthetic pytest fixtures and Python
+   tooling. No cloud services are invoked by the test suite.
+2. **Future synthetic end-to-end demonstration:** implement a synthetic ingestion
+   path, persist raw histories, then exercise Glue, Snowflake, dbt, and Power BI
+   only after the corresponding milestones and deployment authorization.
+3. **Future scheduled synthetic runs:** define cadence, retention, and run budgets
+   from measured usage. Live analytical use is outside the current demo decision.
 
-- **Amazon S3**:
-  - Storage: < 1 GB of raw JSON and Parquet per month (< $0.03/month estimated).
-  - API Requests: Standard GET/PUT requests fall well within the AWS Free Tier.
-- **AWS Lambda**:
-  - AWS Lambda Free Tier includes **400,000 GB-seconds** of compute time and **1 million requests** per month (perpetual free tier).
-  - Ingesting monitored playlists daily requires minimal invocations (< 30 seconds per run with 256 MB RAM = < 8 GB-seconds per day). Estimated cost: $0.00.
-- **Amazon CloudWatch**:
-  - Log ingestion: < 50 MB/month with a strict 7-day retention policy. Capped well within the 5 GB free tier.
-- **AWS Secrets Manager**:
-  - 1 secret (Spotify API credentials) = ~$0.40/month per secret + negligible API call fees.
-- **GitHub Actions**:
-  - For public open-source GitHub repositories, standard GitHub-hosted Linux runners are provided free of charge under standard GitHub service terms.
+None of these modes has an established monthly cloud bill in this repository.
 
-### B. Controlled Variable Cost Components
+## 5. Planned alert thresholds
 
-- **AWS Glue 5.1 (PySpark)**:
-  - Billed per DPU-Hour (Data Processing Unit) with a 1-minute minimum.
-  - An estimated Glue 5.1 job configured with 2 DPUs running for ~2 minutes consumes `(2 DPUs * 2/60 hrs) = 0.067 DPU-hours` (estimated ~$0.03 to $0.05 per run based on regional pricing). Running daily equals ~$0.90 to $1.50/month.
-- **Snowflake (Data Warehouse)**:
-  - Billed per credit per second (Standard Edition consumes 1 credit/hour for an `X-Small` warehouse).
-  - Credit dollar rates vary depending on contractual tier and cloud region.
-  - With `AUTO_SUSPEND = 60` and `AUTO_RESUME = TRUE`, a daily dbt run executing in 60-90 seconds consumes ~120-150 billed seconds (~0.033 to 0.042 credits).
-  - Trial credits may be available depending on the current Snowflake trial program terms.
+- AWS Budgets alerts at **USD 10** and **USD 18** remain proposed M8 thresholds.
+  They cover the configured AWS billing scope, not Snowflake charges. Notifications
+  may lag usage and do not stop all services at USD 20.
+- A future Snowflake resource monitor can notify/suspend its covered warehouse
+  usage. It is not an account-wide cap on serverless ingestion and storage.
+- The operator must reconcile AWS and Snowflake spending against the combined
+  portfolio target and decide whether to stop subsequent runs.
 
-### C. Dangerous Cost Traps (Explicitly Avoided)
+## 6. Teardown verification after future deployments
 
-| Component | Why It Is Dangerous | Status in This Project |
-| :--- | :--- | :--- |
-| **AWS MWAA** | Base environment incurs ~$350/month continuously. | **Prohibited** (Use Local Docker Airflow). |
-| **AWS NAT Gateway** | Base charge ~$32/month per AZ + data transfer fees. | **Prohibited** (Lambda operates outside VPC). |
-| **Amazon EMR** | Cluster nodes billed continuously unless terminated. | **Prohibited** (Use AWS Glue on-demand). |
-| **Amazon Redshift Serverless** | Minimum RPU baseline can accumulate rapidly. | **Prohibited** (Use Snowflake X-Small). |
-| **Snowflake Warehouse Left Running** | Failing to set `AUTO_SUSPEND` drains credits. | **Enforced `AUTO_SUSPEND = 60`**. |
-| **Unbounded CloudWatch Logs** | Default retention is `Never Expire`. | **Enforced 7-day retention**. |
+Once reviewed Terraform manifests exist, inspect the destroy plan and the exact
+resources/data affected before applying it. Verify resource removal, warehouse
+suspension, retained objects, serverless activity, and subsequent billing. A
+successful destroy command does not prove zero residual charges or delete every
+resource outside its managed state. No teardown command is currently runnable
+from this README alone.
 
----
+## Pricing references
 
-## 4. Operating Modes
-
-### Mode 1: Development Mode (Default)
-- Target cost: **$0.00 - $1.00 / month**
-- Airflow 3.x runs locally via Docker Compose.
-- PySpark transformations tested locally using pytest and local Spark sessions.
-- Mock JSON data generated locally matching current 2026 API schemas.
-- Snowflake queries executed against local DuckDB or transient Snowflake accounts.
-
-### Mode 2: Demonstration / Portfolio Review Mode
-- Target cost: **$2.00 - $5.00 / month**
-- Cloud infrastructure provisioned on-demand via Terraform.
-- Live Spotify API ingestion via AWS Lambda into S3 Bronze.
-- AWS Glue 5.1 job triggered once daily via Airflow.
-- Snowpipe ingests into Snowflake Landing.
-- dbt Core runs incremental merges on Snowflake `X-Small` warehouse.
-- Power BI connects to Snowflake Marts.
-
-### Mode 3: Extended Production-Like Mode (Reference)
-- Target cost: **$15.00 - $20.00 / month**
-- Daily scheduling across monitored playlists.
-- S3 lifecycle policies archiving bronze data after 90 days.
-- CloudWatch anomaly detection alarms monitoring job execution duration.
-
----
-
-## 5. Cost Governance & Alarms
-
-1. **AWS Budgets**:
-   - An AWS Budget configured via Terraform with alert thresholds set at **$10.00 USD** (50% of target) and **$18.00 USD** (90% of target).
-   - Email notifications alert the administrator proactively before approaching the $20/month threshold.
-2. **Snowflake Resource Monitors**:
-   - A Snowflake Resource Monitor attached to `COMPUTE_WH` configured with:
-     - Notification at 80% of monthly credit quota.
-     - Immediate suspension at 100% of quota.
-
----
-
-## 6. Cost Teardown Checklist
-
-Before completing any live cloud demonstration or testing phase:
-
-- [ ] Run `terraform destroy` in `infra/terraform/` to decommission AWS resources (Lambda, Glue jobs, S3 buckets, log groups).
-- [ ] Confirm in Snowflake Web UI that `COMPUTE_WH` is in `SUSPENDED` state.
-- [ ] Verify that no lingering Snowpipe or task is running queries in `SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY`.
-- [ ] Check AWS Billing Console -> Cost Explorer for any unexpected active services.
-- [ ] Verify S3 buckets are empty or archived if destroying the environment.
+Verify current rates before using them in an estimate:
+- [AWS Lambda pricing](https://aws.amazon.com/lambda/pricing/)
+- [AWS Glue pricing](https://aws.amazon.com/glue/pricing/)
+- [Amazon S3 pricing](https://aws.amazon.com/s3/pricing/)
+- [Amazon CloudWatch pricing](https://aws.amazon.com/cloudwatch/pricing/)
+- [AWS Secrets Manager pricing](https://aws.amazon.com/secrets-manager/pricing/)
+- [Snowflake cost categories](https://docs.snowflake.com/en/user-guide/cost-understanding-overall)
