@@ -1,0 +1,212 @@
+"""Validated Lambda event and service orchestration contracts."""
+
+import sys
+import types
+from datetime import UTC, date, datetime
+from unittest.mock import Mock, patch
+from uuid import UUID, uuid1
+
+import pytest
+from pydantic import ValidationError
+
+from spotify_data_platform.lambda_runtime import (
+    LambdaConfigurationError,
+    LambdaExtractionRequest,
+    LambdaExtractorService,
+)
+from spotify_data_platform.lambda_runtime import handler as handler_module
+
+RUN_ID = UUID("123e4567-e89b-42d3-a456-426614174000")
+PLAYLIST_A = "a" * 22
+PLAYLIST_B = "b" * 22
+
+
+def request_payload(**changes):
+    payload = {
+        "playlist_ids": [PLAYLIST_A, PLAYLIST_B],
+        "pipeline_run_id": str(RUN_ID),
+        "snapshot_date": "2026-09-01",
+    }
+    payload.update(changes)
+    return payload
+
+
+def extracted(playlist_id, version, count):
+    items = [{"item": {"id": str(index), "type": "track"}} for index in range(count)]
+    return {
+        "playlist_id": playlist_id,
+        "spotify_snapshot_id": version,
+        "playlist": {"id": playlist_id, "snapshot_id": version},
+        "pages": [{"items": items}],
+        "items": items,
+    }
+
+
+def test_request_validates_uuid_date_playlist_ids_and_uniqueness():
+    request = LambdaExtractionRequest.model_validate(request_payload())
+    assert request.pipeline_run_id == RUN_ID
+    assert request.snapshot_date == date(2026, 9, 1)
+    assert request.playlist_ids == [PLAYLIST_A, PLAYLIST_B]
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"playlist_ids": []},
+        {"playlist_ids": ["short"]},
+        {"playlist_ids": [PLAYLIST_A, PLAYLIST_A]},
+        {"playlist_ids": [PLAYLIST_A] * 101},
+        {"pipeline_run_id": str(uuid1())},
+        {"pipeline_run_id": "invalid"},
+        {"snapshot_date": "invalid"},
+        {"unexpected": True},
+    ],
+)
+def test_invalid_request_is_rejected(changes):
+    with pytest.raises(ValidationError):
+        LambdaExtractionRequest.model_validate(request_payload(**changes))
+
+
+def test_service_writes_each_playlist_with_shared_run_and_business_date():
+    extractor = Mock()
+    extractor.extract.side_effect = [
+        extracted(PLAYLIST_A, "version-a", 2),
+        extracted(PLAYLIST_B, "version-b", 3),
+    ]
+    writer = Mock()
+    writer.write.side_effect = ["s3://bucket/a.json", "s3://bucket/b.json"]
+    timestamps = iter(
+        [
+            datetime(2026, 9, 10, 13, 0, tzinfo=UTC),
+            datetime(2026, 9, 10, 13, 1, tzinfo=UTC),
+        ]
+    )
+    monotonic = Mock(side_effect=[100.0, 100.125])
+    service = LambdaExtractorService(
+        extractor,
+        writer,
+        now=lambda: next(timestamps),
+        monotonic=monotonic,
+    )
+
+    summary = service.run(LambdaExtractionRequest.model_validate(request_payload()))
+
+    assert summary == {
+        "statusCode": 200,
+        "pipeline_run_id": str(RUN_ID),
+        "snapshot_date": "2026-09-01",
+        "playlist_count": 2,
+        "records_extracted": 5,
+        "elapsed_ms": 125.0,
+        "objects": [
+            {
+                "playlist_id": PLAYLIST_A,
+                "spotify_snapshot_id": "version-a",
+                "records_extracted": 2,
+                "snapshot_timestamp": "2026-09-10T13:00:00Z",
+                "s3_uri": "s3://bucket/a.json",
+            },
+            {
+                "playlist_id": PLAYLIST_B,
+                "spotify_snapshot_id": "version-b",
+                "records_extracted": 3,
+                "snapshot_timestamp": "2026-09-10T13:01:00Z",
+                "s3_uri": "s3://bucket/b.json",
+            },
+        ],
+    }
+    assert [call.args[0] for call in extractor.extract.call_args_list] == [PLAYLIST_A, PLAYLIST_B]
+    first_metadata = writer.write.call_args_list[0].args[1]
+    second_metadata = writer.write.call_args_list[1].args[1]
+    assert first_metadata.pipeline_run_id == second_metadata.pipeline_run_id == RUN_ID
+    assert first_metadata.snapshot_date == second_metadata.snapshot_date == date(2026, 9, 1)
+
+
+def test_negative_clock_skew_never_reports_negative_latency():
+    extractor = Mock()
+    extractor.extract.return_value = extracted(PLAYLIST_A, "version", 0)
+    writer = Mock(return_value="unused")
+    writer.write.return_value = "s3://bucket/a.json"
+    service = LambdaExtractorService(
+        extractor,
+        writer,
+        now=lambda: datetime(2026, 9, 10, tzinfo=UTC),
+        monotonic=Mock(side_effect=[10.0, 9.0]),
+    )
+    summary = service.run(
+        LambdaExtractionRequest.model_validate(request_payload(playlist_ids=[PLAYLIST_A]))
+    )
+    assert summary["elapsed_ms"] == 0.0
+
+
+def test_required_env_strips_value_and_rejects_missing_or_blank():
+    assert handler_module._required_env("NAME", {"NAME": " bucket "}) == "bucket"
+    with pytest.raises(LambdaConfigurationError, match="NAME"):
+        handler_module._required_env("NAME", {})
+    with pytest.raises(LambdaConfigurationError, match="NAME"):
+        handler_module._required_env("NAME", {"NAME": "   "})
+
+
+def test_default_s3_client_uses_boto3_runtime_module(monkeypatch):
+    client = object()
+    boto3 = types.SimpleNamespace(client=Mock(return_value=client))
+    monkeypatch.setitem(sys.modules, "boto3", boto3)
+    assert handler_module._default_s3_client() is client
+    boto3.client.assert_called_once_with("s3")
+
+
+def test_default_s3_client_reports_missing_sdk_without_installing_it(monkeypatch):
+    real_import = handler_module.importlib.import_module
+
+    def fake_import(name):
+        if name == "boto3":
+            raise ImportError
+        return real_import(name)
+
+    monkeypatch.setattr(handler_module.importlib, "import_module", fake_import)
+    with pytest.raises(LambdaConfigurationError, match="boto3 is unavailable"):
+        handler_module._default_s3_client()
+
+
+def test_lambda_handler_assembles_default_runtime_from_environment(monkeypatch):
+    auth = object()
+    extractor = Mock()
+    s3_client = object()
+    writer = Mock()
+    service = Mock()
+    service.run.return_value = {"statusCode": 200}
+
+    monkeypatch.setenv("S3_BUCKET_NAME", "spotify-analytics-data-platform-bronze-us-east-1")
+    with (
+        patch.object(
+            handler_module.SpotifyAuthClient, "from_env", return_value=auth
+        ) as auth_factory,
+        patch.object(
+            handler_module, "PlaylistItemsExtractor", return_value=extractor
+        ) as extractor_factory,
+        patch.object(handler_module, "_default_s3_client", return_value=s3_client),
+        patch.object(handler_module, "S3BronzeWriter", return_value=writer) as writer_factory,
+        patch.object(
+            handler_module, "LambdaExtractorService", return_value=service
+        ) as service_factory,
+    ):
+        result = handler_module.lambda_handler(request_payload(playlist_ids=[PLAYLIST_A]), object())
+
+    assert result == {"statusCode": 200}
+    auth_factory.assert_called_once_with()
+    extractor_factory.assert_called_once_with(auth)
+    writer_factory.assert_called_once_with(
+        "spotify-analytics-data-platform-bronze-us-east-1", s3_client
+    )
+    service_factory.assert_called_once_with(extractor, writer)
+    assert service.run.call_args.args[0].pipeline_run_id == RUN_ID
+
+
+def test_lambda_handler_rejects_missing_bucket_before_auth(monkeypatch):
+    monkeypatch.delenv("S3_BUCKET_NAME", raising=False)
+    with (
+        patch.object(handler_module.SpotifyAuthClient, "from_env") as auth_factory,
+        pytest.raises(LambdaConfigurationError, match="S3_BUCKET_NAME"),
+    ):
+        handler_module.lambda_handler(request_payload(playlist_ids=[PLAYLIST_A]), None)
+    auth_factory.assert_not_called()
