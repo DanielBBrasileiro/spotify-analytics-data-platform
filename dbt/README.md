@@ -49,9 +49,12 @@ Normal runs merge the target `snapshot_date`. Backfills accept explicit date ran
 dbt/
 ├── dbt_project.yml
 ├── packages.yml
+├── package-lock.yml
 ├── profiles.yml.example
+├── requirements-dev.txt
 ├── macros/
-│   └── generate_schema_name.sql
+│   ├── generate_schema_name.sql
+│   └── snapshot_window.sql
 ├── models/
 │   ├── staging/
 │   │   ├── _staging_models.yml
@@ -75,7 +78,13 @@ dbt/
 │       ├── mart_track_lifecycle.sql
 │       └── mart_playlist_changes.sql
 └── tests/
-    └── assert_positive_track_durations.sql
+    ├── assert_positive_track_durations.sql
+    ├── assert_nonnegative_positions.sql
+    ├── assert_fact_snapshot_grain.sql
+    ├── assert_bridge_artist_order.sql
+    ├── assert_playlist_change_continuity.sql
+    ├── assert_mart_numeric_bounds.sql
+    └── assert_retention_streaks_positive.sql
 ```
 
 ## Offline development contract
@@ -88,3 +97,12 @@ configuration, Jinja, refs/sources, macros, and the DAG without connecting to Sn
 
 Live `dbt build` remains a later cloud-validation gate; this repository does not claim
 warehouse execution merely because the offline parse succeeds.
+
+The incremental fact requires an explicit execution window at runtime: use
+`--vars '{"snapshot_date": "YYYY-MM-DD"}'` for a daily merge or both `start_date` and
+`end_date` for an idempotent backfill. It never uses a `max(snapshot_date)` watermark, so
+older partitions remain re-runnable.
+
+Track-level marts collapse repeated legitimate playlist slots for the same track/date to
+the best (lowest numeric) observed position. The underlying fact keeps every slot at its
+canonical `playlist_id + snapshot_date + track_position` grain.

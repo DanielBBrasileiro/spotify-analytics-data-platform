@@ -1,4 +1,12 @@
-with history as (
+with daily_track_presence as (
+    select
+        playlist_pk,
+        track_pk,
+        snapshot_date,
+        min(track_position) as track_position
+    from {{ ref('fact_playlist_snapshot') }}
+    group by playlist_pk, track_pk, snapshot_date
+), history as (
     select
         f.*,
         lag(snapshot_date) over (
@@ -17,7 +25,7 @@ with history as (
             order by snapshot_date
             rows between unbounded preceding and current row
         ) as best_position
-    from {{ ref('fact_playlist_snapshot') }} f
+    from daily_track_presence f
 )
 
 select
@@ -37,4 +45,3 @@ inner join {{ ref('dim_playlist') }} p
     on h.playlist_pk = p.playlist_pk
 inner join {{ ref('dim_track') }} t
     on h.track_pk = t.track_pk
-

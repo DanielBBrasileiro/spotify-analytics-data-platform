@@ -220,6 +220,9 @@ Power BI connects directly to these curated analytical models.
 ### 3. `mart_track_lifecycle`
 - **Granularity**: `playlist_id` + `track_id` + `snapshot_date`
 - **Metrics**: Cumulative days on playlist (tenure), current position, best position achieved, positional change from prior day (`position_delta`).
+- **Repeated Track Slots**: If the same track legitimately occupies multiple playlist
+  positions on one date, track-level marts use the best (lowest numeric) position while the
+  fact table continues preserving every distinct position slot.
 
 ### 4. `mart_playlist_changes` (Daily Churn & Retention Mart)
 - **Granularity**: `playlist_id` + `track_id` + `snapshot_date`

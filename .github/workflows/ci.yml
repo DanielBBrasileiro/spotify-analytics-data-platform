@@ -141,3 +141,7 @@ jobs:
           DBT_SEND_ANONYMOUS_USAGE_STATS: "false"
         run: |
           dbt parse --no-partial-parse --project-dir dbt --profiles-dir tests/dbt_profile
+
+      - name: Run dbt manifest contracts
+        run: |
+          pytest tests/dbt -q

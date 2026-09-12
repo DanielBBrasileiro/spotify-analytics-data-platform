@@ -1,5 +1,11 @@
 with fact as (
-    select * from {{ ref('fact_playlist_snapshot') }}
+    select
+        playlist_pk,
+        track_pk,
+        snapshot_date,
+        min(track_position) as track_position
+    from {{ ref('fact_playlist_snapshot') }}
+    group by playlist_pk, track_pk, snapshot_date
 ), playlist_dates as (
     select
         playlist_pk,
@@ -115,4 +121,3 @@ inner join {{ ref('dim_playlist') }} p
     on c.playlist_pk = p.playlist_pk
 inner join {{ ref('dim_track') }} t
     on c.track_pk = t.track_pk
-

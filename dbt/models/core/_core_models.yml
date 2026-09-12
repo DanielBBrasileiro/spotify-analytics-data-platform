@@ -53,6 +53,10 @@ models:
 
   - name: bridge_track_artist
     description: Many-to-many track/artist bridge preserving provider billing order.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [track_pk, artist_pk]
     columns:
       - name: bridge_pk
         data_tests: [not_null, unique]
@@ -77,6 +81,10 @@ models:
     description: >-
       Incremental daily playlist-slot fact. Canonical natural grain is playlist_id +
       snapshot_date + track_position; physical timestamps/run IDs remain lineage only.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [playlist_pk, snapshot_date, track_position]
     columns:
       - name: snapshot_pk
         data_tests: [not_null, unique]

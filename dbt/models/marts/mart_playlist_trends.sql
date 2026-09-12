@@ -22,9 +22,13 @@ with playlist_metrics as (
     select
         playlist_pk,
         snapshot_date,
+        total_tracks,
         lag(snapshot_date) over (
             partition by playlist_pk order by snapshot_date
-        ) as previous_snapshot_date
+        ) as previous_snapshot_date,
+        lag(total_tracks) over (
+            partition by playlist_pk order by snapshot_date
+        ) as previous_total_tracks
     from playlist_metrics
 ), change_metrics as (
     select
@@ -59,7 +63,7 @@ select
         when d.previous_snapshot_date = dateadd(day, -1, m.snapshot_date)
             then (
                 coalesce(c.observed_new_tracks, 0) + coalesce(c.observed_exited_tracks, 0)
-            ) / nullif(2.0 * m.total_tracks, 0)
+            ) / nullif(d.previous_total_tracks + m.total_tracks, 0)
         else null
     end as turnover_rate
 from playlist_metrics m
@@ -71,4 +75,3 @@ inner join {{ ref('dim_playlist') }} p
 left join change_metrics c
     on m.playlist_pk = c.playlist_pk
    and m.snapshot_date = c.snapshot_date
-
