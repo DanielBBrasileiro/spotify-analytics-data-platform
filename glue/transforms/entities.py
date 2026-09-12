@@ -53,3 +53,27 @@ def extract_albums(frame: DataFrame, *, ingestion_date: date | str) -> DataFrame
         )
     )
     return albums.dropDuplicates(["album_id"])
+
+
+def extract_tracks(frame: DataFrame, *, ingestion_date: date | str) -> DataFrame:
+    """Extract provider-backed track entities from valid music items."""
+    tracks = (
+        valid_track_items(frame)
+        .filter(
+            F.col("entry.item.name").isNotNull()
+            & (F.trim(F.col("entry.item.name")) != F.lit(""))
+            & F.col("entry.item.duration_ms").isNotNull()
+            & F.col("entry.item.explicit").isNotNull()
+            & F.col("entry.item.is_local").isNotNull()
+        )
+        .select(
+            F.col("entry.item.id").alias("track_id"),
+            F.col("entry.item.name").alias("track_name"),
+            F.col("entry.item.album.id").alias("album_id"),
+            F.col("entry.item.duration_ms").alias("duration_ms"),
+            F.col("entry.item.explicit").alias("is_explicit"),
+            F.col("entry.item.is_local").alias("is_local"),
+            ingestion_date_column(ingestion_date).alias("ingestion_date"),
+        )
+    )
+    return tracks.dropDuplicates(["track_id"])
