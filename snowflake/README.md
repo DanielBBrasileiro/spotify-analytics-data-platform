@@ -59,18 +59,19 @@ credit pricing varies by account/region and it does not meter serverless Snowpip
 
 ## Loading semantics
 
-Each Silver dataset has one pipe. The COPY transformations cast Parquet fields explicitly
+Each of the six Silver datasets has one pipe. `playlist_observations` carries one row per
+physical playlist run even when zero valid tracks exist, so downstream analytics can
+distinguish an observed empty playlist from a missing pipeline day. The COPY transformations cast Parquet fields explicitly
 into Landing types and append `_loaded_at`, `_file_name`, and `_file_row_number` from
 Snowflake metadata. `_loaded_at` uses `METADATA$START_SCAN_TIME`, not wall-clock SQL
 functions. The file's `ingestion_date` remains data, and validation verifies that it agrees
 with the Hive partition path.
 
-Spark 3.5.6 writes `TimestampType` to Parquet as INT96 by default. With Snowflake's
-vectorized Parquet scanner, INT96 is surfaced as `TIMESTAMP_LTZ`; therefore timestamp
-fields and `METADATA$START_SCAN_TIME` are explicitly converted to UTC before casting to
-Landing `TIMESTAMP_NTZ`. The later live validation phase must prove this with a known UTC
-instant while the Snowflake session uses a non-UTC timezone, so session settings cannot
-silently change lineage values.
+M3 explicitly writes Spark `TimestampType` values as Parquet `TIMESTAMP_MICROS` rather than
+the legacy INT96 default. Snowpipe still normalizes timestamp instants and
+`METADATA$START_SCAN_TIME` to UTC before casting to Landing `TIMESTAMP_NTZ`. The later live
+validation phase must prove this with a known UTC instant while the Snowflake session uses
+a non-UTC timezone, so session settings cannot silently change lineage values.
 
 Snowpipe's loaded-file tracking prevents routine file replay; it is **not** the analytical
 business deduplication key. M5 dbt resolves retries at the canonical grain:

@@ -15,7 +15,7 @@ We decide to transform raw Bronze JSON into **Apache Parquet files with Snappy c
 Key technical characteristics:
 1. **Columnar Storage**: Optimized for analytical projection and aggregation.
 2. **Embedded Metadata & Schemas**: Parquet files encapsulate explicit data types, eliminating ambiguity over timestamps, booleans, and floating-point audio metrics.
-3. **Partitioning**: Partitioned by `ingestion_date=YYYY-MM-DD` across curated entity directories:
+3. **Partitioning**: Date-first, collision-free publication paths use `ingestion_date=YYYY-MM-DD/run_id=<uuid>/playlist_id=<id>` across curated entity directories. The leading date supports pruning while the physical run/source scopes prevent independent Glue invocations from overwriting one another:
    - `silver/artists/`
    - `silver/albums/`
    - `silver/tracks/`

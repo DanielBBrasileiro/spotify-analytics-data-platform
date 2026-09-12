@@ -12,6 +12,7 @@ from glue.jobs.bronze_to_silver_curation import (
     read_bronze_snapshot,
     run_bronze_to_silver,
 )
+from glue.schemas.bronze_schema import BRONZE_PLAYLIST_SNAPSHOT_SCHEMA
 from glue.schemas.validation import SchemaContractError
 from glue.transforms.snapshots import SnapshotLineage
 from tests.spark.helpers import bronze_payload, load_fixture
@@ -33,7 +34,7 @@ def _write_bronze(path: Path, payload):
     return path
 
 
-def test_end_to_end_single_page_writes_all_five_silver_datasets(spark, tmp_path):
+def test_end_to_end_single_page_writes_all_six_silver_datasets(spark, tmp_path):
     bronze_path = _write_bronze(tmp_path / "bronze.json", bronze_payload())
     output_root = tmp_path / "lake"
 
@@ -51,6 +52,7 @@ def test_end_to_end_single_page_writes_all_five_silver_datasets(spark, tmp_path)
         "tracks",
         "track_artists",
         "playlist_snapshots",
+        "playlist_observations",
     }
     expected_counts = {
         "artists": 2,
@@ -58,11 +60,13 @@ def test_end_to_end_single_page_writes_all_five_silver_datasets(spark, tmp_path)
         "tracks": 1,
         "track_artists": 2,
         "playlist_snapshots": 1,
+        "playlist_observations": 1,
     }
     for dataset, expected in expected_counts.items():
         destination = Path(result.destinations[dataset])
         assert destination.relative_to(output_root).as_posix() == (
-            f"silver/{dataset}/ingestion_date=2026-09-12"
+            f"silver/{dataset}/ingestion_date=2026-09-12/"
+            f"run_id={RUN_ID}/playlist_id=6666666666666666666666"
         )
         assert spark.read.parquet(str(destination)).count() == expected
 
@@ -96,6 +100,21 @@ def test_future_unknown_bronze_fields_do_not_break_explicit_schema(spark, tmp_pa
     frame = read_bronze_snapshot(spark, path)
     assert frame.count() == 1
     assert "future_source_field" not in frame.columns
+
+
+def test_empty_playlist_still_emits_observation_without_snapshot_slots(spark):
+    bronze = spark.createDataFrame(
+        [bronze_payload(items=[])],
+        schema=BRONZE_PLAYLIST_SNAPSHOT_SCHEMA,
+    )
+    datasets, rejected = build_silver_datasets(bronze, lineage=_lineage())
+    assert datasets["playlist_snapshots"].count() == 0
+    observation = datasets["playlist_observations"].first()
+    assert observation is not None
+    assert observation.source_item_count == 0
+    assert observation.valid_track_count == 0
+    assert observation.rejected_item_count == 0
+    assert rejected.count() == 0
 
 
 def test_curation_rejects_multiple_bronze_objects_for_one_lineage(spark, tmp_path):

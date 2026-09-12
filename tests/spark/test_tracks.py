@@ -44,4 +44,6 @@ def test_missing_required_track_value_reaches_contract_and_fails_writer(spark, t
             root=tmp_path,
             dataset="tracks",
             ingestion_date="2026-09-12",
+            pipeline_run_id="123e4567-e89b-42d3-a456-426614174000",
+            playlist_id="6666666666666666666666",
         )

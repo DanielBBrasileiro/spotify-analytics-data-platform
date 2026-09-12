@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import date
 from pathlib import Path
+from uuid import UUID
 
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
@@ -39,9 +40,11 @@ def write_silver_dataset(
     root: str | Path,
     dataset: str,
     ingestion_date: date | str,
+    pipeline_run_id: UUID | str,
+    playlist_id: str,
     output_partitions: int = 1,
 ) -> str:
-    """Overwrite one canonical daily Silver partition with Snappy Parquet files."""
+    """Publish one run/playlist-scoped Silver partition with Snappy Parquet files."""
     if dataset not in SILVER_SCHEMAS:
         raise ValueError(f"Unsupported Silver dataset: {dataset}.")
     if type(output_partitions) is not int or output_partitions <= 0:
@@ -56,7 +59,13 @@ def write_silver_dataset(
     if wrong_partition.limit(1).count():
         raise SchemaContractError(f"{dataset} contains rows outside ingestion_date={day}.")
 
-    destination = resolve_silver_partition(root, dataset, day)
+    destination = resolve_silver_partition(
+        root,
+        dataset,
+        day,
+        pipeline_run_id=pipeline_run_id,
+        playlist_id=playlist_id,
+    )
     spark = frame.sparkSession
     previous_timestamp_type = spark.conf.get(PARQUET_TIMESTAMP_CONFIG, "INT96")
     spark.conf.set(PARQUET_TIMESTAMP_CONFIG, PARQUET_TIMESTAMP_TYPE)

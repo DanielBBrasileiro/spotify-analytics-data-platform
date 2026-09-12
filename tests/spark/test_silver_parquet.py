@@ -16,6 +16,13 @@ from glue.transforms.entities import extract_tracks
 from glue.transforms.snapshots import SnapshotLineage, extract_playlist_snapshots
 from tests.spark.helpers import bronze_frame
 
+RUN_ID = "123e4567-e89b-42d3-a456-426614174000"
+PLAYLIST_ID = "6666666666666666666666"
+
+
+def _writer_kwargs():
+    return {"pipeline_run_id": RUN_ID, "playlist_id": PLAYLIST_ID}
+
 
 def _parquet_files(destination: str):
     return sorted(Path(destination).glob("*.parquet"))
@@ -48,9 +55,13 @@ def test_write_silver_dataset_creates_hive_path_retains_date_and_uses_snappy(spa
         root=tmp_path,
         dataset="tracks",
         ingestion_date="2026-09-12",
+        **_writer_kwargs(),
     )
 
-    assert Path(destination) == tmp_path / "silver/tracks/ingestion_date=2026-09-12"
+    assert Path(destination) == (
+        tmp_path
+        / f"silver/tracks/ingestion_date=2026-09-12/run_id={RUN_ID}/playlist_id={PLAYLIST_ID}"
+    )
     files = _parquet_files(destination)
     assert len(files) == 1
     assert _first_column_codec(spark, files[0]) == "SNAPPY"
@@ -61,13 +72,14 @@ def test_write_silver_dataset_creates_hive_path_retains_date_and_uses_snappy(spa
     assert restored_row.ingestion_date.isoformat() == "2026-09-12"
 
 
-def test_partition_write_is_overwrite_scoped_to_the_requested_day(spark, tmp_path):
+def test_partition_write_is_overwrite_scoped_to_the_requested_run_and_playlist(spark, tmp_path):
     base = extract_tracks(bronze_frame(spark), ingestion_date="2026-09-12")
     destination = write_silver_dataset(
         base,
         root=tmp_path,
         dataset="tracks",
         ingestion_date="2026-09-12",
+        **_writer_kwargs(),
     )
     replacement = base.withColumn("track_name", F.lit("Replacement"))
     write_silver_dataset(
@@ -75,10 +87,36 @@ def test_partition_write_is_overwrite_scoped_to_the_requested_day(spark, tmp_pat
         root=tmp_path,
         dataset="tracks",
         ingestion_date="2026-09-12",
+        **_writer_kwargs(),
     )
     rows = spark.read.parquet(destination).collect()
     assert len(rows) == 1
     assert rows[0].track_name == "Replacement"
+
+
+def test_distinct_runs_for_same_playlist_day_do_not_overwrite_each_other(spark, tmp_path):
+    base = extract_tracks(bronze_frame(spark), ingestion_date="2026-09-12")
+    first = write_silver_dataset(
+        base,
+        root=tmp_path,
+        dataset="tracks",
+        ingestion_date="2026-09-12",
+        pipeline_run_id=RUN_ID,
+        playlist_id=PLAYLIST_ID,
+    )
+    second_run = "223e4567-e89b-42d3-a456-426614174000"
+    second = write_silver_dataset(
+        base.withColumn("track_name", F.lit("Second run")),
+        root=tmp_path,
+        dataset="tracks",
+        ingestion_date="2026-09-12",
+        pipeline_run_id=second_run,
+        playlist_id=PLAYLIST_ID,
+    )
+
+    assert first != second
+    assert spark.read.parquet(first).first().track_name == "Synthetic Track 1"
+    assert spark.read.parquet(second).first().track_name == "Second run"
 
 
 def test_writer_rejects_mixed_partition_dates_and_invalid_partition_count(spark, tmp_path):
@@ -90,6 +128,7 @@ def test_writer_rejects_mixed_partition_dates_and_invalid_partition_count(spark,
             root=tmp_path,
             dataset="tracks",
             ingestion_date="2026-09-12",
+            **_writer_kwargs(),
         )
     with pytest.raises(ValueError, match="positive integer"):
         write_silver_dataset(
@@ -97,6 +136,7 @@ def test_writer_rejects_mixed_partition_dates_and_invalid_partition_count(spark,
             root=tmp_path,
             dataset="tracks",
             ingestion_date="2026-09-12",
+            **_writer_kwargs(),
             output_partitions=0,
         )
 
@@ -109,6 +149,7 @@ def test_writer_rejects_schema_drift_before_creating_output(spark, tmp_path):
             root=tmp_path,
             dataset="tracks",
             ingestion_date="2026-09-12",
+            **_writer_kwargs(),
         )
     assert not (tmp_path / "silver").exists()
 
@@ -132,6 +173,7 @@ def test_writer_uses_standard_microsecond_timestamp_encoding_and_restores_sessio
         root=tmp_path,
         dataset="playlist_snapshots",
         ingestion_date="2026-09-12",
+        **_writer_kwargs(),
     )
 
     parquet_file = _parquet_files(destination)[0]

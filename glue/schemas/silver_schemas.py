@@ -65,10 +65,26 @@ PLAYLIST_SNAPSHOTS_SCHEMA = StructType(
     ]
 )
 
+PLAYLIST_OBSERVATIONS_SCHEMA = StructType(
+    [
+        StructField("playlist_id", StringType(), False),
+        StructField("spotify_snapshot_id", StringType(), False),
+        StructField("playlist_name", StringType(), False),
+        StructField("snapshot_date", DateType(), False),
+        StructField("snapshot_timestamp", TimestampType(), False),
+        StructField("pipeline_run_id", StringType(), False),
+        StructField("source_item_count", IntegerType(), False),
+        StructField("valid_track_count", IntegerType(), False),
+        StructField("rejected_item_count", IntegerType(), False),
+        StructField("ingestion_date", DateType(), False),
+    ]
+)
+
 SILVER_SCHEMAS = {
     "artists": ARTISTS_SCHEMA,
     "albums": ALBUMS_SCHEMA,
     "tracks": TRACKS_SCHEMA,
     "track_artists": TRACK_ARTISTS_SCHEMA,
     "playlist_snapshots": PLAYLIST_SNAPSHOTS_SCHEMA,
+    "playlist_observations": PLAYLIST_OBSERVATIONS_SCHEMA,
 }

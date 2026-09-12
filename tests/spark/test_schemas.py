@@ -52,6 +52,7 @@ def test_silver_schemas_match_documented_scalar_types_and_nullability():
     albums = {field.name: field for field in SILVER_SCHEMAS["albums"]}
     tracks = {field.name: field for field in SILVER_SCHEMAS["tracks"]}
     snapshots = {field.name: field for field in SILVER_SCHEMAS["playlist_snapshots"]}
+    observations = {field.name: field for field in SILVER_SCHEMAS["playlist_observations"]}
 
     assert (
         isinstance(artists["artist_id"].dataType, StringType) and not artists["artist_id"].nullable
@@ -68,3 +69,6 @@ def test_silver_schemas_match_documented_scalar_types_and_nullability():
         isinstance(snapshots["added_at"].dataType, TimestampType) and snapshots["added_at"].nullable
     )
     assert isinstance(snapshots["snapshot_timestamp"].dataType, TimestampType)
+    assert isinstance(observations["source_item_count"].dataType, IntegerType)
+    assert not observations["source_item_count"].nullable
+    assert isinstance(observations["snapshot_timestamp"].dataType, TimestampType)

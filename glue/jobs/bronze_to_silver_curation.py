@@ -24,7 +24,11 @@ from glue.transforms.entities import (
     extract_tracks,
 )
 from glue.transforms.quarantine import rejected_playlist_items
-from glue.transforms.snapshots import SnapshotLineage, extract_playlist_snapshots
+from glue.transforms.snapshots import (
+    SnapshotLineage,
+    extract_playlist_observations,
+    extract_playlist_snapshots,
+)
 
 
 @dataclass(frozen=True)
@@ -72,6 +76,7 @@ def build_silver_datasets(
         "tracks": extract_tracks(bronze, ingestion_date=ingestion_date),
         "track_artists": extract_track_artists(bronze, ingestion_date=ingestion_date),
         "playlist_snapshots": extract_playlist_snapshots(bronze, lineage=lineage),
+        "playlist_observations": extract_playlist_observations(bronze, lineage=lineage),
     }
     return datasets, rejected_playlist_items(bronze)
 
@@ -87,12 +92,17 @@ def run_bronze_to_silver(
     """Read one Bronze snapshot and publish all canonical Silver datasets."""
     bronze = read_bronze_snapshot(spark, bronze_path)
     datasets, rejected = build_silver_datasets(bronze, lineage=lineage)
+    source = bronze.select("playlist_id").first()
+    if source is None or not source.playlist_id:
+        raise SchemaContractError("Bronze snapshot is missing playlist_id.")
     destinations = {
         dataset: write_silver_dataset(
             frame,
             root=silver_root,
             dataset=dataset,
             ingestion_date=lineage.ingestion_date,
+            pipeline_run_id=lineage.pipeline_run_id,
+            playlist_id=source.playlist_id,
             output_partitions=output_partitions,
         )
         for dataset, frame in datasets.items()
