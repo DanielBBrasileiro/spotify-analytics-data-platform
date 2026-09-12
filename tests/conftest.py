@@ -1,5 +1,6 @@
 """Ensure the default test suite cannot contact external services."""
 
+import ipaddress
 import json
 import socket
 from pathlib import Path
@@ -9,12 +10,41 @@ import pytest
 
 @pytest.fixture(autouse=True)
 def block_network(monkeypatch):
+    original_connect = socket.socket.connect
+    original_create_connection = socket.create_connection
+    original_getaddrinfo = socket.getaddrinfo
+
+    def is_loopback(host):
+        if host == "localhost":
+            return True
+        try:
+            return ipaddress.ip_address(host).is_loopback
+        except ValueError:
+            return False
+
     def denied(*args, **kwargs):
         raise AssertionError("Network access is forbidden in the offline test suite.")
 
-    monkeypatch.setattr(socket.socket, "connect", denied)
-    monkeypatch.setattr(socket, "create_connection", denied)
-    monkeypatch.setattr(socket, "getaddrinfo", denied)
+    def guarded_connect(sock, address):
+        host = address[0] if isinstance(address, tuple) else address
+        if not is_loopback(host):
+            return denied()
+        return original_connect(sock, address)
+
+    def guarded_create_connection(address, *args, **kwargs):
+        host = address[0] if isinstance(address, tuple) else address
+        if not is_loopback(host):
+            return denied()
+        return original_create_connection(address, *args, **kwargs)
+
+    def guarded_getaddrinfo(host, *args, **kwargs):
+        if not is_loopback(host):
+            return denied()
+        return original_getaddrinfo(host, *args, **kwargs)
+
+    monkeypatch.setattr(socket.socket, "connect", guarded_connect)
+    monkeypatch.setattr(socket, "create_connection", guarded_create_connection)
+    monkeypatch.setattr(socket, "getaddrinfo", guarded_getaddrinfo)
 
 
 @pytest.fixture

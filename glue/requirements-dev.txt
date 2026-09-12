@@ -1,0 +1,3 @@
+# Glue 5.1 parity environment for local Spark tests only.
+pyspark==3.5.6
+pytest>=8,<9

@@ -24,7 +24,7 @@ Per **ADR-0005**, AWS Glue 5.1 (Apache Spark 3.5.6 / Python 3.11) handles techni
 
 ---
 
-## Planned Directory Structure
+## Current Directory Structure
 
 ```
 glue/
@@ -32,16 +32,59 @@ glue/
 │   └── bronze_to_silver_curation.py     # Main PySpark Glue 5.1 ETL script
 ├── schemas/
 │   ├── bronze_schema.py                 # PySpark StructType definitions for Bronze JSON
-│   └── silver_schemas.py                # Target schemas for Silver Parquet entities
-├── tests/
-│   └── test_bronze_to_silver.py         # PySpark unit tests (run locally via local Spark)
-└── config/
-    └── job_parameters.json              # Glue job arguments and Spark configurations
+│   ├── silver_schemas.py                # Target schemas for Silver Parquet entities
+│   └── validation.py                    # Structural/required-value contract checks
+├── storage/
+│   └── layout.py                        # Canonical Silver partition paths
+└── transforms/
+    ├── entities.py                      # Artists/albums/tracks/bridge normalization
+    ├── snapshots.py                     # Historical playlist-slot normalization
+    ├── dedup.py                         # Deterministic technical deduplication
+    └── quarantine.py                    # Sanitized rejected-item classification
 ```
+
+The canonical output contract is deliberately identical for local development and S3:
+
+```text
+silver/<dataset>/ingestion_date=YYYY-MM-DD/
+```
+
+Supported datasets are `artists`, `albums`, `tracks`, `track_artists`, and
+`playlist_snapshots`. The `ingestion_date` column is also retained inside each Parquet
+file because the Snowflake Landing contract exposes it as a normal column as well as an
+S3 partition value.
 
 ---
 
 ## Local Development vs Cloud Execution
 
-- Unit tests and schema validations will be executed locally using pytest and a local PySpark session.
-- Cloud Glue jobs will be triggered on-demand by Airflow or during integration tests using minimal Data Processing Units (e.g., 2 DPUs, Glue 5.1).
+- Unit tests and schema validations are executed locally using pytest and a local PySpark 3.5.6 session.
+- The repository's primary Python package remains on Python 3.12+, while the `glue/` test
+  environment intentionally mirrors AWS Glue 5.1 with **Python 3.11 + Java 17 +
+  PySpark 3.5.6**. PySpark is therefore not a normal application dependency.
+- Create the isolated local environment with a Python 3.11 interpreter, then install:
+
+  ```bash
+  python3.11 -m venv .venv-spark
+  .venv-spark/bin/pip install -r glue/requirements-dev.txt
+  ```
+
+  When using pyenv, an equivalent explicit command is:
+
+  ```bash
+  PYENV_VERSION=3.11.9 python -m venv .venv-spark
+  ```
+
+- Point `JAVA_HOME` to a Java 17 installation and run `make spark-test`. On an Apple
+  Silicon Homebrew setup, one valid example is:
+
+  ```bash
+  export JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home
+  make spark-test
+  ```
+
+- The default Python 3.12 CI suite keeps its five-second budget and does not start a JVM.
+  A separate CI job mirrors Glue 5.1 and runs only `tests/spark` with external network
+  access blocked while allowing Py4J loopback sockets.
+- Cloud Glue execution remains intentionally deferred. No AWS API call or Glue DPU is
+  required to validate M3 locally.

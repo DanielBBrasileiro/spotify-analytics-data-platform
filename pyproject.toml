@@ -63,8 +63,8 @@ indent-style = "space"
 
 [tool.pytest.ini_options]
 minversion = "8.0"
-testpaths = ["tests"]
-pythonpath = ["src"]
+testpaths = ["tests/unit", "tests/integration"]
+pythonpath = ["src", "."]
 addopts = "-ra -q"
 
 [tool.coverage.run]
