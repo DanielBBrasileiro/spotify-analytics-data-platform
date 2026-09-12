@@ -13,7 +13,7 @@ This backlog establishes the structured, phased implementation roadmap for the *
 | **M2** | **AWS Lambda & Bronze Data Lake** | **COMPLETED** | Serverless extractor runtime, immutable S3 Bronze contract, Secrets Manager credential provider, structured Lambda telemetry |
 | **M3** | **Glue / PySpark & Silver Layer** | **COMPLETED (offline-validated)** | AWS Glue 5.1 parity (Spark 3.5.6 / Python 3.11), StructType schemas, item validation, Parquet Silver |
 | **M4** | **Snowflake & Snowpipe** | **Contracts implemented; cloud validation pending** | Storage integration, external stage, Snowpipe auto-ingest, Landing tables with audit metadata |
-| **M5** | **dbt Analytics Engineering** | Planned | Staging views, Kimball star schema, incremental merge fact model (`snapshot_pk`), marts |
+| **M5** | **dbt Analytics Engineering** | **Models/contracts implemented; live build pending** | Staging views, Kimball star schema, incremental merge fact model (`snapshot_pk`), marts |
 | **M6** | **Airflow Orchestration** | Planned | Apache Airflow 3.x Task SDK, Deadline Alerts, external service operators, error handling |
 | **M7** | **Data Quality & Observability** | Planned | Cross-tier quality gates, structured telemetry reporting (`run_id` & `snapshot_id`), runbooks |
 | **M8** | **Terraform & CI/CD Hardening** | Planned | Terraform modules (S3, IAM, Lambda, Glue), CI security, AWS Budgets alert thresholds |
@@ -85,7 +85,7 @@ This backlog establishes the structured, phased implementation roadmap for the *
   - *Context*: Secure cross-account access between AWS S3 and Snowflake without static credentials.
   - *Objective*: Create Snowflake Storage Integration pointing to S3 Silver stage with IAM trust relationship.
 - **#16 [M4] Implement Snowpipe auto-ingest for Silver Parquet**
-  - *Status*: Five pipe definitions prepared; S3/SQS notification wiring and live delivery intentionally pending.
+  - *Status*: Six pipe definitions prepared, including playlist observations; S3/SQS notification wiring and live delivery intentionally pending.
   - *Context*: Automated loading into Landing tables upon file arrival in S3.
   - *Objective*: Create Snowpipe definitions with `AUTO_INGEST = TRUE` mapped to SQS event notifications, capturing file audit metadata.
 - **#17 [M4] Create Snowflake Landing tables and load validation queries**
@@ -94,19 +94,27 @@ This backlog establishes the structured, phased implementation roadmap for the *
   - *Objective*: Write DDL for Landing tables (including `landing_track_artists` and audit columns) and validation queries.
 
 ### Milestone M5: dbt Analytics Engineering
+- **Status**: dbt project, staging/core/fact/marts, generic tests, singular assertions,
+  package lock, and offline manifest validation are implemented. A real Snowflake
+  `dbt build` remains intentionally deferred to the later cost-guarded cloud phase.
 - **#18 [M5] Initialize dbt Core project with Snowflake adapter**
+  - *Status*: Implemented with pinned dbt/dbt-snowflake/dbt_utils versions and offline parse CI.
   - *Context*: Centralizing analytical transformations requires a version-controlled dbt project.
   - *Objective*: Scaffold dbt project (`dbt_project.yml`, profiles template, directory structure, packages).
 - **#19 [M5] Build dbt staging models for Landing sources**
+  - *Status*: Six staging views implemented and parsed offline, including authoritative playlist observations; live Snowflake compile/build pending.
   - *Context*: Raw Landing tables require light cleansing, naming conventions, and item validation.
-  - *Objective*: Create staging views `stg_spotify_artists`, `stg_spotify_albums`, `stg_spotify_tracks`, `stg_spotify_track_artists`, `stg_spotify_playlist_snapshots`.
+  - *Objective*: Create staging views `stg_spotify_artists`, `stg_spotify_albums`, `stg_spotify_tracks`, `stg_spotify_track_artists`, `stg_spotify_playlist_snapshots`, and `stg_spotify_playlist_observations`.
 - **#20 [M5] Build Kimball core dimensions and track-artist bridge**
+  - *Status*: Dimensions/bridge implemented with deterministic keys and tests; live build pending.
   - *Context*: Star schema reporting requires clean dimensions and bridge relationships.
   - *Objective*: Implement `dim_track`, `dim_artist`, `dim_album`, `dim_playlist`, and `bridge_track_artist` using surrogate hashing.
 - **#21 [M5] Build incremental fact_playlist_snapshot model**
+  - *Status*: Merge/backfill contract implemented at canonical grain; live MERGE validation pending.
   - *Context*: Snapshots must be merged incrementally on canonical grain `(playlist_id + snapshot_date + track_position)`.
   - *Objective*: Build incremental dbt model `fact_playlist_snapshot` with `incremental_strategy = 'merge'` on `snapshot_pk` supporting arbitrary backfills.
 - **#22 [M5] Build analytical marts and dbt data quality tests**
+  - *Status*: Four marts and quality suite implemented/parsed offline; live data assertions pending.
   - *Context*: Business metrics (churn, retention, artist presence, position movement) serve BI dashboards.
   - *Objective*: Implement `mart_artist_presence`, `mart_playlist_trends`, `mart_track_lifecycle`, `mart_playlist_changes` and comprehensive dbt tests.
 
@@ -116,7 +124,7 @@ This backlog establishes the structured, phased implementation roadmap for the *
   - *Objective*: Create `docker-compose.yml`, custom Dockerfile for Apache Airflow 3.x with AWS and Snowflake providers.
 - **#24 [M6] Implement end-to-end daily orchestration DAG**
   - *Context*: Coordinating Lambda, Glue 5.1, Snowpipe, and dbt in a scheduled workflow.
-  - *Objective*: Build `spotify_daily_snapshot_dag` using the Airflow 3 Task SDK (`airflow.sdk`).
+  - *Objective*: Build `spotify_daily_snapshot_dag` using the Airflow 3 Task SDK (`airflow.sdk`), with a pre-dbt readiness gate that confirms all six expected Landing/Snowpipe dataset loads have settled for the run before warehouse transformations start.
 - **#25 [M6] Add external execution operators (Lambda, Glue, Snowflake, dbt)**
   - *Context*: Enforcing Airflow as orchestrator requires external operator integration.
   - *Objective*: Configure operators for Lambda invocation, Glue 5.1 execution, Snowflake landing checks, and dbt run.

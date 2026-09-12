@@ -313,13 +313,15 @@ SPOTIFY_ANALYTICS (Database)
 │   ├── landing_albums
 │   ├── landing_tracks
 │   ├── landing_track_artists
-│   └── landing_playlist_snapshots
+│   ├── landing_playlist_snapshots
+│   └── landing_playlist_observations
 ├── STAGING (dbt managed views)
 │   ├── stg_spotify_artists
 │   ├── stg_spotify_albums
 │   ├── stg_spotify_tracks
 │   ├── stg_spotify_track_artists
-│   └── stg_spotify_playlist_snapshots
+│   ├── stg_spotify_playlist_snapshots
+│   └── stg_spotify_playlist_observations
 ├── CORE (dbt managed dimensional tables)
 │   ├── dim_artist
 │   ├── dim_album

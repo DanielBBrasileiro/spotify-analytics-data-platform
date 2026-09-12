@@ -1,0 +1,116 @@
+version: 2
+
+models:
+  - name: dim_artist
+    description: Provider-backed artist dimension with deterministic surrogate key.
+    columns:
+      - name: artist_pk
+        data_tests: [not_null, unique]
+      - name: artist_id
+        data_tests: [not_null, unique]
+      - name: artist_name
+        data_tests: [not_null]
+
+  - name: dim_album
+    description: Album dimension with normalized release date and deterministic surrogate key.
+    columns:
+      - name: album_pk
+        data_tests: [not_null, unique]
+      - name: album_id
+        data_tests: [not_null, unique]
+      - name: album_name
+        data_tests: [not_null]
+
+  - name: dim_track
+    description: Track dimension referencing the normalized album dimension when available.
+    columns:
+      - name: track_pk
+        data_tests: [not_null, unique]
+      - name: track_id
+        data_tests: [not_null, unique]
+      - name: track_name
+        data_tests: [not_null]
+      - name: album_pk
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_album')
+                field: album_pk
+      - name: duration_ms
+        data_tests: [not_null]
+
+  - name: dim_playlist
+    description: >-
+      Playlist dimension derived only from fields present in the reviewed Silver contract.
+      Owner/collaboration attributes are intentionally not inferred or fabricated.
+    columns:
+      - name: playlist_pk
+        data_tests: [not_null, unique]
+      - name: playlist_id
+        data_tests: [not_null, unique]
+      - name: playlist_name
+        data_tests: [not_null]
+
+  - name: bridge_track_artist
+    description: Many-to-many track/artist bridge preserving provider billing order.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [track_pk, artist_pk]
+    columns:
+      - name: bridge_pk
+        data_tests: [not_null, unique]
+      - name: track_pk
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_track')
+                field: track_pk
+      - name: artist_pk
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_artist')
+                field: artist_pk
+      - name: artist_order
+        data_tests: [not_null]
+
+  - name: fact_playlist_snapshot
+    description: >-
+      Incremental daily playlist-slot fact. Canonical natural grain is playlist_id +
+      snapshot_date + track_position; physical timestamps/run IDs remain lineage only.
+      After an incremental merge, stale slots absent from the coherent winning retry are
+      removed only for playlist/date observations present in the requested source window.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [playlist_pk, snapshot_date, track_position]
+    columns:
+      - name: snapshot_pk
+        data_tests: [not_null, unique]
+      - name: playlist_pk
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_playlist')
+                field: playlist_pk
+      - name: track_pk
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_track')
+                field: track_pk
+      - name: snapshot_date
+        data_tests: [not_null]
+      - name: track_position
+        data_tests: [not_null]
+      - name: spotify_snapshot_id
+        data_tests: [not_null]
+      - name: snapshot_timestamp
+        data_tests: [not_null]
+      - name: pipeline_run_id
+        data_tests: [not_null]

@@ -1,0 +1,80 @@
+version: 2
+
+models:
+  - name: mart_artist_presence
+    description: >-
+      Daily artist representation, billing role, playlist reach, share of all observed
+      playlists (including empty playlists), and best position.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [artist_id, snapshot_date]
+    columns:
+      - name: artist_id
+        data_tests: [not_null]
+      - name: snapshot_date
+        data_tests: [not_null]
+      - name: total_tracks
+        data_tests: [not_null]
+      - name: playlist_share
+        data_tests: [not_null]
+  - name: mart_playlist_trends
+    description: >-
+      Daily playlist composition and distinct-track turnover over the authoritative
+      observation spine. Empty observed days are retained; turnover is only calculated
+      when a true prior calendar-day observation exists.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [playlist_id, snapshot_date]
+    columns:
+      - name: playlist_id
+        data_tests: [not_null]
+      - name: snapshot_date
+        data_tests: [not_null]
+      - name: total_tracks
+        data_tests: [not_null]
+      - name: distinct_track_count
+        data_tests: [not_null]
+  - name: mart_track_lifecycle
+    description: >-
+      Daily cumulative observed tenure, best/current position, and rank movement at
+      playlist+track+date grain. If a track occupies multiple valid playlist slots on the
+      same date, its best (lowest numeric) position is the representative track-level rank.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [playlist_id, track_id, snapshot_date]
+    columns:
+      - name: playlist_id
+        data_tests: [not_null]
+      - name: track_id
+        data_tests: [not_null]
+      - name: snapshot_date
+        data_tests: [not_null]
+      - name: cumulative_days_on_playlist
+        data_tests: [not_null]
+  - name: mart_playlist_changes
+    description: >-
+      Daily NEW/RETAINED/EXITED classification at playlist+track+date grain. Retention and
+      exits require an actual immediately preceding calendar-day snapshot; gaps restart
+      continuity. Duplicate track slots collapse to the best observed position.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [playlist_id, track_id, snapshot_date]
+    columns:
+      - name: playlist_id
+        data_tests: [not_null]
+      - name: track_id
+        data_tests: [not_null]
+      - name: snapshot_date
+        data_tests: [not_null]
+      - name: movement_status
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['NEW', 'RETAINED', 'EXITED']
+      - name: consecutive_days_retained
+        data_tests: [not_null]

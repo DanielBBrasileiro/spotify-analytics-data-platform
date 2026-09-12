@@ -1,0 +1,15 @@
+spotify_analytics:
+  target: offline
+  outputs:
+    offline:
+      type: snowflake
+      account: offline.invalid
+      user: offline
+      password: offline
+      role: SPOTIFY_TRANSFORMER
+      database: SPOTIFY_ANALYTICS
+      warehouse: COMPUTE_WH
+      schema: STAGING
+      threads: 1
+      client_session_keep_alive: false
+
