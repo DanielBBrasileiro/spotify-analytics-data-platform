@@ -3,7 +3,8 @@
         materialized='incremental',
         incremental_strategy='merge',
         unique_key='snapshot_pk',
-        cluster_by=['snapshot_date']
+        cluster_by=['snapshot_date'],
+        post_hook="{{ prune_snapshot_fact_after_merge() }}"
     )
 }}
 
@@ -34,4 +35,3 @@ with source_snapshot as (
 )
 
 select * from resolved
-

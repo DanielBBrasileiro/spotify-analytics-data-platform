@@ -103,6 +103,12 @@ The incremental fact requires an explicit execution window at runtime: use
 `end_date` for an idempotent backfill. It never uses a `max(snapshot_date)` watermark, so
 older partitions remain re-runnable.
 
+Staging chooses one coherent winning physical `pipeline_run_id` for each playlist/date
+before exposing its slots. The fact then runs its normal `MERGE` and a scoped post-merge
+cleanup removes obsolete positions that existed in an older retry but are absent from the
+winning run. The cleanup only acts on playlist/date observations actually present in the
+requested source window, so unrelated historical dates are untouched.
+
 Track-level marts collapse repeated legitimate playlist slots for the same track/date to
 the best (lowest numeric) observed position. The underlying fact keeps every slot at its
 canonical `playlist_id + snapshot_date + track_position` grain.

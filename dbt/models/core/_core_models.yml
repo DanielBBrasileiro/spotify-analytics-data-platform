@@ -81,6 +81,8 @@ models:
     description: >-
       Incremental daily playlist-slot fact. Canonical natural grain is playlist_id +
       snapshot_date + track_position; physical timestamps/run IDs remain lineage only.
+      After an incremental merge, stale slots absent from the coherent winning retry are
+      removed only for playlist/date observations present in the requested source window.
     data_tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:

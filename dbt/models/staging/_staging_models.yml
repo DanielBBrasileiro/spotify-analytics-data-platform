@@ -58,8 +58,9 @@ models:
 
   - name: stg_spotify_playlist_snapshots
     description: >-
-      Canonical latest retry per playlist_id + snapshot_date + track_position. Physical
-      snapshot timestamps and run IDs remain lineage only and are excluded from the grain.
+      Slots from one coherent winning physical run per playlist_id + snapshot_date. The
+      winning run is selected before slot-level deduplication, preventing hybrid snapshots
+      assembled from different retries. Physical timestamps and run IDs remain lineage only.
     data_tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:
