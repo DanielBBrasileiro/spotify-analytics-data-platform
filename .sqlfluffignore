@@ -1,0 +1,4 @@
+# SQLFluff 4.3.0 Snowflake grammar does not yet recognize two current Snowflake
+# clauses used by these files. Dedicated structural tests pin the documented syntax.
+snowflake/ddl/02a_compute_cost_guardrails.sql
+snowflake/ddl/03_storage_integration.sql
