@@ -1,0 +1,5 @@
+[sqlfluff]
+dialect = snowflake
+templater = raw
+max_line_length = 120
+exclude_rules = layout.long_lines

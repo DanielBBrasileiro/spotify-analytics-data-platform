@@ -1,42 +1,84 @@
-# Snowflake Data Warehouse Architecture
+# Snowflake & Snowpipe contracts (M4)
 
-This directory contains Snowflake DDL scripts, RBAC definitions, storage integrations, and Snowpipe configurations.
+This directory contains **offline, version-controlled deployment contracts** for M4. None
+of these statements are executed by CI or by the current coding round. Live account,
+region, edition, S3, IAM, stage, and Snowpipe validation remains deliberately deferred.
 
----
+## Execution order for the later cloud phase
 
-## Architectural Responsibility
+1. `ddl/01_databases_and_schemas.sql`
+2. `ddl/02_rbac_roles_and_grants.sql`
+3. `ddl/02a_compute_cost_guardrails.sql`
+4. replace the inert quoted placeholders in `ddl/03_storage_integration.sql`, then execute it
+5. run `DESC INTEGRATION SPOTIFY_S3_INTEGRATION` and copy Snowflake's generated
+   `STORAGE_AWS_IAM_USER_ARN` into the AWS trust relationship
+6. deploy the trust relationship represented by `templates/aws_role_trust_policy.json.example`
+   through M8 Terraform; never commit the real ARN/external ID
+7. execute `ddl/05_file_formats.sql`, `ddl/04_external_stages.sql`, and
+   `ddl/06_landing_tables.sql`
+8. execute `ddl/07_snowpipes.sql` under the least-privileged loader role after its grants
+9. configure S3 object-created notifications for the Snowflake-managed SQS notification
+   channels in M8 Terraform
+10. run the read-only checks in `validation/verify_landing_loads.sql`
 
-Snowflake serves as the centralized analytical data warehouse. It provides:
-1. **Automated Continuous Ingestion**: Snowpipe listens for Amazon S3 event notifications (via SQS) and loads curated Parquet files directly into Landing tables.
-2. **Layered Schemas**:
-   - `LANDING`: 1:1 typed representations of S3 Silver Parquet files loaded via Snowpipe (`landing_tracks`, `landing_artists`, `landing_albums`, `landing_track_artists`, `landing_playlist_snapshots`).
-   - `STAGING`: Ephemeral or view-based models managed by dbt.
-   - `CORE`: Persistent dimensional tables (`dim_*`, `fact_*`, `bridge_*`) managed by dbt.
-   - `MARTS`: Curated reporting tables and aggregated views consumed by Power BI.
-3. **Audit & Lineage Metadata**:
-   - Landing tables capture Snowflake file metadata (`METADATA$FILENAME`, `METADATA$FILE_ROW_NUMBER`, and `_loaded_at`).
-   - `spotify_snapshot_id` provides upstream version lineage.
-4. **Least-Privilege Security**:
-   - Dedicated service roles: `SPOTIFY_LOADER` for Snowpipe write-only access to `LANDING`; `SPOTIFY_TRANSFORMER` for dbt operations; `SPOTIFY_ANALYST` for Power BI read-only access. Privileged roles (`SYSADMIN`, `ACCOUNTADMIN`) are excluded from application runtimes.
-5. **Cost-Conscious Virtual Warehouses**:
-   - Single `COMPUTE_WH` configured as `X-Small`.
-   - Aggressive `AUTO_SUSPEND = 60` seconds.
-   - `AUTO_RESUME = TRUE`.
+Verify the actual Snowflake cloud/region before deployment. The architecture intends AWS
+N. Virginia where possible, but this repository does not assert an unverified account
+region.
 
----
+## Security and idempotency
 
-## Planned Directory Structure
+The storage integration is limited to `s3://__S3_BUCKET__/silver/` and uses cross-account
+role assumption; there are no static AWS keys. `CREATE OR REPLACE STORAGE INTEGRATION` is
+intentionally prohibited because recreating an integration can break existing stage
+associations. Service-role SQL assigns no users and does not embed `ACCOUNTADMIN` or
+`SYSADMIN` into application automation.
 
-```
-snowflake/
-├── ddl/
-│   ├── 01_databases_and_schemas.sql     # Database and schema hierarchy
-│   ├── 02_rbac_roles_and_grants.sql     # Least privilege RBAC configuration
-│   ├── 03_storage_integration.sql       # AWS IAM cross-account storage integration
-│   ├── 04_external_stages.sql           # S3 external stage pointing to Silver Parquet
-│   ├── 05_file_formats.sql              # Parquet file format specifications
-│   ├── 06_landing_tables.sql            # Landing schema table DDL (with track_artists & audit cols)
-│   └── 07_snowpipes.sql                 # Snowpipe definitions with auto_ingest = true
-└── validation/
-    └── verify_landing_loads.sql         # Data integrity and copy history audit queries
-```
+The DDL uses `IF NOT EXISTS` plus explicit `ALTER` statements where convergence is safe.
+Snowpipe definitions are not blindly replaced because recreating a pipe changes its object
+identity and requires a controlled pause/drain/recreate procedure. Future COPY definition
+changes must follow that migration procedure rather than an unattended replace.
+
+## Static SQL validation
+
+CI uses SQLFluff 4.3.0 with the Snowflake dialect to parse all deployment and validation
+SQL that its current grammar supports. Two current Snowflake clauses are explicitly listed
+in `.sqlfluffignore`: the `CREATE RESOURCE MONITOR ... WITH ...` body and
+`STORAGE_AWS_EXTERNAL_ID` in `CREATE STORAGE INTEGRATION`. SQLFluff 4.3.0 does not yet
+recognize those clauses even though they are present in current Snowflake SQL reference
+syntax. Dedicated Python contract tests pin their exact expected forms instead of deleting
+or weakening valid Snowflake functionality merely to satisfy a lagging parser. They still
+require live syntax verification in the later cloud phase before M4 is called deployed.
+
+## Cost controls
+
+`COMPUTE_WH` is X-Small (`XSMALL` in current Snowflake SQL), single-cluster,
+auto-suspends after 60 seconds, starts suspended, and has bounded queue/statement timeouts.
+`SPOTIFY_DEV_MONITOR` is a development safety fuse at 2 warehouse credits/month with an
+80% notification and immediate suspension at 100%. This is not a dollar guarantee because
+credit pricing varies by account/region and it does not meter serverless Snowpipe usage.
+
+## Loading semantics
+
+Each Silver dataset has one pipe. The COPY transformations cast Parquet fields explicitly
+into Landing types and append `_loaded_at`, `_file_name`, and `_file_row_number` from
+Snowflake metadata. `_loaded_at` uses `METADATA$START_SCAN_TIME`, not wall-clock SQL
+functions. The file's `ingestion_date` remains data, and validation verifies that it agrees
+with the Hive partition path.
+
+Spark 3.5.6 writes `TimestampType` to Parquet as INT96 by default. With Snowflake's
+vectorized Parquet scanner, INT96 is surfaced as `TIMESTAMP_LTZ`; therefore timestamp
+fields and `METADATA$START_SCAN_TIME` are explicitly converted to UTC before casting to
+Landing `TIMESTAMP_NTZ`. The later live validation phase must prove this with a known UTC
+instant while the Snowflake session uses a non-UTC timezone, so session settings cannot
+silently change lineage values.
+
+Snowpipe's loaded-file tracking prevents routine file replay; it is **not** the analytical
+business deduplication key. M5 dbt resolves retries at the canonical grain:
+`playlist_id + snapshot_date + track_position`. `snapshot_timestamp` and
+`pipeline_run_id` remain lineage/tie-break metadata and never enter that natural key.
+
+## Source policy boundary
+
+M4 is synthetic/offline-first. These contracts must not be interpreted as approval to
+persist or analyze live Spotify-derived portfolio datasets. Checked-in fixtures remain
+synthetic until permitted usage is established separately.

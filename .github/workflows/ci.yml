@@ -80,3 +80,32 @@ jobs:
           PYSPARK_PYTHON: python
         run: |
           timeout 180s pytest tests/spark --durations=5
+
+  snowflake-contracts:
+    name: Snowflake SQL Contracts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: snowflake/requirements-dev.txt
+
+      - name: Install Snowflake contract tooling
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r snowflake/requirements-dev.txt
+
+      - name: Parse Snowflake SQL offline
+        run: |
+          sqlfluff parse --format none --dialect snowflake snowflake/ddl
+          sqlfluff parse --format none --dialect snowflake snowflake/validation
+
+      - name: Run Snowflake structural contracts
+        run: |
+          pytest tests/contracts -q

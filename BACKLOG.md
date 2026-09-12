@@ -11,8 +11,8 @@ This backlog establishes the structured, phased implementation roadmap for the *
 | **M0** | **Project Foundation & Architecture Blueprint** | **COMPLETED (v0.1.1)** | Repository bootstrapping, architecture blueprint, ADRs, cost governance, CI |
 | **M1** | **Local Spotify Ingestion** | **COMPLETED** | Auth Code + refresh-token client, `/items` pagination (limit=50), snapshot_id, fixtures, run metadata, local Bronze persistence |
 | **M2** | **AWS Lambda & Bronze Data Lake** | **COMPLETED** | Serverless extractor runtime, immutable S3 Bronze contract, Secrets Manager credential provider, structured Lambda telemetry |
-| **M3** | **Glue / PySpark & Silver Layer** | Planned | AWS Glue 5.1 (Spark 3.5.6 / Python 3.11), StructType schemas, item validation, Parquet Silver |
-| **M4** | **Snowflake & Snowpipe** | Planned | Storage integration, external stage, Snowpipe auto-ingest, Landing tables with audit metadata |
+| **M3** | **Glue / PySpark & Silver Layer** | **COMPLETED (offline-validated)** | AWS Glue 5.1 parity (Spark 3.5.6 / Python 3.11), StructType schemas, item validation, Parquet Silver |
+| **M4** | **Snowflake & Snowpipe** | **Contracts implemented; cloud validation pending** | Storage integration, external stage, Snowpipe auto-ingest, Landing tables with audit metadata |
 | **M5** | **dbt Analytics Engineering** | Planned | Staging views, Kimball star schema, incremental merge fact model (`snapshot_pk`), marts |
 | **M6** | **Airflow Orchestration** | Planned | Apache Airflow 3.x Task SDK, Deadline Alerts, external service operators, error handling |
 | **M7** | **Data Quality & Observability** | Planned | Cross-tier quality gates, structured telemetry reporting (`run_id` & `snapshot_id`), runbooks |
@@ -56,6 +56,7 @@ This backlog establishes the structured, phased implementation roadmap for the *
   - *Objective*: Configure Python logging to emit single-line JSON lifecycle events containing `pipeline_run_id`, playlist/source-version correlation, latency, and record counts. CloudWatch infrastructure/retention remains unprovisioned until M8.
 
 ### Milestone M3: Glue / PySpark & Silver Layer
+- **Status**: Completed in PR #50; per-object lineage hardening followed in PR #51.
 - **#9 [M3] Define explicit PySpark StructType schemas for Bronze & Silver**
   - *Context*: Schema inference causes performance penalties and permits silent drift.
   - *Objective*: Define strict PySpark `StructType` schemas for Bronze JSON items and Silver Parquet datasets for AWS Glue 5.1.
@@ -73,16 +74,22 @@ This backlog establishes the structured, phased implementation roadmap for the *
   - *Objective*: Implement Snappy-compressed Parquet output writing partitioned by date, with local pytest test suite on Spark 3.5.
 
 ### Milestone M4: Snowflake & Snowpipe
+- **Status**: Version-controlled SQL/contracts implemented offline. No Snowflake objects,
+  AWS IAM trust, S3 notifications, or live Snowpipe delivery have been provisioned yet.
 - **#14 [M4] Define Snowflake databases, schemas, and RBAC roles**
+  - *Status*: Implemented and statically validated offline; live account syntax/privilege verification pending.
   - *Context*: Warehouse architecture requires structured schemas and least-privilege security roles (ADR-0004).
   - *Objective*: Write DDL creating `LANDING`, `STAGING`, `CORE`, `MARTS` and dedicated roles (`SPOTIFY_LOADER`, `SPOTIFY_TRANSFORMER`, `SPOTIFY_ANALYST`).
 - **#15 [M4] Configure AWS IAM storage integration and S3 external stage**
+  - *Status*: DDL/trust-policy templates prepared; real IAM/Snowflake integration intentionally pending.
   - *Context*: Secure cross-account access between AWS S3 and Snowflake without static credentials.
   - *Objective*: Create Snowflake Storage Integration pointing to S3 Silver stage with IAM trust relationship.
 - **#16 [M4] Implement Snowpipe auto-ingest for Silver Parquet**
+  - *Status*: Five pipe definitions prepared; S3/SQS notification wiring and live delivery intentionally pending.
   - *Context*: Automated loading into Landing tables upon file arrival in S3.
   - *Objective*: Create Snowpipe definitions with `AUTO_INGEST = TRUE` mapped to SQS event notifications, capturing file audit metadata.
 - **#17 [M4] Create Snowflake Landing tables and load validation queries**
+  - *Status*: Landing DDL and offline validation contracts implemented; live load-history validation pending.
   - *Context*: Landing tables require exact 1:1 typing with Parquet schemas and audit verification.
   - *Objective*: Write DDL for Landing tables (including `landing_track_artists` and audit columns) and validation queries.
 
