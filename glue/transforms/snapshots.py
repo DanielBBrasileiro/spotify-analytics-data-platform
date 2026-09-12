@@ -10,6 +10,7 @@ from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 
 from .common import ingestion_date_column, valid_track_items
+from .dedup import deterministic_dedupe
 
 
 @dataclass(frozen=True)
@@ -43,7 +44,7 @@ def extract_playlist_snapshots(frame: DataFrame, *, lineage: SnapshotLineage) ->
         & F.col("playlist.name").isNotNull()
         & (F.trim(F.col("playlist.name")) != F.lit(""))
     )
-    return rows.select(
+    normalized = rows.select(
         "playlist_id",
         "spotify_snapshot_id",
         F.col("playlist.name").alias("playlist_name"),
@@ -56,4 +57,17 @@ def extract_playlist_snapshots(frame: DataFrame, *, lineage: SnapshotLineage) ->
         ),
         F.lit(str(lineage.pipeline_run_id)).alias("pipeline_run_id"),
         ingestion_date_column(lineage.ingestion_date).alias("ingestion_date"),
+    )
+    return deduplicate_playlist_snapshots(normalized)
+
+
+def deduplicate_playlist_snapshots(frame: DataFrame) -> DataFrame:
+    """Resolve retry/backfill duplicates at the canonical daily playlist-slot grain."""
+    return deterministic_dedupe(
+        frame,
+        keys=("playlist_id", "snapshot_date", "track_position"),
+        ordering=(
+            F.col("snapshot_timestamp").desc_nulls_last(),
+            F.col("pipeline_run_id").desc_nulls_last(),
+        ),
     )

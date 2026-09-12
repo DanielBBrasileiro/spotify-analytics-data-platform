@@ -8,6 +8,7 @@ from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 
 from .common import ingestion_date_column, valid_track_items
+from .dedup import deterministic_dedupe
 
 
 def extract_artists(frame: DataFrame, *, ingestion_date: date | str) -> DataFrame:
@@ -28,7 +29,11 @@ def extract_artists(frame: DataFrame, *, ingestion_date: date | str) -> DataFram
             ingestion_date_column(ingestion_date).alias("ingestion_date"),
         )
     )
-    return artists.dropDuplicates(["artist_id"])
+    return deterministic_dedupe(
+        artists,
+        keys=("artist_id",),
+        ordering=(F.col("artist_name").asc_nulls_last(),),
+    )
 
 
 def extract_albums(frame: DataFrame, *, ingestion_date: date | str) -> DataFrame:
@@ -52,7 +57,14 @@ def extract_albums(frame: DataFrame, *, ingestion_date: date | str) -> DataFrame
             ingestion_date_column(ingestion_date).alias("ingestion_date"),
         )
     )
-    return albums.dropDuplicates(["album_id"])
+    return deterministic_dedupe(
+        albums,
+        keys=("album_id",),
+        ordering=(
+            F.col("album_name").asc_nulls_last(),
+            F.col("release_date").asc_nulls_last(),
+        ),
+    )
 
 
 def extract_tracks(frame: DataFrame, *, ingestion_date: date | str) -> DataFrame:
@@ -76,7 +88,11 @@ def extract_tracks(frame: DataFrame, *, ingestion_date: date | str) -> DataFrame
             ingestion_date_column(ingestion_date).alias("ingestion_date"),
         )
     )
-    return tracks.dropDuplicates(["track_id"])
+    return deterministic_dedupe(
+        tracks,
+        keys=("track_id",),
+        ordering=(F.col("track_name").asc_nulls_last(),),
+    )
 
 
 def extract_track_artists(frame: DataFrame, *, ingestion_date: date | str) -> DataFrame:
@@ -99,4 +115,7 @@ def extract_track_artists(frame: DataFrame, *, ingestion_date: date | str) -> Da
             ingestion_date_column(ingestion_date).alias("ingestion_date"),
         )
     )
-    return bridge.dropDuplicates(["track_id", "artist_id", "artist_order"])
+    return deterministic_dedupe(
+        bridge,
+        keys=("track_id", "artist_id", "artist_order"),
+    )
