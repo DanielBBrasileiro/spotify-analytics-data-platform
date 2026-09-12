@@ -166,8 +166,6 @@ erDiagram
         string playlist_pk PK "Surrogate Hash (playlist_id)"
         string playlist_id NK "Spotify Playlist ID"
         string playlist_name
-        string owner_id
-        boolean is_collaborative
     }
 
     bridge_track_artist {
@@ -189,6 +187,11 @@ erDiagram
         string pipeline_run_id
     }
 ```
+
+`dim_playlist` intentionally contains only attributes present in the reviewed M3/M4
+Silver-to-Landing contract. `owner_id` and `is_collaborative` are not inferred, filled with
+defaults, or collected solely to satisfy an older diagram. Adding either field requires a
+new source-contract review and corresponding Silver/Landing schema change.
 
 ### Canonical Fact Grain & Key Architecture
 - **Canonical Natural Grain**:

@@ -1,0 +1,53 @@
+version: 2
+
+models:
+  - name: dim_artist
+    description: Provider-backed artist dimension with deterministic surrogate key.
+    columns:
+      - name: artist_pk
+        data_tests: [not_null, unique]
+      - name: artist_id
+        data_tests: [not_null, unique]
+      - name: artist_name
+        data_tests: [not_null]
+
+  - name: dim_album
+    description: Album dimension with normalized release date and deterministic surrogate key.
+    columns:
+      - name: album_pk
+        data_tests: [not_null, unique]
+      - name: album_id
+        data_tests: [not_null, unique]
+      - name: album_name
+        data_tests: [not_null]
+
+  - name: dim_track
+    description: Track dimension referencing the normalized album dimension when available.
+    columns:
+      - name: track_pk
+        data_tests: [not_null, unique]
+      - name: track_id
+        data_tests: [not_null, unique]
+      - name: track_name
+        data_tests: [not_null]
+      - name: album_pk
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_album')
+                field: album_pk
+      - name: duration_ms
+        data_tests: [not_null]
+
+  - name: dim_playlist
+    description: >-
+      Playlist dimension derived only from fields present in the reviewed Silver contract.
+      Owner/collaboration attributes are intentionally not inferred or fabricated.
+    columns:
+      - name: playlist_pk
+        data_tests: [not_null, unique]
+      - name: playlist_id
+        data_tests: [not_null, unique]
+      - name: playlist_name
+        data_tests: [not_null]
+
