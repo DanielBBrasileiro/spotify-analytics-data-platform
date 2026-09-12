@@ -7,8 +7,13 @@ import pytest
 from pyspark.sql import functions as F
 
 from glue.schemas.validation import SchemaContractError
-from glue.storage.parquet import write_silver_dataset
+from glue.storage.parquet import (
+    PARQUET_TIMESTAMP_CONFIG,
+    PARQUET_TIMESTAMP_TYPE,
+    write_silver_dataset,
+)
 from glue.transforms.entities import extract_tracks
+from glue.transforms.snapshots import SnapshotLineage, extract_playlist_snapshots
 from tests.spark.helpers import bronze_frame
 
 
@@ -23,6 +28,17 @@ def _first_column_codec(spark, parquet_file: Path):
         jvm.org.apache.hadoop.fs.Path(str(parquet_file)),
     )
     return footer.getBlocks().get(0).getColumns().get(0).getCodec().name()
+
+
+def _parquet_primitive_type(spark, parquet_file: Path, column: str):
+    jvm = spark._jvm
+    footer = jvm.org.apache.parquet.hadoop.ParquetFileReader.readFooter(
+        spark._jsc.hadoopConfiguration(),
+        jvm.org.apache.hadoop.fs.Path(str(parquet_file)),
+    )
+    primitive = footer.getFileMetaData().getSchema().getType(column).asPrimitiveType()
+    logical = primitive.getLogicalTypeAnnotation()
+    return primitive.getPrimitiveTypeName().name(), str(logical)
 
 
 def test_write_silver_dataset_creates_hive_path_retains_date_and_uses_snappy(spark, tmp_path):
@@ -95,3 +111,32 @@ def test_writer_rejects_schema_drift_before_creating_output(spark, tmp_path):
             ingestion_date="2026-09-12",
         )
     assert not (tmp_path / "silver").exists()
+
+
+def test_writer_uses_standard_microsecond_timestamp_encoding_and_restores_session_config(
+    spark, tmp_path
+):
+    from datetime import UTC, datetime
+    from uuid import UUID
+
+    lineage = SnapshotLineage(
+        pipeline_run_id=UUID("123e4567-e89b-42d3-a456-426614174000"),
+        snapshot_date=date(2026, 9, 12),
+        snapshot_timestamp=datetime(2026, 9, 12, 12, 34, 56, 123456, tzinfo=UTC),
+        ingestion_date=date(2026, 9, 12),
+    )
+    frame = extract_playlist_snapshots(bronze_frame(spark), lineage=lineage)
+    original = spark.conf.get(PARQUET_TIMESTAMP_CONFIG, "INT96")
+    destination = write_silver_dataset(
+        frame,
+        root=tmp_path,
+        dataset="playlist_snapshots",
+        ingestion_date="2026-09-12",
+    )
+
+    parquet_file = _parquet_files(destination)[0]
+    primitive, logical = _parquet_primitive_type(spark, parquet_file, "snapshot_timestamp")
+    assert primitive == "INT64"
+    assert "MICROS" in logical.upper()
+    assert spark.conf.get(PARQUET_TIMESTAMP_CONFIG) == original
+    assert PARQUET_TIMESTAMP_TYPE == "TIMESTAMP_MICROS"

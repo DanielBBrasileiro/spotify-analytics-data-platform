@@ -12,6 +12,7 @@ from glue.jobs.bronze_to_silver_curation import (
     read_bronze_snapshot,
     run_bronze_to_silver,
 )
+from glue.schemas.validation import SchemaContractError
 from glue.transforms.snapshots import SnapshotLineage
 from tests.spark.helpers import bronze_payload, load_fixture
 
@@ -106,5 +107,5 @@ def test_curation_rejects_multiple_bronze_objects_for_one_lineage(spark, tmp_pat
     second["playlist"]["snapshot_id"] = "synthetic-snapshot-v2"
     _write_bronze(bronze_dir / "run-b.json", second)
 
-    with pytest.raises(ValueError, match="exactly one Bronze snapshot object"):
+    with pytest.raises(SchemaContractError, match="exactly one Bronze snapshot object"):
         read_bronze_snapshot(spark, bronze_dir)

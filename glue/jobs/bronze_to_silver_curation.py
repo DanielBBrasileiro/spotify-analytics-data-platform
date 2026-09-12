@@ -15,7 +15,7 @@ from uuid import UUID
 from pyspark.sql import DataFrame, SparkSession
 
 from glue.schemas.bronze_schema import BRONZE_PLAYLIST_SNAPSHOT_SCHEMA
-from glue.schemas.validation import require_no_corrupt_records
+from glue.schemas.validation import SchemaContractError, require_no_corrupt_records
 from glue.storage.parquet import write_silver_dataset
 from glue.transforms.entities import (
     extract_albums,
@@ -50,9 +50,12 @@ def read_bronze_snapshot(spark: SparkSession, path: str | Path) -> DataFrame:
         .schema(BRONZE_PLAYLIST_SNAPSHOT_SCHEMA)
         .json(str(path))
     )
+    input_files = frame.inputFiles()
+    if len(input_files) != 1:
+        raise SchemaContractError(
+            "Curation requires exactly one Bronze snapshot object per invocation."
+        )
     require_no_corrupt_records(frame)
-    if frame.limit(2).count() != 1:
-        raise ValueError("Curation requires exactly one Bronze snapshot object per invocation.")
     return frame
 
 

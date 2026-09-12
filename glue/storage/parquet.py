@@ -13,6 +13,9 @@ from glue.schemas.validation import SchemaContractError, require_non_null_values
 
 from .layout import normalize_ingestion_date, resolve_silver_partition
 
+PARQUET_TIMESTAMP_CONFIG = "spark.sql.parquet.outputTimestampType"
+PARQUET_TIMESTAMP_TYPE = "TIMESTAMP_MICROS"
+
 
 def _require_declared_types(frame: DataFrame, dataset: str) -> None:
     expected = {field.name: field.dataType for field in SILVER_SCHEMAS[dataset].fields}
@@ -54,10 +57,16 @@ def write_silver_dataset(
         raise SchemaContractError(f"{dataset} contains rows outside ingestion_date={day}.")
 
     destination = resolve_silver_partition(root, dataset, day)
-    (
-        frame.coalesce(output_partitions)
-        .write.mode("overwrite")
-        .option("compression", "snappy")
-        .parquet(destination)
-    )
+    spark = frame.sparkSession
+    previous_timestamp_type = spark.conf.get(PARQUET_TIMESTAMP_CONFIG, "INT96")
+    spark.conf.set(PARQUET_TIMESTAMP_CONFIG, PARQUET_TIMESTAMP_TYPE)
+    try:
+        (
+            frame.coalesce(output_partitions)
+            .write.mode("overwrite")
+            .option("compression", "snappy")
+            .parquet(destination)
+        )
+    finally:
+        spark.conf.set(PARQUET_TIMESTAMP_CONFIG, previous_timestamp_type)
     return destination
