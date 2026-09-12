@@ -56,6 +56,48 @@ def extract_playlist_snapshots(frame: DataFrame, *, lineage: SnapshotLineage) ->
     return deduplicate_playlist_snapshots(normalized)
 
 
+def extract_playlist_observations(frame: DataFrame, *, lineage: SnapshotLineage) -> DataFrame:
+    """Emit one physical playlist observation even when no valid track slots exist."""
+    valid_counts = (
+        valid_track_items(frame)
+        .groupBy("playlist_id", "spotify_snapshot_id")
+        .agg(F.count(F.lit(1)).cast("int").alias("valid_track_count"))
+    )
+    base = frame.select(
+        "playlist_id",
+        "spotify_snapshot_id",
+        F.col("playlist.name").alias("playlist_name"),
+        F.when(F.col("items").isNull(), F.lit(0))
+        .otherwise(F.size(F.col("items")))
+        .cast("int")
+        .alias("source_item_count"),
+    )
+    return (
+        base.join(valid_counts, ["playlist_id", "spotify_snapshot_id"], "left")
+        .withColumn(
+            "valid_track_count", F.coalesce(F.col("valid_track_count"), F.lit(0)).cast("int")
+        )
+        .withColumn(
+            "rejected_item_count",
+            (F.col("source_item_count") - F.col("valid_track_count")).cast("int"),
+        )
+        .select(
+            "playlist_id",
+            "spotify_snapshot_id",
+            "playlist_name",
+            F.lit(lineage.snapshot_date.isoformat()).cast("date").alias("snapshot_date"),
+            F.to_timestamp(F.lit(lineage.snapshot_timestamp_utc.isoformat())).alias(
+                "snapshot_timestamp"
+            ),
+            F.lit(str(lineage.pipeline_run_id)).alias("pipeline_run_id"),
+            "source_item_count",
+            "valid_track_count",
+            "rejected_item_count",
+            ingestion_date_column(lineage.ingestion_date).alias("ingestion_date"),
+        )
+    )
+
+
 def deduplicate_playlist_snapshots(frame: DataFrame) -> DataFrame:
     """Resolve retry/backfill duplicates at the canonical daily playlist-slot grain."""
     return deterministic_dedupe(

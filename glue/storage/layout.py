@@ -11,6 +11,7 @@ SILVER_DATASETS = (
     "tracks",
     "track_artists",
     "playlist_snapshots",
+    "playlist_observations",
 )
 
 

@@ -73,23 +73,30 @@ def test_storage_contract_uses_only_inert_placeholders_and_no_static_keys():
         assert forbidden not in corpus.upper()
 
 
-def test_stage_file_format_and_five_pipes_match_silver_prefixes():
+def test_stage_file_format_and_six_pipes_match_silver_prefixes():
     stage = _read("04_external_stages.sql").upper()
     fmt = _read("05_file_formats.sql").upper()
     pipes = _read("07_snowpipes.sql")
     assert "DIRECTORY = (ENABLE = TRUE)" in stage
     assert "COMPRESSION = SNAPPY" in fmt
     assert "USE_LOGICAL_TYPE = TRUE" in fmt
-    datasets = ("artists", "albums", "tracks", "track_artists", "playlist_snapshots")
-    assert pipes.upper().count("CREATE PIPE IF NOT EXISTS") == 5
-    assert pipes.upper().count("AUTO_INGEST = TRUE") == 5
+    datasets = (
+        "artists",
+        "albums",
+        "tracks",
+        "track_artists",
+        "playlist_snapshots",
+        "playlist_observations",
+    )
+    assert pipes.upper().count("CREATE PIPE IF NOT EXISTS") == 6
+    assert pipes.upper().count("AUTO_INGEST = TRUE") == 6
     for dataset in datasets:
         assert f"SILVER_STAGE/{dataset}/" in pipes
     for metadata in ("METADATA$START_SCAN_TIME", "METADATA$FILENAME", "METADATA$FILE_ROW_NUMBER"):
-        assert pipes.count(metadata) == 5
+        assert pipes.count(metadata) == 6
     assert "CURRENT_TIMESTAMP" not in pipes.upper()
     assert "ON_ERROR = ABORT_STATEMENT" not in pipes.upper()
-    assert pipes.upper().count("CONVERT_TIMEZONE('UTC', METADATA$START_SCAN_TIME)") == 5
+    assert pipes.upper().count("CONVERT_TIMEZONE('UTC', METADATA$START_SCAN_TIME)") == 6
     assert "CONVERT_TIMEZONE('UTC', T.$1:ADDED_AT::TIMESTAMP_LTZ)::TIMESTAMP_NTZ" in pipes.upper()
     assert (
         "CONVERT_TIMEZONE('UTC', T.$1:SNAPSHOT_TIMESTAMP::TIMESTAMP_LTZ)::TIMESTAMP_NTZ"
@@ -141,6 +148,18 @@ def test_landing_columns_match_m3_silver_plus_audit_metadata():
             "SNAPSHOT_DATE",
             "SNAPSHOT_TIMESTAMP",
             "PIPELINE_RUN_ID",
+            "INGESTION_DATE",
+        ],
+        "LANDING_PLAYLIST_OBSERVATIONS": [
+            "PLAYLIST_ID",
+            "SPOTIFY_SNAPSHOT_ID",
+            "PLAYLIST_NAME",
+            "SNAPSHOT_DATE",
+            "SNAPSHOT_TIMESTAMP",
+            "PIPELINE_RUN_ID",
+            "SOURCE_ITEM_COUNT",
+            "VALID_TRACK_COUNT",
+            "REJECTED_ITEM_COUNT",
             "INGESTION_DATE",
         ],
     }

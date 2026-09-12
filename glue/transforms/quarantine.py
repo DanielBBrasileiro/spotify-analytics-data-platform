@@ -24,6 +24,7 @@ def rejected_playlist_items(frame: DataFrame) -> DataFrame:
     )
     return (
         exploded.withColumn("rejection_reason", reason)
+        .filter(F.col("track_position").isNotNull())
         .filter(F.col("rejection_reason").isNotNull())
         .select(
             "playlist_id",

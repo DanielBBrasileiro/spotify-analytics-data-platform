@@ -24,7 +24,11 @@ from glue.transforms.entities import (
     extract_tracks,
 )
 from glue.transforms.quarantine import rejected_playlist_items
-from glue.transforms.snapshots import SnapshotLineage, extract_playlist_snapshots
+from glue.transforms.snapshots import (
+    SnapshotLineage,
+    extract_playlist_observations,
+    extract_playlist_snapshots,
+)
 
 
 @dataclass(frozen=True)
@@ -72,6 +76,7 @@ def build_silver_datasets(
         "tracks": extract_tracks(bronze, ingestion_date=ingestion_date),
         "track_artists": extract_track_artists(bronze, ingestion_date=ingestion_date),
         "playlist_snapshots": extract_playlist_snapshots(bronze, lineage=lineage),
+        "playlist_observations": extract_playlist_observations(bronze, lineage=lineage),
     }
     return datasets, rejected_playlist_items(bronze)
 
