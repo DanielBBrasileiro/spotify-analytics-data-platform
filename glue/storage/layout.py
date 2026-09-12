@@ -51,3 +51,17 @@ def build_s3_silver_partition_uri(
     if not normalized_bucket or "/" in normalized_bucket or normalized_bucket.startswith("s3:"):
         raise ValueError("bucket must be a bare S3 bucket name.")
     return f"s3://{normalized_bucket}/{build_silver_partition_key(dataset, ingestion_date)}"
+
+
+def resolve_silver_partition(
+    root: str | Path,
+    dataset: str,
+    ingestion_date: date | str,
+) -> str:
+    """Resolve a local path or an S3 URI without performing any storage operation."""
+    raw_root = str(root)
+    if raw_root.startswith("s3://"):
+        return raw_root.rstrip("/") + "/" + build_silver_partition_key(dataset, ingestion_date)
+    if "://" in raw_root:
+        raise ValueError("Only local filesystem roots and s3:// roots are supported.")
+    return str(build_local_silver_partition(root, dataset, ingestion_date))
