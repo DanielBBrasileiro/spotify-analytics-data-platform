@@ -81,16 +81,18 @@ sequenceDiagram
     Lambda->>SecMgr: GetSecretValue(spotify/api/credentials)
     SecMgr-->>Lambda: client_id, client_secret, refresh_token
     Lambda->>Spotify: POST /api/token (grant_type=refresh_token)
-    Spotify-->>Lambda: short-lived access_token (1 hour)
+    Spotify-->>Lambda: short-lived access_token + expires_in
+    Lambda->>Spotify: GET /v1/playlists/{id}?fields=snapshot_id
+    Spotify-->>Lambda: playlist source version
     Lambda->>Spotify: GET /v1/playlists/{id}/items?limit=50 (paginated)
-    Spotify-->>Lambda: 200 OK (items array, spotify_snapshot_id)
+    Spotify-->>Lambda: 200 OK (items array)
     Lambda->>S3Bronze: PutObject(bronze/spotify/playlist_tracks/...)
     Lambda-->>Airflow: Extractor Finished (Telemetry JSON)
 
     Airflow->>Glue: StartJobRun(pipeline_run_id, snapshot_date)
     Glue->>S3Bronze: Read Bronze JSON
     Note over Glue: Enforce StructType schema,<br/>validate item type (tracks),<br/>explode artists, preserve spotify_snapshot_id
-    Glue->>S3Silver: Write Partitioned Parquet (artists, albums, tracks, track_artists, snapshots)
+    Glue->>S3Silver: Write Parquet (artists, albums, tracks, track_artists, snapshots, observations)
     Glue-->>Airflow: Glue Job Succeeded
 
     S3Silver->>Snowpipe: S3 ObjectCreated Event (via SQS)
@@ -99,7 +101,7 @@ sequenceDiagram
     Airflow->>Snowflake: Query landing row counts / Snowpipe status
     Snowflake-->>Airflow: Ingestion Verified
 
-    Airflow->>dbt: dbt build --select tag:daily_pipeline
+    Airflow->>dbt: dbt build with explicit snapshot_date vars
     dbt->>Snowflake: Refresh Staging Views
     dbt->>Snowflake: Merge Core Dimensions (dim_track, dim_artist, etc.)
     dbt->>Snowflake: Incremental Merge fact_playlist_snapshot on snapshot_pk
@@ -115,7 +117,7 @@ sequenceDiagram
 ### Authentication Flow (Decoupled Operator Setup)
 - Initial interactive authorization is performed out-of-band by the operator using Spotify's Authorization Code Flow.
 - The granted `refresh_token` is saved to AWS Secrets Manager.
-- Airflow and Lambda execute non-interactively, dynamically exchanging the refresh token for a 1-hour access token at runtime.
+- Between required operator reauthorizations, Lambda dynamically exchanges the refresh token for a short-lived access token and follows the returned expiry metadata.
 
 ### Tier 1: Source & Ingestion
 - **Spotify Web API**: Ingests `/v1/playlists/{playlist_id}/items` using limit=50 pagination.
@@ -135,6 +137,7 @@ sequenceDiagram
     - `silver/tracks/`
     - `silver/track_artists/`
     - `silver/playlist_snapshots/`
+    - `silver/playlist_observations/`
 
 ### Tier 3: Warehouse Ingestion (Snowflake)
 - **Snowpipe**: Serverless continuous ingestion listening to S3 event notifications via Amazon SQS.

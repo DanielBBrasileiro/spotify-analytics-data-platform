@@ -23,8 +23,8 @@ Please mark the relevant option(s) with an `x`:
 
 ## Architectural Alignment
 
-- [ ] Follows principles established in [docs/PROJECT_BLUEPRINT.md](docs/PROJECT_BLUEPRINT.md).
-- [ ] Conforms to relevant Architectural Decision Records ([docs/adr/](docs/adr/)).
+- [ ] Follows principles established in [docs/PROJECT_BLUEPRINT.md](../docs/PROJECT_BLUEPRINT.md).
+- [ ] Conforms to relevant Architectural Decision Records ([docs/adr/](../docs/adr/)).
 - [ ] Airflow remains strictly an orchestrator (no heavy processing in DAG definitions).
 - [ ] PySpark handles technical schema extraction and Parquet serialization.
 - [ ] dbt handles analytical modeling and warehouse transformations.

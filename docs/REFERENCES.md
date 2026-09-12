@@ -25,9 +25,11 @@ This platform draws conceptual inspiration from educational Spotify ETL patterns
 
 ### Spotify Web API (2026 Specifications)
 - [Spotify Developer Platform Documentation](https://developer.spotify.com/documentation/web-api)
-- [Spotify Web API: Get Playlist Items Reference (`/v1/playlists/{id}/items`)](https://developer.spotify.com/documentation/web-api/reference/get-playlists-tracks)
+- [Spotify Web API: Get Playlist Items Reference (`/v1/playlists/{id}/items`)](https://developer.spotify.com/documentation/web-api/reference/get-playlists-items)
 - [Spotify Web API: Authorization Code Flow & Scopes](https://developer.spotify.com/documentation/web-api/concepts/authorization)
 - [Spotify Web API: Working with Playlists & snapshot_id](https://developer.spotify.com/documentation/web-api/concepts/playlists)
+- [Spotify Developer Policy](https://developer.spotify.com/policy)
+- [Spotify Developer Terms](https://developer.spotify.com/terms)
 - [Spotify Web API: February 2026 Migration Guide & Changelogs](https://developer.spotify.com/documentation/web-api)
 
 ### Apache Spark & AWS Glue

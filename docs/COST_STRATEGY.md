@@ -8,12 +8,16 @@ This document establishes the financial and operational guardrails for the Spoti
 
 | Metric | Target Limit | Governance Type | Notes |
 | :--- | :--- | :--- | :--- |
-| **Monthly Budget Target** | **≤ $20.00 USD / month** | **Operational Target & Alert Threshold** | Target ceiling for portfolio demonstration runs. |
-| **Target Steady-State (Idle)** | **$0.00 - $2.00 USD / month** | Estimated Range | When pipelines and warehouses are suspended. |
-| **Single Full Pipeline Run** | **< $0.25 USD / run** | Estimated Execution Cost | Ephemeral Lambda, Glue 5.1 job, and dbt merge run. |
+| **Monthly Budget Target** | **≤ $20.00 USD / month** | **Operational planning target** | AWS budget enforcement is not deployed yet. |
+| **Target Steady-State (Idle)** | Not yet measured | Cloud validation pending | Architecture is designed to avoid always-on compute. |
+| **Single Full Pipeline Run** | Not yet measured | Cloud validation pending | Must be measured in the target AWS/Snowflake accounts. |
 
 > [!IMPORTANT]
-> The $20.00/month figure is an **operational portfolio budget target and alert threshold**, not a hard cloud provider stop guarantee. Cloud billing alarms notify operators when thresholds are crossed but do not instantaneously cut off all running services without configured automated shutdown scripts. All numeric figures below are conservative estimates based on official documentation and typical consumption patterns.
+> The $20.00/month figure is an **operational portfolio planning target**, not a hard cloud
+> provider stop guarantee. The repository currently contains Snowflake cost-control SQL
+> contracts but no deployed AWS Budget, Terraform teardown automation, or measured run-cost
+> evidence. Any vendor pricing examples below are planning inputs only and must be rechecked
+> before provisioning.
 
 ---
 
@@ -24,7 +28,7 @@ This document establishes the financial and operational guardrails for the Spoti
 3. **Local-First Development**: Airflow 3.x, unit tests, and PySpark transformations run locally in Docker or Python virtualenvs. Cloud services are invoked only for integration verification and portfolio demonstrations.
 4. **No Managed Cloud Orchestrator (No MWAA)**: AWS MWAA (Managed Workflows for Apache Airflow) incurs a baseline cost of ~$0.49/hour (~$350/month estimated base). MWAA is explicitly excluded; Airflow runs in Docker locally or via on-demand triggers.
 5. **No NAT Gateways**: AWS NAT Gateways incur an estimated baseline of ~$0.045/hour (~$32/month base) plus data processing fees. Lambda functions run outside VPC to eliminate NAT Gateway requirements.
-6. **Reproducible Ephemeral Infrastructure**: All cloud infrastructure is declared in Terraform and can be spun up for live demos and immediately destroyed (`terraform destroy`).
+6. **Reproducible Ephemeral Infrastructure**: Terraform implementation is planned in M8. Until then, no claim is made that all cloud resources can be created or destroyed reproducibly from this repository.
 
 ---
 
@@ -64,46 +68,42 @@ This document establishes the financial and operational guardrails for the Spoti
 | **AWS NAT Gateway** | Base charge ~$32/month per AZ + data transfer fees. | **Prohibited** (Lambda operates outside VPC). |
 | **Amazon EMR** | Cluster nodes billed continuously unless terminated. | **Prohibited** (Use AWS Glue on-demand). |
 | **Amazon Redshift Serverless** | Minimum RPU baseline can accumulate rapidly. | **Prohibited** (Use Snowflake X-Small). |
-| **Snowflake Warehouse Left Running** | Failing to set `AUTO_SUSPEND` drains credits. | **Enforced `AUTO_SUSPEND = 60`**. |
-| **Unbounded CloudWatch Logs** | Default retention is `Never Expire`. | **Enforced 7-day retention**. |
+| **Snowflake Warehouse Left Running** | Failing to set `AUTO_SUSPEND` drains credits. | SQL contract sets `AUTO_SUSPEND = 60`; live deployment pending. |
+| **Unbounded CloudWatch Logs** | Unlimited retention can accumulate cost. | Seven-day retention is an M8 infrastructure target; not deployed today. |
 
 ---
 
 ## 4. Operating Modes
 
-### Mode 1: Development Mode (Default)
-- Target cost: **$0.00 - $1.00 / month**
-- Airflow 3.x runs locally via Docker Compose.
-- PySpark transformations tested locally using pytest and local Spark sessions.
-- Mock JSON data generated locally matching current 2026 API schemas.
-- Snowflake queries executed against local DuckDB or transient Snowflake accounts.
+### Mode 1: Development Mode (Current Default)
+- No live-cloud spend is required for the repository's current validation path.
+- Core Python tests run locally on Python 3.12.
+- PySpark transformations run locally on the Glue 5.1 parity stack (Python 3.11 / Spark 3.5.6 / Java 17).
+- Snowflake SQL and dbt project structure are validated offline without a warehouse connection.
+- Synthetic fixtures are the default source material.
 
-### Mode 2: Demonstration / Portfolio Review Mode
-- Target cost: **$2.00 - $5.00 / month**
-- Cloud infrastructure provisioned on-demand via Terraform.
-- Live Spotify API ingestion via AWS Lambda into S3 Bronze.
-- AWS Glue 5.1 job triggered once daily via Airflow.
-- Snowpipe ingests into Snowflake Landing.
-- dbt Core runs incremental merges on Snowflake `X-Small` warehouse.
-- Power BI connects to Snowflake Marts.
+### Mode 2: Demonstration / Portfolio Review Mode (Target)
+- Cloud infrastructure is provisioned only after M8 Terraform and budget guardrails exist.
+- Portfolio analytics uses fully synthetic histories per ADR-0008.
+- AWS Lambda/S3/Glue and Snowflake/Snowpipe/dbt are exercised as a vertical slice with measured cost and teardown evidence.
+- Power BI consumes validated Snowflake marts only after the warehouse build succeeds.
 
-### Mode 3: Extended Production-Like Mode (Reference)
-- Target cost: **$15.00 - $20.00 / month**
-- Daily scheduling across monitored playlists.
-- S3 lifecycle policies archiving bronze data after 90 days.
-- CloudWatch anomaly detection alarms monitoring job execution duration.
+### Mode 3: Extended Production-Like Mode (Future Reference)
+- Not implemented and not required for the portfolio vertical slice.
+- Any recurring schedule, lifecycle policy, or anomaly detection must be separately costed and validated before enabling it.
 
 ---
 
 ## 5. Cost Governance & Alarms
 
-1. **AWS Budgets**:
-   - An AWS Budget configured via Terraform with alert thresholds set at **$10.00 USD** (50% of target) and **$18.00 USD** (90% of target).
-   - Email notifications alert the administrator proactively before approaching the $20/month threshold.
+1. **AWS Budgets (M8 target)**:
+   - Terraform will define alerts at **$10.00 USD** and **$18.00 USD** before the cloud demo path is considered ready.
+   - The current repository does not claim that these alerts already exist in an AWS account.
 2. **Snowflake Resource Monitors**:
-   - A Snowflake Resource Monitor attached to `COMPUTE_WH` configured with:
+   - M4 SQL contracts define a resource monitor attached to `COMPUTE_WH` with:
      - Notification at 80% of monthly credit quota.
      - Immediate suspension at 100% of quota.
+   - Live deployment and account-specific notification behavior remain cloud-validation gates.
 
 ---
 
