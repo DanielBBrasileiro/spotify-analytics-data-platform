@@ -1,0 +1,76 @@
+version: 2
+
+sources:
+  - name: landing
+    description: Typed Snowpipe destinations mirroring the five M3 Silver Parquet datasets.
+    database: SPOTIFY_ANALYTICS
+    schema: LANDING
+    tables:
+      - name: landing_artists
+      - name: landing_albums
+      - name: landing_tracks
+      - name: landing_track_artists
+      - name: landing_playlist_snapshots
+
+models:
+  - name: stg_spotify_artists
+    description: Latest technically deduplicated artist record per provider artist ID.
+    columns:
+      - name: artist_id
+        description: Provider-backed natural artist key.
+        data_tests: [not_null, unique]
+      - name: artist_name
+        data_tests: [not_null]
+
+  - name: stg_spotify_albums
+    description: Latest album record with partial source release dates normalized to DATE.
+    columns:
+      - name: album_id
+        description: Provider-backed natural album key.
+        data_tests: [not_null, unique]
+      - name: album_name
+        data_tests: [not_null]
+
+  - name: stg_spotify_tracks
+    description: Latest valid provider-backed track metadata with positive duration.
+    columns:
+      - name: track_id
+        description: Provider-backed natural track key.
+        data_tests: [not_null, unique]
+      - name: track_name
+        data_tests: [not_null]
+      - name: duration_ms
+        data_tests: [not_null]
+
+  - name: stg_spotify_track_artists
+    description: Latest track-artist relationship per natural pair with current billing order.
+    columns:
+      - name: track_id
+        data_tests: [not_null]
+      - name: artist_id
+        data_tests: [not_null]
+      - name: artist_order
+        data_tests: [not_null]
+
+  - name: stg_spotify_playlist_snapshots
+    description: >-
+      Canonical latest retry per playlist_id + snapshot_date + track_position. Physical
+      snapshot timestamps and run IDs remain lineage only and are excluded from the grain.
+    columns:
+      - name: playlist_id
+        data_tests: [not_null]
+      - name: spotify_snapshot_id
+        data_tests: [not_null]
+      - name: playlist_name
+        data_tests: [not_null]
+      - name: track_id
+        data_tests: [not_null]
+      - name: track_position
+        data_tests: [not_null]
+      - name: snapshot_date
+        data_tests: [not_null]
+      - name: snapshot_timestamp
+        data_tests: [not_null]
+      - name: pipeline_run_id
+        data_tests: [not_null]
+
