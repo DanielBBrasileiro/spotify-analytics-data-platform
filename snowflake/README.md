@@ -65,6 +65,13 @@ Snowflake metadata. `_loaded_at` uses `METADATA$START_SCAN_TIME`, not wall-clock
 functions. The file's `ingestion_date` remains data, and validation verifies that it agrees
 with the Hive partition path.
 
+Spark 3.5.6 writes `TimestampType` to Parquet as INT96 by default. With Snowflake's
+vectorized Parquet scanner, INT96 is surfaced as `TIMESTAMP_LTZ`; therefore timestamp
+fields and `METADATA$START_SCAN_TIME` are explicitly converted to UTC before casting to
+Landing `TIMESTAMP_NTZ`. The later live validation phase must prove this with a known UTC
+instant while the Snowflake session uses a non-UTC timezone, so session settings cannot
+silently change lineage values.
+
 Snowpipe's loaded-file tracking prevents routine file replay; it is **not** the analytical
 business deduplication key. M5 dbt resolves retries at the canonical grain:
 `playlist_id + snapshot_date + track_position`. `snapshot_timestamp` and

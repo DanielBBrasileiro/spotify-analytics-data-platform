@@ -10,8 +10,8 @@
 
 ---
 
-### Project Status: M2 — Lambda & Bronze Runtime Complete
-> **Implemented and offline-validated:** refresh-token authentication, paginated/version-checked extraction, synthetic fixtures, Pydantic run lineage, immutable local Bronze persistence, canonical S3 object naming, a validated AWS Lambda handler, conditional no-clobber S3 publication, cached Secrets Manager credential retrieval, and structured JSON lifecycle telemetry. The test suite blocks network/DNS and uses mocked AWS boundaries, so no live Spotify access or AWS deployment is claimed. Lambda, S3, Secrets Manager, CloudWatch resources, IAM, and billing guardrails are still unprovisioned; Terraform deployment remains M8. The latest tagged release remains **v0.1.1**. See [BACKLOG.md](BACKLOG.md) for the next milestone.
+### Project Status: M3 Complete — M4 Warehouse Contracts Prepared Offline
+> **Implemented and offline-validated:** M0-M3, including refresh-token ingestion, immutable Bronze contracts, Lambda runtime boundaries, Glue 5.1 parity on Spark 3.5.6/Python 3.11, explicit Bronze/Silver schemas, technical normalization/quarantine, deterministic snapshot grain, and Snappy Parquet Silver output. M4 Snowflake database/RBAC/storage-integration/stage/Snowpipe/Landing SQL is version-controlled and statically validated, but no real Snowflake object, AWS IAM trust, S3 notification, or Snowpipe delivery is claimed yet. Cloud execution remains deliberately deferred to preserve trial/promotional credits. Portfolio analytical datasets remain synthetic unless permitted usage is established separately.
 
 ---
 

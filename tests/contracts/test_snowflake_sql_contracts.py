@@ -40,6 +40,8 @@ def test_topology_and_cost_guardrails_are_bounded():
     assert "CREATE RESOURCE MONITOR IF NOT EXISTS SPOTIFY_DEV_MONITOR WITH" in guardrails
     assert "CREDIT_QUOTA = 2" in guardrails
     assert "FREQUENCY = MONTHLY" in guardrails
+    assert "ALTER RESOURCE MONITOR IF EXISTS SPOTIFY_DEV_MONITOR" in guardrails
+    assert guardrails.count("ON 100 PERCENT DO SUSPEND_IMMEDIATE") == 2
 
 
 def test_rbac_contains_only_intended_service_roles_and_least_privilege_boundaries():
@@ -87,6 +89,12 @@ def test_stage_file_format_and_five_pipes_match_silver_prefixes():
         assert pipes.count(metadata) == 5
     assert "CURRENT_TIMESTAMP" not in pipes.upper()
     assert "ON_ERROR = ABORT_STATEMENT" not in pipes.upper()
+    assert pipes.upper().count("CONVERT_TIMEZONE('UTC', METADATA$START_SCAN_TIME)") == 5
+    assert "CONVERT_TIMEZONE('UTC', T.$1:ADDED_AT::TIMESTAMP_LTZ)::TIMESTAMP_NTZ" in pipes.upper()
+    assert (
+        "CONVERT_TIMEZONE('UTC', T.$1:SNAPSHOT_TIMESTAMP::TIMESTAMP_LTZ)::TIMESTAMP_NTZ"
+        in pipes.upper()
+    )
 
 
 def _table_columns(sql: str, table: str) -> list[str]:
@@ -138,6 +146,26 @@ def test_landing_columns_match_m3_silver_plus_audit_metadata():
     }
     for table, silver_columns in expected.items():
         assert _table_columns(sql, table) == silver_columns + audit
+
+
+def test_landing_string_widths_match_documented_data_model_contract():
+    sql = _read("06_landing_tables.sql").upper()
+    for declaration in (
+        "ARTIST_ID VARCHAR(64)",
+        "ARTIST_NAME VARCHAR(255)",
+        "ALBUM_ID VARCHAR(64)",
+        "ALBUM_NAME VARCHAR(255)",
+        "ALBUM_TYPE VARCHAR(32)",
+        "RELEASE_DATE VARCHAR(16)",
+        "TRACK_ID VARCHAR(64)",
+        "TRACK_NAME VARCHAR(255)",
+        "PLAYLIST_ID VARCHAR(64)",
+        "SPOTIFY_SNAPSHOT_ID VARCHAR(128)",
+        "PLAYLIST_NAME VARCHAR(255)",
+        "PIPELINE_RUN_ID VARCHAR(64)",
+        "_FILE_NAME VARCHAR(512)",
+    ):
+        assert declaration in sql
 
 
 def test_validation_sql_covers_errors_rejections_latency_duplicates_and_partition_lineage():
