@@ -65,7 +65,8 @@ def test_end_to_end_single_page_writes_all_six_silver_datasets(spark, tmp_path):
     for dataset, expected in expected_counts.items():
         destination = Path(result.destinations[dataset])
         assert destination.relative_to(output_root).as_posix() == (
-            f"silver/{dataset}/ingestion_date=2026-09-12"
+            f"silver/{dataset}/ingestion_date=2026-09-12/"
+            f"run_id={RUN_ID}/playlist_id=6666666666666666666666"
         )
         assert spark.read.parquet(str(destination)).count() == expected
 

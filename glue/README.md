@@ -20,7 +20,7 @@ Per **ADR-0005**, AWS Glue 5.1 (Apache Spark 3.5.6 / Python 3.11) handles techni
      - `track_artists` (bridge relation resolving many-to-many track/artist mappings)
      - `playlist_snapshots` (point-in-time state of playlist slots preserving `spotify_snapshot_id`)
 4. **Technical Deduplication**: Deduplicate entities across runs using entity IDs.
-5. **Columnar Parquet Output**: Write snappy-compressed Parquet datasets to S3 Silver partitioned by `ingestion_date=YYYY-MM-DD`.
+5. **Columnar Parquet Output**: Write snappy-compressed Parquet datasets to collision-free S3 Silver prefixes scoped by `ingestion_date`, physical `run_id`, and `playlist_id`.
 
 ---
 
@@ -46,7 +46,7 @@ glue/
 The canonical output contract is deliberately identical for local development and S3:
 
 ```text
-silver/<dataset>/ingestion_date=YYYY-MM-DD/
+silver/<dataset>/ingestion_date=YYYY-MM-DD/run_id=<uuid>/playlist_id=<id>/
 ```
 
 Supported datasets are `artists`, `albums`, `tracks`, `track_artists`, and

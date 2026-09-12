@@ -92,12 +92,17 @@ def run_bronze_to_silver(
     """Read one Bronze snapshot and publish all canonical Silver datasets."""
     bronze = read_bronze_snapshot(spark, bronze_path)
     datasets, rejected = build_silver_datasets(bronze, lineage=lineage)
+    source = bronze.select("playlist_id").first()
+    if source is None or not source.playlist_id:
+        raise SchemaContractError("Bronze snapshot is missing playlist_id.")
     destinations = {
         dataset: write_silver_dataset(
             frame,
             root=silver_root,
             dataset=dataset,
             ingestion_date=lineage.ingestion_date,
+            pipeline_run_id=lineage.pipeline_run_id,
+            playlist_id=source.playlist_id,
             output_partitions=output_partitions,
         )
         for dataset, frame in datasets.items()

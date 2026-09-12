@@ -136,7 +136,7 @@ flowchart TD
 
 1. **Extraction (T0)**: Airflow triggers the Lambda extractor with target playlist IDs, `snapshot_date`, and generated physical `pipeline_run_id`.
 2. **Token Refresh & Bronze Landing (target state)**: Lambda obtains credentials from the configured credential provider, refreshes a short-lived access token, paginates `GET /v1/playlists/{id}/items` (limit=50), captures `spotify_snapshot_id`, and writes raw JSON to `s3://<bucket>/bronze/spotify/playlist_tracks/ingestion_date=YYYY-MM-DD/run_id=<run_id>/playlist_<id>.json`. Issue #7 supplies Secrets Manager credentials for non-local execution and explicit environment credentials only for local mode. The `< 30s` runtime objective is not yet a measured guarantee.
-3. **Silver Transformation (T0 + 60s)**: Airflow triggers the AWS Glue 5.1 PySpark job. The job reads Bronze JSON, enforces explicit StructType schemas, validates item types (extracting tracks and quarantining non-tracks), explodes artist relationships, deduplicates entities, and writes Snappy Parquet to S3 Silver partitioned by `ingestion_date`.
+3. **Silver Transformation (T0 + 60s)**: Airflow triggers the AWS Glue 5.1 PySpark job. The job reads one Bronze playlist object per invocation, enforces explicit StructType schemas, validates item types (extracting tracks and quarantining non-tracks), explodes artist relationships, deduplicates entities, and writes Snappy Parquet to S3 Silver under `ingestion_date/run_id/playlist_id` publication prefixes so independent playlists/runs cannot overwrite each other.
 4. **Warehouse Landing (T0 + 120s)**: S3 object creation triggers an SQS event consumed by Snowpipe, loading Parquet partitions into Snowflake `LANDING` tables along with file audit metadata (`METADATA$FILENAME`, `METADATA$FILE_ROW_NUMBER`).
 5. **Dimensional Modeling (T0 + 180s)**: Airflow validates row counts in Landing and triggers `dbt build`. dbt updates staging views, incrementally merges core dimensions, merges `fact_playlist_snapshot` on `snapshot_pk`, and refreshes analytical marts.
 6. **Reporting (T0 + 300s)**: Power BI queries curated models in Snowflake `MARTS`.
@@ -186,19 +186,22 @@ s3://<platform-bucket>/
 ├── silver/
 │   ├── artists/
 │   │   └── ingestion_date=YYYY-MM-DD/
-│   │       └── part-*.parquet
+│   │       └── run_id=<pipeline_run_id>/playlist_id=<playlist_id>/part-*.parquet
 │   ├── albums/
 │   │   └── ingestion_date=YYYY-MM-DD/
-│   │       └── part-*.parquet
+│   │       └── run_id=<pipeline_run_id>/playlist_id=<playlist_id>/part-*.parquet
 │   ├── tracks/
 │   │   └── ingestion_date=YYYY-MM-DD/
-│   │       └── part-*.parquet
+│   │       └── run_id=<pipeline_run_id>/playlist_id=<playlist_id>/part-*.parquet
 │   ├── track_artists/
 │   │   └── ingestion_date=YYYY-MM-DD/
-│   │       └── part-*.parquet
-│   └── playlist_snapshots/
+│   │       └── run_id=<pipeline_run_id>/playlist_id=<playlist_id>/part-*.parquet
+│   ├── playlist_snapshots/
+│   │   └── ingestion_date=YYYY-MM-DD/
+│   │       └── run_id=<pipeline_run_id>/playlist_id=<playlist_id>/part-*.parquet
+│   └── playlist_observations/
 │       └── ingestion_date=YYYY-MM-DD/
-│           └── part-*.parquet
+│           └── run_id=<pipeline_run_id>/playlist_id=<playlist_id>/part-*.parquet
 └── metadata/
     └── pipeline_runs/
         └── year=YYYY/month=MM/
@@ -218,7 +221,7 @@ s3://<platform-bucket>/
 ## 11. Partitioning Strategy
 
 - **Bronze**: Partitioned by `ingestion_date=YYYY-MM-DD/run_id=<pipeline_run_id>/`. Isolates individual execution payloads and prevents collision during retries.
-- **Silver**: Partitioned by `ingestion_date=YYYY-MM-DD/`. Aligns with daily snapshot cadence and enables partition pruning in Snowflake external stages.
+- **Silver**: Partitioned by `ingestion_date=YYYY-MM-DD/run_id=<pipeline_run_id>/playlist_id=<playlist_id>/`. The date remains the leading pruning key while run/playlist scopes prevent same-day publication collisions.
 
 ---
 
@@ -382,7 +385,7 @@ Refer to [`docs/DATA_MODEL.md`](DATA_MODEL.md) for full ERD and schema dictionar
 
 Idempotency is enforced end-to-end:
 - Bronze: Scoped by execution `run_id`.
-- Silver: Parquet partitions overwritten atomically per `ingestion_date`.
+- Silver: Parquet publications overwrite only their unique `ingestion_date/run_id/playlist_id` scope; another playlist or physical run on the same day is never replaced.
 - Snowflake Core / Marts: Enforced via `MERGE` on deterministic surrogate keys (`snapshot_pk`).
 
 ---
