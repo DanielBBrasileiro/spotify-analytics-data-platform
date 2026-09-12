@@ -43,7 +43,7 @@ Normal runs merge the target `snapshot_date`. Backfills accept explicit date ran
 
 ---
 
-## Planned Directory Structure
+## Project Structure
 
 ```
 dbt/
@@ -51,7 +51,7 @@ dbt/
 ├── packages.yml
 ├── profiles.yml.example
 ├── macros/
-│   └── generate_surrogate_key.sql
+│   └── generate_schema_name.sql
 ├── models/
 │   ├── staging/
 │   │   ├── _staging_models.yml
@@ -77,3 +77,14 @@ dbt/
 └── tests/
     └── assert_positive_track_durations.sql
 ```
+
+## Offline development contract
+
+M5 uses `dbt-core==1.12.4`, `dbt-snowflake==1.12.0`, and `dbt_utils==1.4.1`.
+`profiles.yml.example` contains environment-variable placeholders only and hard-codes the
+least-privileged `SPOTIFY_TRANSFORMER` role. CI uses the inert profile under
+`tests/dbt_profile/` and runs `dbt parse --no-partial-parse`, which validates project
+configuration, Jinja, refs/sources, macros, and the DAG without connecting to Snowflake.
+
+Live `dbt build` remains a later cloud-validation gate; this repository does not claim
+warehouse execution merely because the offline parse succeeds.

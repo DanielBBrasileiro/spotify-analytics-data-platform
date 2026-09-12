@@ -89,3 +89,4 @@ secrets/
 *.pem
 *.key
 .venv-sql/
+.venv-dbt/

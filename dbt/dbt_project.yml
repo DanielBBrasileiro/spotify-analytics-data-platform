@@ -1,0 +1,26 @@
+name: spotify_analytics
+version: "1.0.0"
+config-version: 2
+
+profile: spotify_analytics
+
+model-paths: ["models"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  spotify_analytics:
+    staging:
+      +schema: STAGING
+      +materialized: view
+      +tags: ["staging"]
+    core:
+      +schema: CORE
+      +materialized: table
+      +tags: ["core"]
+    marts:
+      +schema: MARTS
+      +materialized: table
+      +tags: ["marts"]
+
