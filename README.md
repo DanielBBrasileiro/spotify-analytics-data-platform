@@ -6,12 +6,20 @@
 [![Code Style: Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 [![Release: v0.1.1](https://img.shields.io/badge/Release-v0.1.1-brightgreen.svg)](https://github.com/DanielBBrasileiro/spotify-analytics-data-platform/releases/tag/v0.1.1)
 
-> Production-oriented data engineering platform that ingests historical Spotify playlist snapshots using AWS Lambda, S3, Glue 5.1/PySpark, Snowflake, dbt Core, and Apache Airflow 3.x, with infrastructure as code, CI/CD, cross-tier data quality, and business intelligence in Power BI.
+> Production-oriented data engineering portfolio with offline-validated ingestion, Glue/PySpark,
+> Snowflake, and dbt contracts. The target cloud path uses AWS Lambda, S3, Glue 5.1,
+> Snowflake/Snowpipe, dbt Core, and later Airflow/Power BI, with deployment validation and
+> infrastructure automation still explicitly gated by their roadmap milestones.
 
 ---
 
-### Project Status: M3 Complete — M4/M5 Contracts Prepared Offline
+### Project Status: M3 Complete — M4/M5 Code Complete, Cloud Validation Pending
 > **Implemented and offline-validated:** M0-M3 plus the code-first portions of M4/M5. This includes Glue 5.1 parity on Spark 3.5.6/Python 3.11, explicit Bronze/Silver schemas, collision-free run/playlist-scoped Parquet publications, an observation spine that preserves empty playlist days, Snowflake topology/RBAC/Storage Integration/Snowpipe/Landing DDL, and a pinned dbt project with staging views, incremental Kimball dimensions/bridge/fact, four analytical marts, generic tests, and singular quality assertions. No real Snowflake object, AWS IAM trust, S3 notification, Snowpipe delivery, or live `dbt build` is claimed yet. Cloud execution remains deliberately deferred to preserve trial/promotional credits, and portfolio analytical datasets remain synthetic unless permitted usage is established separately.
+
+> **Portfolio data boundary:** demonstrations and analytical screenshots use fully synthetic
+> playlist histories. Live analytical use of Spotify-derived data is not assumed to be
+> permitted merely because OAuth access exists. See
+> [ADR-0008](docs/adr/0008-synthetic-analytics-and-source-use-boundary.md).
 
 ---
 
@@ -107,14 +115,14 @@ By persisting immutable daily snapshots of **monitored user-owned or collaborati
 | **Language** | Python 3.12 | Modern runtime, native typing, robust SDKs (`boto3`, `requests`). |
 | **Authentication** | OAuth 2.0 Auth Code + Refresh Token | Complies with 2026 Spotify Development Mode restrictions for user-scoped playlist access. |
 | **Orchestration** | Apache Airflow 3.x | Task SDK (`airflow.sdk`) authoring, service-oriented execution, and Deadline Alerts. |
-| **Extraction** | AWS Lambda | Ephemeral serverless execution (< 30s); token refresh and paginated `/items` ingestion. |
+| **Extraction** | AWS Lambda | Serverless extractor runtime implemented; real cloud duration and cost remain unmeasured until deployment. |
 | **Data Lake** | Amazon S3 | Tiered storage: raw immutable JSON in Bronze, columnar Snappy-compressed Parquet in Silver. |
 | **Lake Processing** | AWS Glue 5.1 / PySpark | Managed Spark 3.5.6 / Python 3.11 for unnesting semi-structured items and schema enforcement. |
 | **Ingestion** | Snowflake Snowpipe | Serverless, continuous micro-batch loading from S3 into Landing tables with file audit metadata. |
 | **Data Warehouse** | Snowflake | Columnar analytical warehouse with `X-Small` warehouse and 60-second auto-suspend. |
 | **Transformation** | dbt Core | SQL dimensional modeling, surrogate key hashing, incremental `MERGE`, and data testing. |
 | **Infrastructure as Code** | Terraform | Reproducible, version-controlled cloud infrastructure across AWS and Snowflake. |
-| **CI/CD** | GitHub Actions | Automated linting (`ruff`), formatting verification, and unit testing (`pytest`) on every PR. |
+| **CI/CD** | GitHub Actions | Python lint/test, Glue-parity Spark contracts, Snowflake SQL contracts, and dbt parse/manifest validation on PRs and `main`. |
 | **Business Intelligence** | Power BI | Star schema analytical reporting, interactive churn dashboards, and tenure metrics. |
 
 ---
@@ -130,6 +138,7 @@ The platform's engineering design is formalized through **Architecture Decision 
 - **[ADR-0005: Separate Spark and dbt Responsibilities](docs/adr/0005-separate-spark-and-dbt-responsibilities.md)**: Spark handles semi-structured array explosion; dbt handles modular SQL dimensional modeling.
 - **[ADR-0006: Historical Playlist Snapshots](docs/adr/0006-historical-playlist-snapshots.md)**: Pinned to canonical daily grain `(playlist_id + snapshot_date + track_position)` with `spotify_snapshot_id` lineage.
 - **[ADR-0007: Spotify Authorization Code & Refresh Token](docs/adr/0007-spotify-authorization-code-and-refresh-token.md)**: Replaces Client Credentials with two-phase Auth Code + stored refresh token for scheduled ingestion.
+- **[ADR-0008: Synthetic Analytics and Source Use Boundary](docs/adr/0008-synthetic-analytics-and-source-use-boundary.md)**: Keeps portfolio analytics fully synthetic unless permitted live-source use is established separately.
 
 ---
 
@@ -217,19 +226,21 @@ Detailed schema definitions, canonical grain evaluations, and data dictionaries 
 
 ## 7. Cost Governance ($20/Month Portfolio Budget Target)
 
-To ensure this portfolio project can be run and demonstrated economically, the architecture operates under a strict budget ceiling:
+The **USD 20/month** figure is an operational planning target, not a guaranteed
+provider-side spending cap. Current repository controls are offline contracts; live
+billing behavior remains to be verified during the cloud phase.
 
 | Metric | Budget Target | Governance Type | Notes |
 | :--- | :--- | :--- | :--- |
-| **Monthly Ceiling** | **≤ $20.00 USD / month** | **Operational Target & Alert Threshold** | Monitored via AWS Budgets and Snowflake Resource Monitors. |
-| **Idle Cost** | **$0.00 - $2.00 / month** | Estimated Range | Zero always-on EC2 instances, EMR clusters, or NAT Gateways. |
-| **Single Run Cost** | **< $0.25 USD / run** | Estimated Execution Cost | Ephemeral Lambda (< 30s), Glue 5.1 job (~2 min), Snowflake `X-Small` warehouse. |
+| **Monthly Target** | **≤ $20.00 USD / month** | Planning target | AWS Budgets are planned for M8; Snowflake resource-monitor DDL is implemented but not yet deployed. |
+| **Idle Cost** | Not yet measured | Cloud validation pending | Architecture avoids always-on compute by design. |
+| **Single Run Cost** | Not yet measured | Cloud validation pending | Must be measured after Lambda, Glue, Snowpipe, and dbt are exercised in the target accounts. |
 
 Key cost control mechanisms:
-- **Snowflake**: Virtual warehouse configured as `X-Small` with `AUTO_SUSPEND = 60` seconds and `AUTO_RESUME = TRUE`.
-- **Airflow**: Runs locally in Docker Compose during development, eliminating AWS MWAA fees (~$350/month base).
-- **Log Retention**: CloudWatch logs expire after 7 days.
-- **Teardown**: All cloud resources are managed via Terraform and can be destroyed instantly (`terraform destroy`).
+- **Snowflake**: DDL pins an `X-Small` warehouse with `AUTO_SUSPEND = 60` and a bounded development resource monitor; live deployment remains pending.
+- **Airflow**: Target design keeps Airflow local rather than provisioning MWAA.
+- **Log Retention**: Seven-day CloudWatch retention is a target for the Terraform phase, not a deployed control today.
+- **Teardown**: Terraform-based teardown is planned in M8 and must be verified against actual provisioned resources and billing state.
 
 Full budget breakdown available in [`docs/COST_STRATEGY.md`](docs/COST_STRATEGY.md).
 
@@ -253,20 +264,19 @@ Full budget breakdown available in [`docs/COST_STRATEGY.md`](docs/COST_STRATEGY.
 │   ├── OBSERVABILITY.md      # Structured telemetry schema (pipeline_run_id & snapshot_id)
 │   ├── RUNBOOK.md            # Incident triage playbooks and backfill procedures
 │   ├── REFERENCES.md         # Official 2026 API, Glue 5.1, and Airflow 3 citations
-│   └── adr/                  # Architectural Decision Records (ADR 0001 - 0007)
+│   └── adr/                  # Architectural Decision Records (ADR 0001 - 0008)
 │
 ├── src/
 │   └── spotify_data_platform/# Core Python package
 │
-├── tests/
-│   └── unit/                 # Unit test suite (pytest)
+├── tests/                    # Unit/integration, Spark, Snowflake-contract, and dbt-contract suites
 │
 ├── airflow/                  # Airflow 3.x DAGs, Docker Compose, and Task SDK
 ├── lambda/                   # Serverless Spotify API extractor handler
 ├── glue/                     # AWS Glue 5.1 PySpark scripts and explicit schemas
 ├── dbt/                      # dbt Core project (staging, core, marts, tests)
 ├── snowflake/                # Snowflake DDL, Snowpipe, and RBAC manifests
-├── infra/terraform/          # Infrastructure as Code modules (S3, IAM, Lambda, Glue)
+├── infra/terraform/          # Terraform target design; implementation begins in M8
 ├── powerbi/                  # Semantic models, DAX measures, and dashboard templates
 ├── scripts/                  # Developer utilities and mock data generators
 │
@@ -290,7 +300,8 @@ Full budget breakdown available in [`docs/COST_STRATEGY.md`](docs/COST_STRATEGY.
 ### Prerequisites
 - Python 3.12+ (managed via `pyenv` or `asdf`)
 - Git & GitHub CLI (`gh`)
-- Docker & Docker Compose (for local Airflow 3.x)
+- Docker & Docker Compose (needed later for M6 Airflow; not required by the current offline suite)
+- Python 3.11 + Java 17 for the Glue 5.1 parity test environment (`make spark-test`)
 
 ### Quick Start
 1. **Clone the repository**:
@@ -304,10 +315,10 @@ Full budget breakdown available in [`docs/COST_STRATEGY.md`](docs/COST_STRATEGY.
    make setup
    ```
 
-3. **Configure local environment variables**:
+3. **Optional integration configuration** (not needed for offline tests):
    ```bash
    cp .env.example .env
-   # Edit .env with your local non-production placeholders
+   # The application reads process environment; do not commit real credentials.
    ```
 
 4. **Run static analysis and tests**:
@@ -330,10 +341,10 @@ Full budget breakdown available in [`docs/COST_STRATEGY.md`](docs/COST_STRATEGY.
 
 - [x] **Milestone M0 — Project Foundation & Architecture Blueprint** (Completed & Revised in v0.1.1)
 - [x] **Milestone M1 — Local Spotify Ingestion** (Auth Code client, pagination, fixtures/parser tests, run metadata, local Bronze persistence)
-- [ ] **Milestone M2 — AWS Lambda & Bronze Data Lake** (Serverless extractor, S3 Bronze, Secrets Manager)
-- [ ] **Milestone M3 — Glue / PySpark & Silver Layer** (Glue 5.1, StructType schemas, array explosion, Parquet)
-- [ ] **Milestone M4 — Snowflake & Snowpipe** (Storage integration, Snowpipe auto-ingest, Landing tables)
-- [ ] **Milestone M5 — dbt Analytics Engineering** (Staging views, Kimball star schema, incremental merge facts)
+- [x] **Milestone M2 — AWS Lambda & Bronze Data Lake** (runtime/contracts complete; deployment awaits cloud infrastructure)
+- [x] **Milestone M3 — Glue / PySpark & Silver Layer** (offline complete on Glue 5.1 parity runtime)
+- [ ] **Milestone M4 — Snowflake & Snowpipe** (DDL/contracts complete; real IAM, S3/SQS, Snowpipe delivery, and live validation pending in #15/#16)
+- [ ] **Milestone M5 — dbt Analytics Engineering** (models/tests complete offline; live `dbt build`, MERGE, and data assertions pending in #19-#22)
 - [ ] **Milestone M6 — Airflow Orchestration** (Airflow 3.x Task SDK, Deadline Alerts, external operators)
 - [ ] **Milestone M7 — Data Quality & Observability** (Cross-tier gates, telemetry manifests, incident playbooks)
 - [ ] **Milestone M8 — Terraform & CI/CD Hardening** (Terraform modules, CI security, AWS Budgets)

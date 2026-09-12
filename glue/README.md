@@ -49,10 +49,11 @@ The canonical output contract is deliberately identical for local development an
 silver/<dataset>/ingestion_date=YYYY-MM-DD/run_id=<uuid>/playlist_id=<id>/
 ```
 
-Supported datasets are `artists`, `albums`, `tracks`, `track_artists`, and
-`playlist_snapshots`. The `ingestion_date` column is also retained inside each Parquet
-file because the Snowflake Landing contract exposes it as a normal column as well as an
-S3 partition value.
+Supported datasets are `artists`, `albums`, `tracks`, `track_artists`,
+`playlist_snapshots`, and `playlist_observations`. The observation dataset preserves one
+row per physical playlist run, including valid empty-playlist observations. The
+`ingestion_date` column is also retained inside each Parquet file because the Snowflake
+Landing contract exposes it as a normal column as well as an S3 partition value.
 
 ---
 

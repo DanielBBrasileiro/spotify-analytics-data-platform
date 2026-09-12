@@ -9,7 +9,9 @@ This document outlines the security architecture, credential management principl
 This repository adheres to a strict credential exclusion policy:
 - No client IDs, client secrets, refresh tokens, access keys, private keys, or passwords may ever be committed to version control.
 - The `.gitignore` and `.geminiignore` files explicitly exclude `.env`, `*.pem`, `*.key`, and any files in `credentials/` or `secrets/`.
-- Automated pre-commit scans and GitHub secret scanning detect accidental credential inclusions prior to merging.
+- No automated pre-commit secret scanner is claimed by the current repository. Ignore rules,
+  code review, and provider-side repository security features should be treated as defense in
+  depth rather than proof that a secret cannot be committed.
 - Only non-sensitive templates with explicit placeholders (such as `.env.example`) are permitted in version control.
 
 ---

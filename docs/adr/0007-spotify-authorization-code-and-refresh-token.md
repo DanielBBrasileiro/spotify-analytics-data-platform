@@ -11,11 +11,11 @@ Initial pipeline designs assumed the Spotify Web API could be accessed using the
 
 ## Decision
 We decide to adopt a **two-phase authentication architecture**:
-1. **Initial Interactive Consent (One-Time Setup)**: A developer/operator runs an initial interactive setup utility executing the **OAuth 2.0 Authorization Code Flow** to authenticate the user and obtain an initial `access_token` and long-lived `refresh_token` with scopes:
+1. **Interactive Consent and Reauthorization**: A developer/operator completes the **OAuth 2.0 Authorization Code Flow** externally to obtain an initial `access_token` and `refresh_token`, repeating authorization when the source requires it, with scopes:
    - `playlist-read-private`
    - `playlist-read-collaborative`
 2. **Secure Token Storage**: The resulting `refresh_token`, along with `client_id` and `client_secret`, is securely persisted in **AWS Secrets Manager** (`spotify/api/credentials`) for cloud execution, or in a local non-committed `.env` file for local development.
-3. **Automated Runtime Refresh**: During scheduled pipeline executions, the extractor (AWS Lambda or local script) retrieves the `refresh_token` from Secrets Manager, exchanges it with Spotify's token endpoint (`https://accounts.spotify.com/api/token`) using `grant_type=refresh_token`, and acquires a short-lived `access_token` (valid for 1 hour) to execute playlist `/items` requests non-interactively.
+3. **Automated Runtime Refresh**: Between required operator reauthorizations, scheduled executions retrieve the `refresh_token` from Secrets Manager, exchange it with Spotify's token endpoint (`https://accounts.spotify.com/api/token`) using `grant_type=refresh_token`, and use the returned short-lived `access_token` for playlist `/items` requests. Runtime code follows the returned token lifetime rather than assuming a permanent credential.
 
 ## Alternatives Considered
 - **Client Credentials Flow**:
@@ -31,16 +31,16 @@ We decide to adopt a **two-phase authentication architecture**:
 ## Consequences
 
 ### Positive Consequences
-- **Full Playlist Access**: Successfully accesses user-owned, followed, and collaborative playlists under authorized scopes.
-- **Non-Interactive Scheduling**: Lambda and Airflow execute on schedule using automated token refresh without requiring manual user intervention.
+- **Scoped Playlist Access**: Uses authorized user scopes rather than claiming unrestricted playlist access.
+- **Non-Interactive Scheduled Refresh**: Scheduled runs can refresh access tokens without manual intervention between required operator reauthorizations.
 - **Least Privilege & Security**: The long-lived secret stored in Secrets Manager is the refresh token; the operational access token is transient, cached in memory, and expires automatically.
 
 ### Negative Consequences
-- **One-Time Bootstrap Step**: Requires an initial interactive authorization step to generate the initial refresh token prior to automated execution.
+- **Operator Authorization Boundary**: Requires interactive authorization initially and again whenever the refresh-token lifecycle or revocation state requires it.
 - **Token Invalidation Risk**: If the user revokes application access in their Spotify account, the refresh token becomes invalid and requires manual re-authorization.
 
 ## Risks
-- Refresh token revocation or expiration if unused for extended periods. Mitigated by error detection in Lambda emitting a dedicated alert when token refresh fails with `invalid_grant`.
+- Refresh-token revocation or expiration requires operator reauthorization. The implemented runtime clears cached credential/auth state on `invalid_grant`; dedicated operator alerting remains later orchestration/observability work.
 
 ## Review Conditions
 Review if Spotify introduces API key or service-account capabilities for backend data access that eliminate user-consent requirements.
