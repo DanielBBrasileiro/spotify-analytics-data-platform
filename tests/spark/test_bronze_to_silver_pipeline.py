@@ -5,6 +5,8 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 from uuid import UUID
 
+import pytest
+
 from glue.jobs.bronze_to_silver_curation import (
     build_silver_datasets,
     read_bronze_snapshot,
@@ -93,3 +95,16 @@ def test_future_unknown_bronze_fields_do_not_break_explicit_schema(spark, tmp_pa
     frame = read_bronze_snapshot(spark, path)
     assert frame.count() == 1
     assert "future_source_field" not in frame.columns
+
+
+def test_curation_rejects_multiple_bronze_objects_for_one_lineage(spark, tmp_path):
+    bronze_dir = tmp_path / "bronze"
+    bronze_dir.mkdir()
+    _write_bronze(bronze_dir / "run-a.json", bronze_payload())
+    second = bronze_payload()
+    second["spotify_snapshot_id"] = "synthetic-snapshot-v2"
+    second["playlist"]["snapshot_id"] = "synthetic-snapshot-v2"
+    _write_bronze(bronze_dir / "run-b.json", second)
+
+    with pytest.raises(ValueError, match="exactly one Bronze snapshot object"):
+        read_bronze_snapshot(spark, bronze_dir)
