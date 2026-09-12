@@ -77,3 +77,26 @@ def extract_tracks(frame: DataFrame, *, ingestion_date: date | str) -> DataFrame
         )
     )
     return tracks.dropDuplicates(["track_id"])
+
+
+def extract_track_artists(frame: DataFrame, *, ingestion_date: date | str) -> DataFrame:
+    """Explode credited artists while preserving source billing order."""
+    bridge = (
+        valid_track_items(frame)
+        .select(
+            F.col("entry.item.id").alias("track_id"),
+            F.posexplode_outer("entry.item.artists").alias("artist_order", "artist"),
+        )
+        .filter(
+            F.col("artist").isNotNull()
+            & F.col("artist.id").isNotNull()
+            & (F.trim(F.col("artist.id")) != F.lit(""))
+        )
+        .select(
+            "track_id",
+            F.col("artist.id").alias("artist_id"),
+            F.col("artist_order").cast("int").alias("artist_order"),
+            ingestion_date_column(ingestion_date).alias("ingestion_date"),
+        )
+    )
+    return bridge.dropDuplicates(["track_id", "artist_id", "artist_order"])
