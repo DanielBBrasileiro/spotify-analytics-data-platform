@@ -72,3 +72,35 @@ models:
                 field: artist_pk
       - name: artist_order
         data_tests: [not_null]
+
+  - name: fact_playlist_snapshot
+    description: >-
+      Incremental daily playlist-slot fact. Canonical natural grain is playlist_id +
+      snapshot_date + track_position; physical timestamps/run IDs remain lineage only.
+    columns:
+      - name: snapshot_pk
+        data_tests: [not_null, unique]
+      - name: playlist_pk
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_playlist')
+                field: playlist_pk
+      - name: track_pk
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_track')
+                field: track_pk
+      - name: snapshot_date
+        data_tests: [not_null]
+      - name: track_position
+        data_tests: [not_null]
+      - name: spotify_snapshot_id
+        data_tests: [not_null]
+      - name: snapshot_timestamp
+        data_tests: [not_null]
+      - name: pipeline_run_id
+        data_tests: [not_null]
