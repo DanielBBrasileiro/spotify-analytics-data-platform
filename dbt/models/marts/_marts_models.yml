@@ -1,0 +1,16 @@
+version: 2
+
+models:
+  - name: mart_artist_presence
+    description: Daily artist representation, billing role, playlist reach, and best position.
+  - name: mart_playlist_trends
+    description: >-
+      Daily playlist composition and turnover. Turnover is only calculated when a true
+      prior calendar-day snapshot exists, preventing gaps from fabricating churn.
+  - name: mart_track_lifecycle
+    description: Daily cumulative observed tenure, best/current position, and rank movement.
+  - name: mart_playlist_changes
+    description: >-
+      Daily NEW/RETAINED/EXITED classification. Retention and exits require an actual
+      immediately preceding calendar-day snapshot; gaps restart continuity.
+
