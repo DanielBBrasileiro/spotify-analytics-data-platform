@@ -4,6 +4,7 @@ from datetime import UTC, date, datetime
 from uuid import UUID
 
 import pytest
+from pyspark.sql import functions as F
 
 from glue.transforms.snapshots import SnapshotLineage, extract_playlist_snapshots
 from tests.spark.helpers import bronze_frame, load_fixture
@@ -49,7 +50,13 @@ def test_extract_playlist_snapshots_preserves_source_position_and_lineage(spark)
     assert row.track_position == 0
     assert row.added_at is None
     assert row.snapshot_date.isoformat() == "2026-09-11"
-    assert row.snapshot_timestamp == datetime(2026, 9, 12, 2, 30, 45)
+    epoch_seconds = (
+        extract_playlist_snapshots(bronze_frame(spark), lineage=lineage())
+        .select(F.unix_timestamp("snapshot_timestamp").alias("epoch_seconds"))
+        .first()
+    )
+    assert epoch_seconds is not None
+    assert epoch_seconds.epoch_seconds == 1789180245
     assert row.pipeline_run_id == str(RUN_ID)
     assert row.ingestion_date.isoformat() == "2026-09-12"
 

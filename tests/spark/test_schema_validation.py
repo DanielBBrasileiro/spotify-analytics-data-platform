@@ -63,10 +63,11 @@ def test_require_non_null_values_rejects_missing_columns(spark):
 
 
 def test_require_no_corrupt_records_accepts_clean_and_rejects_corrupt(spark):
-    clean = spark.createDataFrame([(None,)], ["_corrupt_record"])
+    corrupt_schema = StructType([StructField("_corrupt_record", StringType(), True)])
+    clean = spark.createDataFrame([(None,)], corrupt_schema)
     require_no_corrupt_records(clean)
 
-    corrupt = spark.createDataFrame([("raw-sensitive-json",)], ["_corrupt_record"])
+    corrupt = spark.createDataFrame([("raw-sensitive-json",)], corrupt_schema)
     with pytest.raises(SchemaContractError) as error:
         require_no_corrupt_records(corrupt)
     assert "raw-sensitive-json" not in str(error.value)

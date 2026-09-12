@@ -3,6 +3,10 @@
 import copy
 from datetime import date
 
+import pytest
+
+from glue.schemas.validation import SchemaContractError
+from glue.storage.parquet import write_silver_dataset
 from glue.transforms.entities import extract_tracks
 from tests.spark.helpers import bronze_frame, load_fixture
 
@@ -29,9 +33,15 @@ def test_extract_tracks_deduplicates_provider_track_id(spark):
     assert len(rows) == 1
 
 
-def test_extract_tracks_rejects_track_missing_required_silver_value(spark):
+def test_missing_required_track_value_reaches_contract_and_fails_writer(spark, tmp_path):
     item = copy.deepcopy(load_fixture("sample_playlist_items_single_page.json")["items"][0])
     item["item"]["duration_ms"] = None
-    assert (
-        extract_tracks(bronze_frame(spark, items=[item]), ingestion_date="2026-09-12").count() == 0
-    )
+    frame = extract_tracks(bronze_frame(spark, items=[item]), ingestion_date="2026-09-12")
+    assert frame.count() == 1
+    with pytest.raises(SchemaContractError, match="nulls in required fields"):
+        write_silver_dataset(
+            frame,
+            root=tmp_path,
+            dataset="tracks",
+            ingestion_date="2026-09-12",
+        )

@@ -40,7 +40,9 @@ def test_write_silver_dataset_creates_hive_path_retains_date_and_uses_snappy(spa
     assert _first_column_codec(spark, files[0]) == "SNAPPY"
     restored = spark.read.parquet(destination)
     assert "ingestion_date" in restored.columns
-    assert restored.one().ingestion_date.isoformat() == "2026-09-12"
+    restored_row = restored.first()
+    assert restored_row is not None
+    assert restored_row.ingestion_date.isoformat() == "2026-09-12"
 
 
 def test_partition_write_is_overwrite_scoped_to_the_requested_day(spark, tmp_path):

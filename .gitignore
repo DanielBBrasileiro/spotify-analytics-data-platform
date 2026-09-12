@@ -31,6 +31,7 @@ MANIFEST
 .env.*
 !.env.example
 .venv/
+.venv-spark/
 venv/
 ENV/
 env/

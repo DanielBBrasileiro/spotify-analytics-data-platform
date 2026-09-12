@@ -12,6 +12,8 @@ from pyspark.sql import functions as F
 from .common import ingestion_date_column, valid_track_items
 from .dedup import deterministic_dedupe
 
+SNAPSHOT_NATURAL_KEY = ("playlist_id", "snapshot_date", "track_position")
+
 
 @dataclass(frozen=True)
 class SnapshotLineage:
@@ -36,14 +38,7 @@ class SnapshotLineage:
 
 def extract_playlist_snapshots(frame: DataFrame, *, lineage: SnapshotLineage) -> DataFrame:
     """Build one valid provider-backed track slot observation per source array position."""
-    rows = valid_track_items(frame).filter(
-        F.col("playlist_id").isNotNull()
-        & (F.trim(F.col("playlist_id")) != F.lit(""))
-        & F.col("spotify_snapshot_id").isNotNull()
-        & (F.trim(F.col("spotify_snapshot_id")) != F.lit(""))
-        & F.col("playlist.name").isNotNull()
-        & (F.trim(F.col("playlist.name")) != F.lit(""))
-    )
+    rows = valid_track_items(frame)
     normalized = rows.select(
         "playlist_id",
         "spotify_snapshot_id",
@@ -65,7 +60,7 @@ def deduplicate_playlist_snapshots(frame: DataFrame) -> DataFrame:
     """Resolve retry/backfill duplicates at the canonical daily playlist-slot grain."""
     return deterministic_dedupe(
         frame,
-        keys=("playlist_id", "snapshot_date", "track_position"),
+        keys=SNAPSHOT_NATURAL_KEY,
         ordering=(
             F.col("snapshot_timestamp").desc_nulls_last(),
             F.col("pipeline_run_id").desc_nulls_last(),

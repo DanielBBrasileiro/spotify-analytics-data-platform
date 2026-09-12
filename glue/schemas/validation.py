@@ -49,8 +49,16 @@ def require_no_corrupt_records(frame: DataFrame, *, column: str = "_corrupt_reco
     """Reject permissive JSON parse failures without emitting raw corrupt payloads."""
     if column not in frame.columns:
         raise SchemaContractError("Bronze corrupt-record column is missing.")
-    if frame.filter(F.col(column).isNotNull()).limit(1).count():
-        raise SchemaContractError("Bronze JSON contains corrupt records.")
+    # Spark prohibits a file-source query that references only its internal corrupt
+    # record column. Materializing the parsed frame first is the documented escape
+    # hatch and keeps raw corrupt content out of the raised error.
+    cached = frame.cache()
+    try:
+        cached.count()
+        if cached.filter(F.col(column).isNotNull()).limit(1).count():
+            raise SchemaContractError("Bronze JSON contains corrupt records.")
+    finally:
+        cached.unpersist()
 
 
 def required_field_names(schema: StructType) -> tuple[str, ...]:

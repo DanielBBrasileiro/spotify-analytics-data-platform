@@ -36,7 +36,8 @@ def test_bronze_fixture_parses_with_explicit_schema_without_inference(spark, tmp
         .json(str(path))
     )
 
-    row = frame.one()
+    row = frame.first()
+    assert row is not None
     assert row.playlist_id == "6666666666666666666666"
     assert row.spotify_snapshot_id == "synthetic-snapshot-v1"
     assert row.playlist.name == "Synthetic Playlist"

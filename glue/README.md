@@ -59,4 +59,32 @@ S3 partition value.
 ## Local Development vs Cloud Execution
 
 - Unit tests and schema validations are executed locally using pytest and a local PySpark 3.5.6 session.
-- Cloud Glue jobs will be triggered on-demand by Airflow or during integration tests using minimal Data Processing Units (e.g., 2 DPUs, Glue 5.1).
+- The repository's primary Python package remains on Python 3.12+, while the `glue/` test
+  environment intentionally mirrors AWS Glue 5.1 with **Python 3.11 + Java 17 +
+  PySpark 3.5.6**. PySpark is therefore not a normal application dependency.
+- Create the isolated local environment with a Python 3.11 interpreter, then install:
+
+  ```bash
+  python3.11 -m venv .venv-spark
+  .venv-spark/bin/pip install -r glue/requirements-dev.txt
+  ```
+
+  When using pyenv, an equivalent explicit command is:
+
+  ```bash
+  PYENV_VERSION=3.11.9 python -m venv .venv-spark
+  ```
+
+- Point `JAVA_HOME` to a Java 17 installation and run `make spark-test`. On an Apple
+  Silicon Homebrew setup, one valid example is:
+
+  ```bash
+  export JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home
+  make spark-test
+  ```
+
+- The default Python 3.12 CI suite keeps its five-second budget and does not start a JVM.
+  A separate CI job mirrors Glue 5.1 and runs only `tests/spark` with external network
+  access blocked while allowing Py4J loopback sockets.
+- Cloud Glue execution remains intentionally deferred. No AWS API call or Glue DPU is
+  required to validate M3 locally.
