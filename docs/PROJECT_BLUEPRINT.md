@@ -269,7 +269,9 @@ s3://<platform-bucket>/
 
 - Implemented on **AWS Glue 5.1** running Apache Spark 3.5.6 and Python 3.11.
 - Ingests raw Bronze JSON using explicit `StructType` schemas.
-- Validates item structure: checks `item.track` (or `item.episode`), extracting supported music tracks and quarantining non-track items.
+- Validates the 2026 playlist-item shape at `entry.item`, extracting direct
+  `type = 'track'` items with provider-backed track IDs and quarantining episodes,
+  unavailable/null items, unsupported types, and local tracks without provider IDs.
 - Explodes nested artist arrays to produce normalized `tracks` and `track_artists` datasets.
 - Coalesces output partitions to avoid tiny-file fragmentation.
 

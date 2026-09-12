@@ -36,7 +36,13 @@ class CurationResult:
 
 
 def read_bronze_snapshot(spark: SparkSession, path: str | Path) -> DataFrame:
-    """Read immutable Bronze JSON with the explicit schema and corruption capture."""
+    """Read exactly one immutable Bronze envelope with the explicit schema.
+
+    One curation invocation carries one physical ``SnapshotLineage``. Accepting a
+    directory or glob that resolves to multiple Bronze objects would therefore attach
+    the same run timestamp/run id to unrelated source snapshots. Reject that shape
+    rather than silently manufacturing lineage.
+    """
     frame = (
         spark.read.option("multiLine", True)
         .option("mode", "PERMISSIVE")
@@ -45,6 +51,8 @@ def read_bronze_snapshot(spark: SparkSession, path: str | Path) -> DataFrame:
         .json(str(path))
     )
     require_no_corrupt_records(frame)
+    if frame.limit(2).count() != 1:
+        raise ValueError("Curation requires exactly one Bronze snapshot object per invocation.")
     return frame
 
 
@@ -73,7 +81,7 @@ def run_bronze_to_silver(
     lineage: SnapshotLineage,
     output_partitions: int = 1,
 ) -> CurationResult:
-    """Read one or more Bronze snapshots and publish all canonical Silver datasets."""
+    """Read one Bronze snapshot and publish all canonical Silver datasets."""
     bronze = read_bronze_snapshot(spark, bronze_path)
     datasets, rejected = build_silver_datasets(bronze, lineage=lineage)
     destinations = {
