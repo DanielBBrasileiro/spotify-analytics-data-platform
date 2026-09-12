@@ -83,10 +83,15 @@ This document establishes the financial and operational guardrails for the Spoti
 - Synthetic fixtures are the default source material.
 
 ### Mode 2: Demonstration / Portfolio Review Mode (Target)
-- Cloud infrastructure is provisioned only after M8 Terraform and budget guardrails exist.
+- Before M8, M4/M5 may use a minimal, manually controlled AWS/Snowflake vertical slice solely
+  for the live validation gates that cannot be proven offline. Provision only the resources
+  needed for the test, apply the available account/billing guardrails first, and tear them down
+  or suspend them immediately after evidence is captured.
 - Portfolio analytics uses fully synthetic histories per ADR-0008.
 - AWS Lambda/S3/Glue and Snowflake/Snowpipe/dbt are exercised as a vertical slice with measured cost and teardown evidence.
 - Power BI consumes validated Snowflake marts only after the warehouse build succeeds.
+- M8 later converts the proven resource shape into Terraform and adds reproducible AWS Budget
+  automation; Terraform is not a prerequisite for the first bounded integration validation.
 
 ### Mode 3: Extended Production-Like Mode (Future Reference)
 - Not implemented and not required for the portfolio vertical slice.
@@ -111,7 +116,9 @@ This document establishes the financial and operational guardrails for the Spoti
 
 Before completing any live cloud demonstration or testing phase:
 
-- [ ] Run `terraform destroy` in `infra/terraform/` to decommission AWS resources (Lambda, Glue jobs, S3 buckets, log groups).
+- [ ] If the resources were created manually before M8, delete or disable every resource created
+  for the validation and record the identifiers checked. Once Terraform owns the environment,
+  run `terraform destroy` from the implemented stack instead.
 - [ ] Confirm in Snowflake Web UI that `COMPUTE_WH` is in `SUSPENDED` state.
 - [ ] Verify that no lingering Snowpipe or task is running queries in `SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY`.
 - [ ] Check AWS Billing Console -> Cost Explorer for any unexpected active services.
