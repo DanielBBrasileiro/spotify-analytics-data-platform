@@ -74,6 +74,7 @@ dbt/target/
 dbt/dbt_packages/
 dbt/logs/
 dbt_modules/
+tests/dbt_profile/.user.yml
 
 # Airflow
 airflow/logs/
@@ -89,4 +90,3 @@ secrets/
 *.pem
 *.key
 .venv-sql/
-.venv-dbt/

@@ -2,7 +2,7 @@ version: 2
 
 sources:
   - name: landing
-    description: Typed Snowpipe destinations mirroring the five M3 Silver Parquet datasets.
+    description: Typed Snowpipe destinations mirroring the six M3 Silver Parquet datasets.
     database: SPOTIFY_ANALYTICS
     schema: LANDING
     tables:
@@ -11,6 +11,7 @@ sources:
       - name: landing_tracks
       - name: landing_track_artists
       - name: landing_playlist_snapshots
+      - name: landing_playlist_observations
 
 models:
   - name: stg_spotify_artists
@@ -58,9 +59,9 @@ models:
 
   - name: stg_spotify_playlist_snapshots
     description: >-
-      Slots from one coherent winning physical run per playlist_id + snapshot_date. The
-      winning run is selected before slot-level deduplication, preventing hybrid snapshots
-      assembled from different retries. Physical timestamps and run IDs remain lineage only.
+      Track slots restricted to the authoritative winning physical observation for each
+      playlist_id + snapshot_date. This prevents hybrid snapshots assembled from different
+      retries and allows an empty winning observation to expose zero slots.
     data_tests:
       - dbt_utils.unique_combination_of_columns:
           arguments:
@@ -81,4 +82,34 @@ models:
       - name: snapshot_timestamp
         data_tests: [not_null]
       - name: pipeline_run_id
+        data_tests: [not_null]
+
+  - name: stg_spotify_playlist_observations
+    description: >-
+      Authoritative daily playlist observation spine. Exactly one winning physical run is
+      exposed per playlist/date even when that run contains zero valid track slots. A
+      non-empty run is eligible only after all expected track positions have landed, so an
+      independently arriving observation file cannot be mistaken for a transient empty run.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [playlist_id, snapshot_date]
+    columns:
+      - name: playlist_id
+        data_tests: [not_null]
+      - name: spotify_snapshot_id
+        data_tests: [not_null]
+      - name: playlist_name
+        data_tests: [not_null]
+      - name: snapshot_date
+        data_tests: [not_null]
+      - name: snapshot_timestamp
+        data_tests: [not_null]
+      - name: pipeline_run_id
+        data_tests: [not_null]
+      - name: source_item_count
+        data_tests: [not_null]
+      - name: valid_track_count
+        data_tests: [not_null]
+      - name: rejected_item_count
         data_tests: [not_null]

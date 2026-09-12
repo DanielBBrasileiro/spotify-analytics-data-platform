@@ -10,7 +10,7 @@ Per **ADR-0005**, dbt Core is responsible for in-warehouse analytical transforma
 
 ### Core Responsibilities:
 1. **Staging Layer (`models/staging/`)**:
-   - Clean column naming conventions (`stg_spotify_tracks`, `stg_spotify_artists`, `stg_spotify_albums`, `stg_spotify_track_artists`, `stg_spotify_playlist_snapshots`).
+   - Clean column naming conventions (`stg_spotify_tracks`, `stg_spotify_artists`, `stg_spotify_albums`, `stg_spotify_track_artists`, `stg_spotify_playlist_snapshots`, `stg_spotify_playlist_observations`).
    - Light casting, renaming, item validation, and deduplication assertions on raw Landing tables.
 2. **Core Dimensional Layer (`models/core/`)**:
    - Kimball-style dimensional models:
@@ -54,7 +54,8 @@ dbt/
 ├── requirements-dev.txt
 ├── macros/
 │   ├── generate_schema_name.sql
-│   └── snapshot_window.sql
+│   ├── snapshot_window.sql
+│   └── prune_snapshot_fact.sql
 ├── models/
 │   ├── staging/
 │   │   ├── _staging_models.yml
@@ -62,7 +63,8 @@ dbt/
 │   │   ├── stg_spotify_albums.sql
 │   │   ├── stg_spotify_tracks.sql
 │   │   ├── stg_spotify_track_artists.sql
-│   │   └── stg_spotify_playlist_snapshots.sql
+│   │   ├── stg_spotify_playlist_snapshots.sql
+│   │   └── stg_spotify_playlist_observations.sql
 │   ├── core/
 │   │   ├── _core_models.yml
 │   │   ├── dim_track.sql
@@ -84,7 +86,13 @@ dbt/
     ├── assert_bridge_artist_order.sql
     ├── assert_playlist_change_continuity.sql
     ├── assert_mart_numeric_bounds.sql
-    └── assert_retention_streaks_positive.sql
+    ├── assert_retention_streaks_positive.sql
+    ├── assert_observation_counts.sql
+    ├── assert_snapshot_observation_alignment.sql
+    ├── assert_playlist_trends_observation_coverage.sql
+    ├── assert_artist_playlist_share.sql
+    ├── assert_observation_slot_completeness.sql
+    └── assert_snapshot_track_dimension_readiness.sql
 ```
 
 ## Offline development contract
@@ -104,11 +112,27 @@ The incremental fact requires an explicit execution window at runtime: use
 older partitions remain re-runnable.
 
 Staging chooses one coherent winning physical `pipeline_run_id` for each playlist/date
-before exposing its slots. The fact then runs its normal `MERGE` and a scoped post-merge
+from `playlist_observations` before exposing its slots. An empty winning run therefore
+remains an explicit observed date with zero fact slots. The fact then runs its normal `MERGE` and a scoped post-merge
 cleanup removes obsolete positions that existed in an older retry but are absent from the
 winning run. The cleanup only acts on playlist/date observations actually present in the
 requested source window, so unrelated historical dates are untouched.
 
+Because observation and slot Parquet files load through independent Snowpipes, a non-empty
+observation is not eligible to become canonical until its `valid_track_count` matches the
+distinct landed slot positions for that same run/source version. The fact derives playlist
+and track surrogate keys directly from the canonical natural IDs, so transient dimension
+load lag cannot make slot rows disappear or trigger destructive pruning. A dedicated data
+test still fails a live build if any snapshot track is missing from the staged track
+dimension source. M6 must additionally treat complete Landing/Snowpipe readiness across all
+six datasets as a pre-dbt orchestration gate.
+
 Track-level marts collapse repeated legitimate playlist slots for the same track/date to
 the best (lowest numeric) observed position. The underlying fact keeps every slot at its
 canonical `playlist_id + snapshot_date + track_position` grain.
+
+Churn comparisons use the observation spine rather than fact dates, so a real empty day
+produces exits while a missing pipeline day does not. Turnover is a distinct-track
+membership ratio: `(new + exited) / (previous_distinct_tracks + current_distinct_tracks)`.
+Artist `playlist_share` uses all observed playlists on the date as its denominator,
+including playlists with zero valid track slots.

@@ -85,7 +85,7 @@ This backlog establishes the structured, phased implementation roadmap for the *
   - *Context*: Secure cross-account access between AWS S3 and Snowflake without static credentials.
   - *Objective*: Create Snowflake Storage Integration pointing to S3 Silver stage with IAM trust relationship.
 - **#16 [M4] Implement Snowpipe auto-ingest for Silver Parquet**
-  - *Status*: Five pipe definitions prepared; S3/SQS notification wiring and live delivery intentionally pending.
+  - *Status*: Six pipe definitions prepared, including playlist observations; S3/SQS notification wiring and live delivery intentionally pending.
   - *Context*: Automated loading into Landing tables upon file arrival in S3.
   - *Objective*: Create Snowpipe definitions with `AUTO_INGEST = TRUE` mapped to SQS event notifications, capturing file audit metadata.
 - **#17 [M4] Create Snowflake Landing tables and load validation queries**
@@ -102,9 +102,9 @@ This backlog establishes the structured, phased implementation roadmap for the *
   - *Context*: Centralizing analytical transformations requires a version-controlled dbt project.
   - *Objective*: Scaffold dbt project (`dbt_project.yml`, profiles template, directory structure, packages).
 - **#19 [M5] Build dbt staging models for Landing sources**
-  - *Status*: Five staging views implemented and parsed offline; live Snowflake compile/build pending.
+  - *Status*: Six staging views implemented and parsed offline, including authoritative playlist observations; live Snowflake compile/build pending.
   - *Context*: Raw Landing tables require light cleansing, naming conventions, and item validation.
-  - *Objective*: Create staging views `stg_spotify_artists`, `stg_spotify_albums`, `stg_spotify_tracks`, `stg_spotify_track_artists`, `stg_spotify_playlist_snapshots`.
+  - *Objective*: Create staging views `stg_spotify_artists`, `stg_spotify_albums`, `stg_spotify_tracks`, `stg_spotify_track_artists`, `stg_spotify_playlist_snapshots`, and `stg_spotify_playlist_observations`.
 - **#20 [M5] Build Kimball core dimensions and track-artist bridge**
   - *Status*: Dimensions/bridge implemented with deterministic keys and tests; live build pending.
   - *Context*: Star schema reporting requires clean dimensions and bridge relationships.
@@ -124,7 +124,7 @@ This backlog establishes the structured, phased implementation roadmap for the *
   - *Objective*: Create `docker-compose.yml`, custom Dockerfile for Apache Airflow 3.x with AWS and Snowflake providers.
 - **#24 [M6] Implement end-to-end daily orchestration DAG**
   - *Context*: Coordinating Lambda, Glue 5.1, Snowpipe, and dbt in a scheduled workflow.
-  - *Objective*: Build `spotify_daily_snapshot_dag` using the Airflow 3 Task SDK (`airflow.sdk`).
+  - *Objective*: Build `spotify_daily_snapshot_dag` using the Airflow 3 Task SDK (`airflow.sdk`), with a pre-dbt readiness gate that confirms all six expected Landing/Snowpipe dataset loads have settled for the run before warehouse transformations start.
 - **#25 [M6] Add external execution operators (Lambda, Glue, Snowflake, dbt)**
   - *Context*: Enforcing Airflow as orchestrator requires external operator integration.
   - *Objective*: Configure operators for Lambda invocation, Glue 5.1 execution, Snowflake landing checks, and dbt run.

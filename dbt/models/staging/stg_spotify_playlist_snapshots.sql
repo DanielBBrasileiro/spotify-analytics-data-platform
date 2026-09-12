@@ -26,43 +26,14 @@ with source as (
       and snapshot_date is not null
       and pipeline_run_id is not null
       and trim(pipeline_run_id) <> ''
-), run_candidates as (
-    select
-        playlist_id,
-        snapshot_date,
-        pipeline_run_id,
-        spotify_snapshot_id,
-        snapshot_timestamp,
-        max(_loaded_at) as run_loaded_at,
-        max(_file_name) as run_file_name
-    from source
-    group by
-        playlist_id,
-        snapshot_date,
-        pipeline_run_id,
-        spotify_snapshot_id,
-        snapshot_timestamp
-), winning_runs as (
-    select
-        playlist_id,
-        snapshot_date,
-        pipeline_run_id
-    from run_candidates
-    qualify row_number() over (
-        partition by playlist_id, snapshot_date
-        order by
-            snapshot_timestamp desc,
-            run_loaded_at desc,
-            pipeline_run_id desc,
-            run_file_name desc
-    ) = 1
 ), winning_source as (
     select s.*
     from source s
-    inner join winning_runs w
+    inner join {{ ref('stg_spotify_playlist_observations') }} w
         on s.playlist_id = w.playlist_id
        and s.snapshot_date = w.snapshot_date
        and s.pipeline_run_id = w.pipeline_run_id
+       and s.spotify_snapshot_id = w.spotify_snapshot_id
 )
 
 select

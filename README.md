@@ -11,7 +11,7 @@
 ---
 
 ### Project Status: M3 Complete — M4/M5 Contracts Prepared Offline
-> **Implemented and offline-validated:** M0-M3 plus the code-first portions of M4/M5. This includes Glue 5.1 parity on Spark 3.5.6/Python 3.11, explicit Bronze/Silver schemas, deterministic Parquet contracts, Snowflake topology/RBAC/Storage Integration/Snowpipe/Landing DDL, and a pinned dbt project with staging views, incremental Kimball dimensions/bridge/fact, four analytical marts, generic tests, and singular quality assertions. No real Snowflake object, AWS IAM trust, S3 notification, Snowpipe delivery, or live `dbt build` is claimed yet. Cloud execution remains deliberately deferred to preserve trial/promotional credits, and portfolio analytical datasets remain synthetic unless permitted usage is established separately.
+> **Implemented and offline-validated:** M0-M3 plus the code-first portions of M4/M5. This includes Glue 5.1 parity on Spark 3.5.6/Python 3.11, explicit Bronze/Silver schemas, collision-free run/playlist-scoped Parquet publications, an observation spine that preserves empty playlist days, Snowflake topology/RBAC/Storage Integration/Snowpipe/Landing DDL, and a pinned dbt project with staging views, incremental Kimball dimensions/bridge/fact, four analytical marts, generic tests, and singular quality assertions. No real Snowflake object, AWS IAM trust, S3 notification, Snowpipe delivery, or live `dbt build` is claimed yet. Cloud execution remains deliberately deferred to preserve trial/promotional credits, and portfolio analytical datasets remain synthetic unless permitted usage is established separately.
 
 ---
 

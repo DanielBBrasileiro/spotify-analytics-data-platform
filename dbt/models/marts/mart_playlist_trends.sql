@@ -1,8 +1,16 @@
-with playlist_metrics as (
+with observations as (
+    select
+        p.playlist_pk,
+        o.snapshot_date
+    from {{ ref('stg_spotify_playlist_observations') }} o
+    inner join {{ ref('dim_playlist') }} p
+        on o.playlist_id = p.playlist_id
+), slot_metrics as (
     select
         f.playlist_pk,
         f.snapshot_date,
         count(*) as total_tracks,
+        count(distinct f.track_pk) as distinct_track_count,
         avg(t.duration_ms) as avg_duration_ms,
         avg(iff(t.is_explicit, 100.0, 0.0)) as explicit_pct,
         avg(
@@ -18,18 +26,29 @@ with playlist_metrics as (
     left join {{ ref('dim_album') }} a
         on t.album_pk = a.album_pk
     group by f.playlist_pk, f.snapshot_date
-), playlist_dates as (
+), daily as (
     select
-        playlist_pk,
-        snapshot_date,
-        total_tracks,
+        o.playlist_pk,
+        o.snapshot_date,
+        coalesce(m.total_tracks, 0) as total_tracks,
+        coalesce(m.distinct_track_count, 0) as distinct_track_count,
+        m.avg_duration_ms,
+        m.explicit_pct,
+        m.avg_release_age_years
+    from observations o
+    left join slot_metrics m
+        on o.playlist_pk = m.playlist_pk
+       and o.snapshot_date = m.snapshot_date
+), sequenced as (
+    select
+        *,
         lag(snapshot_date) over (
             partition by playlist_pk order by snapshot_date
         ) as previous_snapshot_date,
-        lag(total_tracks) over (
+        lag(distinct_track_count) over (
             partition by playlist_pk order by snapshot_date
-        ) as previous_total_tracks
-    from playlist_metrics
+        ) as previous_distinct_track_count
+    from daily
 ), change_metrics as (
     select
         p.playlist_pk,
@@ -44,34 +63,32 @@ with playlist_metrics as (
 
 select
     p.playlist_id,
-    m.snapshot_date,
-    m.total_tracks,
-    m.avg_duration_ms,
-    m.explicit_pct,
-    m.avg_release_age_years,
+    d.snapshot_date,
+    d.total_tracks,
+    d.distinct_track_count,
+    d.avg_duration_ms,
+    d.explicit_pct,
+    d.avg_release_age_years,
     case
-        when d.previous_snapshot_date = dateadd(day, -1, m.snapshot_date)
+        when d.previous_snapshot_date = dateadd(day, -1, d.snapshot_date)
             then coalesce(c.observed_new_tracks, 0)
-        else 0
+        else null
     end as new_tracks,
     case
-        when d.previous_snapshot_date = dateadd(day, -1, m.snapshot_date)
+        when d.previous_snapshot_date = dateadd(day, -1, d.snapshot_date)
             then coalesce(c.observed_exited_tracks, 0)
-        else 0
+        else null
     end as exited_tracks,
     case
-        when d.previous_snapshot_date = dateadd(day, -1, m.snapshot_date)
-            then (
-                coalesce(c.observed_new_tracks, 0) + coalesce(c.observed_exited_tracks, 0)
-            ) / nullif(d.previous_total_tracks + m.total_tracks, 0)
-        else null
+        when d.previous_snapshot_date != dateadd(day, -1, d.snapshot_date) then null
+        when d.previous_distinct_track_count + d.distinct_track_count = 0 then 0.0
+        else (
+            1.0 * (coalesce(c.observed_new_tracks, 0) + coalesce(c.observed_exited_tracks, 0))
+        ) / (d.previous_distinct_track_count + d.distinct_track_count)
     end as turnover_rate
-from playlist_metrics m
-inner join playlist_dates d
-    on m.playlist_pk = d.playlist_pk
-   and m.snapshot_date = d.snapshot_date
+from sequenced d
 inner join {{ ref('dim_playlist') }} p
-    on m.playlist_pk = p.playlist_pk
+    on d.playlist_pk = p.playlist_pk
 left join change_metrics c
-    on m.playlist_pk = c.playlist_pk
-   and m.snapshot_date = c.snapshot_date
+    on d.playlist_pk = c.playlist_pk
+   and d.snapshot_date = c.snapshot_date

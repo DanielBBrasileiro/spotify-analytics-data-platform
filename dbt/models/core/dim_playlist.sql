@@ -11,7 +11,7 @@ with latest_playlist as (
     select
         playlist_id,
         playlist_name
-    from {{ ref('stg_spotify_playlist_snapshots') }}
+    from {{ ref('stg_spotify_playlist_observations') }}
     qualify row_number() over (
         partition by playlist_id
         order by snapshot_date desc, snapshot_timestamp desc, _loaded_at desc
@@ -23,4 +23,3 @@ select
     playlist_id,
     playlist_name
 from latest_playlist
-

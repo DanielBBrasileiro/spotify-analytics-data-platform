@@ -122,6 +122,7 @@ Staging models are implemented as views in dbt:
 - `stg_spotify_tracks`: Enforces non-null assertions and filters invalid non-positive durations.
 - `stg_spotify_track_artists`: Validates billing order indices and deduplicates track-artist pairs.
 - `stg_spotify_playlist_snapshots`: Validates item types, isolates valid track items, and exposes canonical snapshot attributes.
+- `stg_spotify_playlist_observations`: Chooses one authoritative physical run per playlist/date and preserves empty observed days.
 
 ---
 
@@ -169,7 +170,7 @@ erDiagram
     }
 
     bridge_track_artist {
-        string bridge_pk PK "Surrogate Hash (track_pk + artist_pk)"
+        string bridge_pk PK "Surrogate Hash (track_id + artist_id)"
         string track_pk FK
         string artist_pk FK
         int artist_order
@@ -211,15 +212,15 @@ Power BI connects directly to these curated analytical models.
 
 ### 1. `mart_artist_presence`
 - **Granularity**: `artist_id` + `snapshot_date`
-- **Metrics**: Total tracks across monitored playlists, distinct playlist count, primary vs. featured billing counts, top observed chart position.
+- **Metrics**: Total tracks across monitored playlists, distinct playlist count, share of all observed playlists (including empty playlists), primary vs. featured billing counts, top observed chart position.
 
 ### 2. `mart_playlist_trends`
 - **Granularity**: `playlist_id` + `snapshot_date`
-- **Metrics**: Total track count, average track duration, explicit track percentage, average release recency (years), new tracks entered, tracks exited, playlist turnover rate.
+- **Metrics**: Total slot count, distinct track count, average track duration, explicit track percentage, average release recency (years), new tracks entered, tracks exited, and distinct-membership turnover rate. Empty observed days remain present with zero counts.
 
 ### 3. `mart_track_lifecycle`
 - **Granularity**: `playlist_id` + `track_id` + `snapshot_date`
-- **Metrics**: Cumulative days on playlist (tenure), current position, best position achieved, positional change from prior day (`position_delta`).
+- **Metrics**: Cumulative observed snapshot days on playlist (not wall-clock elapsed tenure), current position, best position achieved, positional change from a directly preceding observed calendar day (`position_delta`).
 - **Repeated Track Slots**: If the same track legitimately occupies multiple playlist
   positions on one date, track-level marts use the best (lowest numeric) position while the
   fact table continues preserving every distinct position slot.

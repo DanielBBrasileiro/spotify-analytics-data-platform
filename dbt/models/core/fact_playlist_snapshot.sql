@@ -19,8 +19,8 @@ with source_snapshot as (
                 ['s.playlist_id', 's.snapshot_date', 's.track_position']
             )
         }} as snapshot_pk,
-        p.playlist_pk,
-        t.track_pk,
+        {{ dbt_utils.generate_surrogate_key(['s.playlist_id']) }} as playlist_pk,
+        {{ dbt_utils.generate_surrogate_key(['s.track_id']) }} as track_pk,
         s.snapshot_date,
         s.track_position,
         s.spotify_snapshot_id,
@@ -28,10 +28,6 @@ with source_snapshot as (
         s.added_at,
         s.pipeline_run_id
     from source_snapshot s
-    inner join {{ ref('dim_playlist') }} p
-        on s.playlist_id = p.playlist_id
-    inner join {{ ref('dim_track') }} t
-        on s.track_id = t.track_id
 )
 
 select * from resolved

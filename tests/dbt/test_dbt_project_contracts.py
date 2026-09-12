@@ -27,6 +27,7 @@ def test_manifest_contains_complete_m5_model_set_and_layer_materializations():
         "stg_spotify_tracks": "view",
         "stg_spotify_track_artists": "view",
         "stg_spotify_playlist_snapshots": "view",
+        "stg_spotify_playlist_observations": "view",
         "dim_artist": "incremental",
         "dim_album": "incremental",
         "dim_track": "incremental",
@@ -59,17 +60,29 @@ def test_fact_incremental_contract_preserves_canonical_grain_and_backfill_strate
     assert "snapshot_timestamp" not in surrogate
     assert "max(snapshot_date)" not in raw.lower()
     assert "snapshot_window_predicate" in raw
+    assert "generate_surrogate_key(['s.playlist_id'])" in raw
+    assert "generate_surrogate_key(['s.track_id'])" in raw
+    assert "ref('dim_playlist')" not in raw
+    assert "ref('dim_track')" not in raw
 
 
-def test_snapshot_staging_selects_one_winning_run_before_slot_deduplication():
+def test_snapshot_staging_uses_authoritative_observation_run_before_slot_deduplication():
     raw = _model(_manifest(), "stg_spotify_playlist_snapshots")["raw_code"].lower()
-    assert "run_candidates" in raw
-    assert "winning_runs" in raw
+    assert "ref('stg_spotify_playlist_observations')" in raw
+    assert "s.pipeline_run_id = w.pipeline_run_id" in raw
+    assert "s.spotify_snapshot_id = w.spotify_snapshot_id" in raw
+    assert "partition by playlist_id, snapshot_date, track_position" in raw
+
+
+def test_observation_staging_exposes_one_winning_run_per_playlist_date():
+    raw = _model(_manifest(), "stg_spotify_playlist_observations")["raw_code"].lower()
+    assert "landing_playlist_observations" in raw
+    assert "landing_playlist_snapshots" in raw
+    assert "count(distinct track_position)" in raw
+    assert "coalesce(c.landed_slot_count, 0) = s.valid_track_count" in raw
     assert "partition by playlist_id, snapshot_date" in raw
-    winning_section = raw.split("winning_runs as", 1)[1].split("winning_source as", 1)[0]
-    assert "pipeline_run_id" in winning_section
-    assert "snapshot_timestamp desc" in winning_section
-    assert "partition by playlist_id, snapshot_date, track_position" not in winning_section
+    assert "snapshot_timestamp desc" in raw
+    assert "source_item_count = valid_track_count + rejected_item_count" in raw
 
 
 def test_fact_cleanup_is_scoped_and_removes_only_slots_missing_from_winning_source():
@@ -79,7 +92,9 @@ def test_fact_cleanup_is_scoped_and_removes_only_slots_missing_from_winning_sour
     assert "exists (" in macro
     assert "not exists (" in macro
     assert "source_slot.track_position = target.track_position" in macro
+    assert "stg_spotify_playlist_observations" in macro
     assert "observed.snapshot_date = target.snapshot_date" in macro
+    assert "ref('dim_playlist')" not in macro
 
 
 def test_dbt_project_has_no_compile_time_warehouse_introspection_or_privileged_profile():
@@ -110,7 +125,7 @@ def test_pinned_packages_and_versions_are_reproducible():
     assert "version: 1.4.1" in lock
 
 
-def test_manifest_sources_are_exactly_the_five_landing_contracts():
+def test_manifest_sources_are_exactly_the_six_landing_contracts():
     sources = {
         node["name"]
         for node in _manifest()["sources"].values()
@@ -122,6 +137,7 @@ def test_manifest_sources_are_exactly_the_five_landing_contracts():
         "landing_tracks",
         "landing_track_artists",
         "landing_playlist_snapshots",
+        "landing_playlist_observations",
     }
 
 
@@ -134,10 +150,27 @@ def test_dim_playlist_does_not_invent_unavailable_source_attributes():
 
 def test_mart_change_model_requires_consecutive_dates_for_retention_and_exits():
     raw = _model(_manifest(), "mart_playlist_changes")["raw_code"].lower()
+    assert "ref('stg_spotify_playlist_observations')" in raw
     assert raw.count("dateadd(day, -1") >= 3
     assert "'retained'" in raw
     assert "'exited'" in raw
     assert "retention_group" in raw
+
+
+def test_playlist_trends_uses_observation_spine_and_distinct_membership_turnover():
+    raw = _model(_manifest(), "mart_playlist_trends")["raw_code"].lower()
+    assert "ref('stg_spotify_playlist_observations')" in raw
+    assert "count(distinct f.track_pk) as distinct_track_count" in raw
+    assert "previous_distinct_track_count + d.distinct_track_count" in raw
+    assert "then 0.0" in raw
+    assert "else null" in raw
+
+
+def test_artist_presence_has_observed_playlist_share_metric():
+    raw = _model(_manifest(), "mart_artist_presence")["raw_code"].lower()
+    assert "ref('stg_spotify_playlist_observations')" in raw
+    assert "observed_playlist_count" in raw
+    assert "as playlist_share" in raw
 
 
 def test_snapshot_window_macro_fails_closed_for_real_execution_without_max_watermark():
@@ -162,5 +195,11 @@ def test_singular_quality_suite_is_registered_in_manifest():
         "assert_playlist_change_continuity",
         "assert_mart_numeric_bounds",
         "assert_retention_streaks_positive",
+        "assert_observation_counts",
+        "assert_snapshot_observation_alignment",
+        "assert_playlist_trends_observation_coverage",
+        "assert_artist_playlist_share",
+        "assert_observation_slot_completeness",
+        "assert_snapshot_track_dimension_readiness",
     }
     assert expected <= test_names

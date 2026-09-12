@@ -8,14 +8,14 @@ with fact as (
     group by playlist_pk, track_pk, snapshot_date
 ), playlist_dates as (
     select
-        playlist_pk,
-        snapshot_date,
-        lag(snapshot_date) over (
-            partition by playlist_pk order by snapshot_date
+        p.playlist_pk,
+        o.snapshot_date,
+        lag(o.snapshot_date) over (
+            partition by p.playlist_pk order by o.snapshot_date
         ) as previous_snapshot_date
-    from (
-        select distinct playlist_pk, snapshot_date from fact
-    )
+    from {{ ref('stg_spotify_playlist_observations') }} o
+    inner join {{ ref('dim_playlist') }} p
+        on o.playlist_id = p.playlist_id
 ), track_history as (
     select
         f.*,
