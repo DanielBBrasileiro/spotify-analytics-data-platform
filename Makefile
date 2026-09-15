@@ -1,4 +1,4 @@
-.PHONY: help setup lint format format-check test spark-test check clean
+.PHONY: help setup lint format format-check test spark-test check clean airflow-up airflow-down airflow-test
 
 PYTHON ?= python3
 VENV ?= .venv
@@ -40,6 +40,17 @@ spark-test:
 		.venv-spark/bin/pytest tests/spark
 
 check: lint format-check test
+
+airflow-up:
+	mkdir -p airflow/logs airflow/artifacts airflow/secrets
+	docker compose -f airflow/docker-compose.yml up --build -d
+
+airflow-down:
+	docker compose -f airflow/docker-compose.yml down
+
+airflow-test:
+	AIRFLOW_HOME=$(CURDIR)/tmp/airflow-test AIRFLOW__CORE__LOAD_EXAMPLES=false \
+		.venv-airflow/bin/pytest tests/orchestration -q
 
 clean:
 	rm -rf build/ dist/ *.egg-info .eggs/

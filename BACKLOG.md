@@ -12,9 +12,9 @@ This backlog establishes the structured, phased implementation roadmap for the *
 | **M1** | **Local Spotify Ingestion** | **COMPLETED** | Auth Code + refresh-token client, `/items` pagination (limit=50), snapshot_id, fixtures, run metadata, local Bronze persistence |
 | **M2** | **AWS Lambda & Bronze Data Lake** | **COMPLETED** | Serverless extractor runtime, immutable S3 Bronze contract, Secrets Manager credential provider, structured Lambda telemetry |
 | **M3** | **Glue / PySpark & Silver Layer** | **COMPLETED (offline-validated)** | AWS Glue 5.1 parity (Spark 3.5.6 / Python 3.11), StructType schemas, item validation, Parquet Silver |
-| **M4** | **Snowflake & Snowpipe** | **Contracts implemented; cloud validation pending** | Storage integration, external stage, Snowpipe auto-ingest, Landing tables with audit metadata |
-| **M5** | **dbt Analytics Engineering** | **Models/contracts implemented; live build pending** | Staging views, Kimball star schema, incremental merge fact model (`snapshot_pk`), marts |
-| **M6** | **Airflow Orchestration** | Planned | Apache Airflow 3.x Task SDK, Deadline Alerts, external service operators, error handling |
+| **M4** | **Snowflake & Snowpipe** | **Bounded manual cloud validation complete** | Storage integration, external stage, Snowpipe auto-ingest, Landing tables with audit metadata |
+| **M5** | **dbt Analytics Engineering** | **Bounded cloud build and rerun validated** | Staging views, Kimball star schema, incremental merge fact model (`snapshot_pk`), marts |
+| **M6** | **Airflow Orchestration** | Bounded live orchestration validated; advanced alerts pending | Apache Airflow 3.x Task SDK, external cloud coordination, exact readiness gates, retries and reporting |
 | **M7** | **Data Quality & Observability** | Planned | Cross-tier quality gates, structured telemetry reporting (`run_id` & `snapshot_id`), runbooks |
 | **M8** | **Terraform & CI/CD Hardening** | Planned | Terraform modules (S3, IAM, Lambda, Glue), CI security, AWS Budgets alert thresholds |
 | **M9** | **Power BI & Portfolio Release** | Planned | Semantic model, DAX measures (churn, longevity), portfolio dashboard, interview showcase |
@@ -74,51 +74,49 @@ This backlog establishes the structured, phased implementation roadmap for the *
   - *Objective*: Implement Snappy-compressed Parquet output writing partitioned by date, with local pytest test suite on Spark 3.5.
 
 ### Milestone M4: Snowflake & Snowpipe
-- **Status**: Version-controlled SQL/contracts implemented offline. No Snowflake objects,
-  AWS IAM trust, S3 notifications, or live Snowpipe delivery have been provisioned yet.
+- **Status**: Bounded manual cloud slice validated through S3, Glue, Storage Integration, Snowpipe and Landing. Terraform codification remains M8.
 - **#14 [M4] Define Snowflake databases, schemas, and RBAC roles**
-  - *Status*: Implemented and statically validated offline; live account syntax/privilege verification pending.
+  - *Status*: Implemented; bounded live account validation recorded in PR #70.
   - *Context*: Warehouse architecture requires structured schemas and least-privilege security roles (ADR-0004).
   - *Objective*: Write DDL creating `LANDING`, `STAGING`, `CORE`, `MARTS` and dedicated roles (`SPOTIFY_LOADER`, `SPOTIFY_TRANSFORMER`, `SPOTIFY_ANALYST`).
 - **#15 [M4] Configure AWS IAM storage integration and S3 external stage**
-  - *Status*: DDL/trust-policy templates prepared; real IAM/Snowflake integration intentionally pending.
+  - *Status*: Storage Integration and external stage validated in the bounded cloud slice.
   - *Context*: Secure cross-account access between AWS S3 and Snowflake without static credentials.
   - *Objective*: Create Snowflake Storage Integration pointing to S3 Silver stage with IAM trust relationship.
 - **#16 [M4] Implement Snowpipe auto-ingest for Silver Parquet**
-  - *Status*: Six pipe definitions prepared, including playlist observations; S3/SQS notification wiring and live delivery intentionally pending.
+  - *Status*: Six Snowpipes and manual S3 notification wiring validated; Terraform codification pending.
   - *Context*: Automated loading into Landing tables upon file arrival in S3.
   - *Objective*: Create Snowpipe definitions with `AUTO_INGEST = TRUE` mapped to SQS event notifications, capturing file audit metadata.
 - **#17 [M4] Create Snowflake Landing tables and load validation queries**
-  - *Status*: Landing DDL and offline validation contracts implemented; live load-history validation pending.
+  - *Status*: Landing load validated in the bounded cloud slice; offline contracts remain in CI.
   - *Context*: Landing tables require exact 1:1 typing with Parquet schemas and audit verification.
   - *Objective*: Write DDL for Landing tables (including `landing_track_artists` and audit columns) and validation queries.
 
 ### Milestone M5: dbt Analytics Engineering
-- **Status**: dbt project, staging/core/fact/marts, generic tests, singular assertions,
-  package lock, and offline manifest validation are implemented. A real Snowflake
-  `dbt build` remains intentionally deferred to the later cost-guarded cloud phase.
+- **Status**: Airflow-orchestrated live dbt build passed 152 nodes/tests, including all four serving views. A one-day replay preserved 12/12 fact rows for 2026-09-11 and 36 total fact rows with zero duplicate grains.
 - **#18 [M5] Initialize dbt Core project with Snowflake adapter**
   - *Status*: Implemented with pinned dbt/dbt-snowflake/dbt_utils versions and offline parse CI.
   - *Context*: Centralizing analytical transformations requires a version-controlled dbt project.
   - *Objective*: Scaffold dbt project (`dbt_project.yml`, profiles template, directory structure, packages).
 - **#19 [M5] Build dbt staging models for Landing sources**
-  - *Status*: Six staging views implemented and parsed offline, including authoritative playlist observations; live Snowflake compile/build pending.
+  - *Status*: Six staging views validated in the bounded live dbt build.
   - *Context*: Raw Landing tables require light cleansing, naming conventions, and item validation.
   - *Objective*: Create staging views `stg_spotify_artists`, `stg_spotify_albums`, `stg_spotify_tracks`, `stg_spotify_track_artists`, `stg_spotify_playlist_snapshots`, and `stg_spotify_playlist_observations`.
 - **#20 [M5] Build Kimball core dimensions and track-artist bridge**
-  - *Status*: Dimensions/bridge implemented with deterministic keys and tests; live build pending.
+  - *Status*: Dimensions/bridge validated in the bounded live dbt build.
   - *Context*: Star schema reporting requires clean dimensions and bridge relationships.
   - *Objective*: Implement `dim_track`, `dim_artist`, `dim_album`, `dim_playlist`, and `bridge_track_artist` using surrogate hashing.
 - **#21 [M5] Build incremental fact_playlist_snapshot model**
-  - *Status*: Merge/backfill contract implemented at canonical grain; live MERGE validation pending.
+  - *Status*: Canonical-grain merge/backfill and selective live rerun validated.
   - *Context*: Snapshots must be merged incrementally on canonical grain `(playlist_id + snapshot_date + track_position)`.
   - *Objective*: Build incremental dbt model `fact_playlist_snapshot` with `incremental_strategy = 'merge'` on `snapshot_pk` supporting arbitrary backfills.
 - **#22 [M5] Build analytical marts and dbt data quality tests**
-  - *Status*: Four marts and quality suite implemented/parsed offline; live data assertions pending.
+  - *Status*: Four marts and quality suite validated in the bounded live build.
   - *Context*: Business metrics (churn, retention, artist presence, position movement) serve BI dashboards.
   - *Objective*: Implement `mart_artist_presence`, `mart_playlist_trends`, `mart_track_lifecycle`, `mart_playlist_changes` and comprehensive dbt tests.
 
 ### Milestone M6: Airflow Orchestration
+- **Current implementation**: Local Compose and Task SDK DAG for CC0 Bronze → Glue → exact six-dataset Landing gate → dbt, with bounded retries and persisted summaries. The bounded AWS/Snowflake orchestration path has been validated live, including a successful three-day run and one-day replay. The live Lambda source path and Deadline Alerts remain pending.
 - **#23 [M6] Create local Docker Compose Airflow environment**
   - *Context*: Cost-effective orchestration testing requires containerized local Airflow.
   - *Objective*: Create `docker-compose.yml`, custom Dockerfile for Apache Airflow 3.x with AWS and Snowflake providers.
@@ -133,6 +131,7 @@ This backlog establishes the structured, phased implementation roadmap for the *
   - *Objective*: Add exponential retry policies, S3 Bronze sensors, and Airflow 3 Deadline Alerts for monitoring.
 
 ### Milestone M7: Data Quality & Observability
+- **Current implementation**: Immutable physical-run planning, Glue completion inventories, per-file Landing count/duplicate checks, dbt result validation and local run evidence. Unified CloudWatch/billing telemetry and general recovery automation remain pending.
 - **#27 [M7] Implement cross-tier data quality validation gates**
   - *Context*: Corrupted data or silent schema drift must be quarantined before reaching analytical marts.
   - *Objective*: Build automated validation gates verifying file size, schema validity, and null checks between tiers.
@@ -154,7 +153,8 @@ This backlog establishes the structured, phased implementation roadmap for the *
   - *Context*: Strictly govern the $20/month portfolio budget target.
   - *Objective*: Add Terraform definition for AWS Budget with alerts at $10.00 and $18.00 spend.
 
-### Milestone M9: Power BI & Portfolio Release
+### Milestone M9: Serving Data & Future Portfolio Release
+- **Scope decision**: Prepare consumption-ready MARTS views and a documented serving contract now. Power BI semantic-model artifacts, dashboard, DAX and `.pbit` are deferred by the user; they do not block the current functional delivery. The four BI views passed the live dbt build and were queried successfully with `SPOTIFY_ANALYST`.
 - **#33 [M9] Build Power BI semantic model on Snowflake Marts**
   - *Context*: Analytical consumption requires a clean semantic model.
   - *Objective*: Create Power BI model connecting to Snowflake `MARTS` with verified relationships.

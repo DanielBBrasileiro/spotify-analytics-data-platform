@@ -1,0 +1,114 @@
+version: 2
+
+models:
+  - name: bi_playlist_daily
+    description: >-
+      BI consumption contract: one playlist/date, including observed empty dates.
+      Ratios use 0-1 and duration uses seconds. Unknown source attributes remain null.
+      CC0 temporal simulations are identified from the canonical snapshot namespace.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [playlist_id, snapshot_date]
+    columns:
+      - name: playlist_id
+        description: Natural playlist identifier; use with snapshot_date as the row key.
+        data_tests: [not_null]
+      - name: playlist_name
+        description: Current playlist label; CC0 demo labels are generated.
+        data_tests: [not_null]
+      - name: snapshot_date
+        description: Analytical snapshot date, independent of ingestion time.
+        data_tests: [not_null]
+      - name: track_slots
+        description: Number of occupied positions, including repeated tracks.
+      - name: distinct_track_count
+        description: Unique tracks present; zero on an observed empty day.
+      - name: avg_duration_seconds
+        description: Mean duration across occupied positions in seconds; null for empty days.
+      - name: explicit_share
+        description: Ratio 0-1 among tracks with known explicit flags; null if unavailable.
+      - name: avg_release_age_years
+        description: Mean known release age in years; null if unavailable.
+      - name: new_tracks
+        description: Distinct additions versus yesterday; null without a consecutive observation.
+      - name: exited_tracks
+        description: Distinct exits versus yesterday; null without a consecutive observation.
+      - name: turnover_rate
+        description: (New + exited) / (previous + current distinct tracks); ratio 0-1.
+      - name: source_type
+        description: cc0_demo for namespaced demo snapshots; otherwise unclassified.
+        data_tests: [not_null]
+      - name: temporal_state
+        description: synthetic for the demo; otherwise unclassified, never assumed observed.
+        data_tests: [not_null]
+      - name: snapshot_timestamp
+        description: Source snapshot timestamp; not a dashboard refresh timestamp.
+
+  - name: bi_track_daily
+    description: One present track per playlist/date with current descriptive labels.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [playlist_id, track_id, snapshot_date]
+    columns:
+      - name: playlist_id
+        data_tests: [not_null]
+      - name: track_id
+        data_tests: [not_null]
+      - name: track_name
+        data_tests: [not_null]
+      - name: snapshot_date
+        data_tests: [not_null]
+      - name: cumulative_days_on_playlist
+        description: Observed days present to date, not elapsed calendar days or a retention streak.
+      - name: current_position
+        description: Best occupied slot on this date; positions are one-based.
+      - name: best_position
+        description: Lowest position observed through this date, without future look-ahead.
+      - name: position_delta
+        description: Previous minus current position; positive means moving up; null after gaps.
+
+  - name: bi_track_changes
+    description: One present or exited track per playlist/date, with descriptive labels.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [playlist_id, track_id, snapshot_date]
+    columns:
+      - name: playlist_id
+        data_tests: [not_null]
+      - name: track_id
+        data_tests: [not_null]
+      - name: track_name
+        data_tests: [not_null]
+      - name: snapshot_date
+        data_tests: [not_null]
+      - name: movement_status
+        description: NEW also means first observed or first observed after a gap.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [NEW, RETAINED, EXITED]
+      - name: consecutive_days_retained
+        description: Current streak, or the final streak length before exit for EXITED rows.
+
+  - name: bi_artist_daily
+    description: One artist/date across all observed playlists. Credits can overlap among artists.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [artist_id, snapshot_date]
+    columns:
+      - name: artist_id
+        data_tests: [not_null]
+      - name: artist_name
+        data_tests: [not_null]
+      - name: snapshot_date
+        data_tests: [not_null]
+      - name: credited_track_slots
+        description: Slots credited to this artist, not unique tracks or streams.
+      - name: playlist_share
+        description: Observed playlists containing this artist / all observed playlists; ratio 0-1.
+      - name: temporal_state
+        description: synthetic only when every observed playlist on the date is classified synthetic.

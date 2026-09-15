@@ -15,6 +15,7 @@ from glue.jobs.bronze_to_silver_curation import (
 )
 from glue.schemas.bronze_schema import BRONZE_PLAYLIST_SNAPSHOT_SCHEMA
 from glue.schemas.validation import SchemaContractError
+from glue.storage.completion import build_completion, publish_completion
 from glue.transforms.snapshots import SnapshotLineage
 from tests.spark.helpers import bronze_payload, load_fixture
 
@@ -98,6 +99,16 @@ def test_end_to_end_single_page_writes_all_six_silver_datasets(spark, tmp_path):
         )
         assert spark.read.parquet(str(destination)).count() == expected
 
+    completion = build_completion(spark, result, _lineage(), "6666666666666666666666")
+    for dataset, files in completion["datasets"].items():
+        assert sum(file["rows"] for file in files) == expected_counts[dataset]
+        assert all(file["key"].startswith(f"silver/{dataset}/") for file in files)
+    destination = tmp_path / "metadata" / "complete.json"
+    publish_completion(str(destination), completion)
+    assert json.loads(destination.read_text()) == completion
+    with pytest.raises(FileExistsError):
+        publish_completion(str(destination), completion)
+
 
 def test_consolidated_items_are_transformed_once_even_when_pages_duplicate_them(spark, tmp_path):
     playlist = load_fixture("sample_playlist_response.json")
@@ -130,7 +141,7 @@ def test_future_unknown_bronze_fields_do_not_break_explicit_schema(spark, tmp_pa
     assert "future_source_field" not in frame.columns
 
 
-def test_empty_playlist_still_emits_observation_without_snapshot_slots(spark):
+def test_empty_playlist_still_emits_observation_without_snapshot_slots(spark, tmp_path):
     bronze = spark.createDataFrame(
         [bronze_payload(items=[])],
         schema=BRONZE_PLAYLIST_SNAPSHOT_SCHEMA,
@@ -143,6 +154,16 @@ def test_empty_playlist_still_emits_observation_without_snapshot_slots(spark):
     assert observation.valid_track_count == 0
     assert observation.rejected_item_count == 0
     assert rejected.count() == 0
+    source = _write_bronze(tmp_path / "empty.json", bronze_payload(items=[]))
+    result = run_bronze_to_silver(
+        spark, bronze_path=source, silver_root=tmp_path, lineage=_lineage()
+    )
+    completion = build_completion(spark, result, _lineage(), "6666666666666666666666")
+    for dataset, files in completion["datasets"].items():
+        assert files  # Empty outputs still have an explicit physical Parquet inventory.
+        assert sum(file["rows"] for file in files) == (
+            1 if dataset == "playlist_observations" else 0
+        )
 
 
 def test_curation_rejects_multiple_bronze_objects_for_one_lineage(spark, tmp_path):

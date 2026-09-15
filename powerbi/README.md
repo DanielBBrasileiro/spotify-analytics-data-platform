@@ -1,30 +1,14 @@
-# Power BI Analytics & Reporting
+# Future BI consumer
 
-This directory contains the semantic modeling specifications, DAX calculations, visual mockups, and documentation for the Power BI analytical dashboard.
+A Power BI dashboard, `.pbix`/`.pbit`, DAX model and Power BI deployment are **deferred**.
+The current delivery prepares data for consumption through four dbt-managed views in
+`SPOTIFY_ANALYTICS.MARTS`, using the existing read-only `SPOTIFY_ANALYST` role:
 
----
+- `BI_PLAYLIST_DAILY`: playlist/date composition and turnover.
+- `BI_TRACK_DAILY`: track/playlist/date positions and observed tenure.
+- `BI_TRACK_CHANGES`: entries, retained tracks and exits.
+- `BI_ARTIST_DAILY`: artist/date representation and playlist reach.
 
-## Architectural Responsibility
-
-- **Serving Curated Marts**: Power BI connects strictly to Snowflake's `MARTS` schema. It does not touch raw Landing or staging tables.
-- **Star Schema Modeling**: Leverages Kimball dimensional models (`dim_track`, `dim_artist`, `dim_album`, `dim_playlist`, and `fact_playlist_snapshot`).
-- **Business Insights**:
-  - Track lifecycle: Entry dates, exit dates, and days retained in top playlists.
-  - Artist market share and popularity velocity over time.
-  - Playlist genre stability vs. volatility metrics.
-
----
-
-## Planned Directory Structure
-
-```
-powerbi/
-├── models/
-│   └── semantic_model_relationships.md  # Star schema entity-relationship definitions
-├── measures/
-│   └── dax_measures.md                  # Curated DAX expressions (Churn, Velocity, Longevity)
-├── reports/
-│   └── spotify_analytics_template.pbit  # Power BI template file (no hardcoded data)
-└── assets/
-    └── dashboard_wireframe.png          # Visual mockup and layout wireframe
-```
+Names and labels are supplied by the views; future consumers do not need access to CORE
+or LANDING. See [the serving contract](../docs/SERVING_CONTRACT.md) for keys, units, nulls,
+aggregation rules and the successful-run refresh handoff.

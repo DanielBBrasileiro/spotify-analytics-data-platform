@@ -10,7 +10,7 @@ This document establishes the financial and operational guardrails for the Spoti
 | :--- | :--- | :--- | :--- |
 | **Monthly Budget Target** | **≤ $20.00 USD / month** | **Operational planning target** | A manual AWS Budget is deployed at $5/month for the current demo; Terraform automation remains M8 work. |
 | **Target Steady-State (Idle)** | No always-on warehouse compute | Operational control | Snowflake warehouse auto-suspends after 60 seconds and is explicitly suspended after validation. Exact provider-side idle billing is not yet isolated. |
-| **Validated Slice Usage** | Glue 597 DPU-seconds; Snowflake monitor 0.14 cumulative credits | Measured evidence | Glue total includes 3 successful runs plus one wrapper-failure attempt. Snowflake usage is cumulative since resource-monitor creation, not an isolated run cost. |
+| **Validated Slice Usage** | Glue 589 DPU-seconds; Snowflake monitor 0.45 cumulative credits | Measured evidence | Glue total covers the four successful Airflow-orchestrated validation runs (three-day slice + one-day replay). Snowflake usage is cumulative since resource-monitor creation, not an isolated run cost. |
 
 > [!IMPORTANT]
 > The $20.00/month figure is an **operational portfolio planning target**, not a hard cloud
@@ -110,8 +110,9 @@ This document establishes the financial and operational guardrails for the Spoti
    - M4 SQL contracts define a resource monitor attached to `COMPUTE_WH` with:
      - Notification at 80% of monthly credit quota.
      - Immediate suspension at 100% of quota.
-   - The monitor is deployed on `COMPUTE_WH`; the validated session reported 0.14 cumulative
-     credits used since monitor creation.
+   - The monitor is deployed on `COMPUTE_WH`; the final validation session reported 0.45
+     cumulative credits used since monitor creation. The warehouse was explicitly left in
+     `SUSPENDED` state after validation.
 
 ---
 

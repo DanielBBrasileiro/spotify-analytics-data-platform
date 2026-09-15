@@ -16,6 +16,7 @@ from pyspark.sql import DataFrame, SparkSession
 
 from glue.schemas.bronze_schema import BRONZE_PLAYLIST_SNAPSHOT_SCHEMA
 from glue.schemas.validation import SchemaContractError, require_no_corrupt_records
+from glue.storage.completion import build_completion, publish_completion
 from glue.storage.parquet import write_silver_dataset
 from glue.transforms.entities import (
     extract_albums,
@@ -119,6 +120,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--snapshot-timestamp", required=True)
     parser.add_argument("--ingestion-date", required=True)
     parser.add_argument("--output-partitions", type=int, default=1)
+    parser.add_argument("--completion-uri")
     args, _glue_runtime_args = parser.parse_known_args(argv)
     return args
 
@@ -137,13 +139,19 @@ def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
     spark = SparkSession.builder.appName("spotify-bronze-to-silver").getOrCreate()
     try:
-        run_bronze_to_silver(
+        lineage = _lineage_from_args(args)
+        result = run_bronze_to_silver(
             spark,
             bronze_path=args.bronze_path,
             silver_root=args.silver_root,
-            lineage=_lineage_from_args(args),
+            lineage=lineage,
             output_partitions=args.output_partitions,
         )
+        if args.completion_uri:
+            source = read_bronze_snapshot(spark, args.bronze_path).select("playlist_id").first()
+            publish_completion(
+                args.completion_uri, build_completion(spark, result, lineage, source.playlist_id)
+            )
     finally:
         spark.stop()
     return 0

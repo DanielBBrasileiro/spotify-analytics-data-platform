@@ -145,3 +145,23 @@ jobs:
       - name: Run dbt manifest contracts
         run: |
           pytest tests/dbt -q
+
+  orchestration-contracts:
+    name: Airflow DAG and service contracts
+    runs-on: ubuntu-latest
+    env:
+      AIRFLOW_HOME: /tmp/spotify-airflow-ci
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install pinned Airflow runtime
+        run: |
+          pip install apache-airflow==3.2.2 pytest -r airflow/requirements.txt \
+            --constraint https://raw.githubusercontent.com/apache/airflow/constraints-3.2.2/constraints-3.12.txt
+      - name: Validate Compose and real Task SDK DAG
+        run: |
+          docker compose -f airflow/docker-compose.yml config --quiet
+          pytest tests/orchestration -q
