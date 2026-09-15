@@ -63,6 +63,9 @@ def test_fact_incremental_contract_preserves_canonical_grain_and_backfill_strate
     assert "generate_surrogate_key(['s.playlist_id'])" in raw
     assert "generate_surrogate_key(['s.track_id'])" in raw
     assert "ref('dim_playlist')" not in raw
+    assert (
+        "model.spotify_analytics.stg_spotify_playlist_observations" in fact["depends_on"]["nodes"]
+    )
     assert "ref('dim_track')" not in raw
 
 
