@@ -1,5 +1,5 @@
--- Offline template only. Replace the quoted deployment placeholders before the later
--- cloud-validation phase. Never replace this integration in-place once stages depend on it.
+-- Deployment template. Replace the quoted placeholders only in a non-versioned deployment
+-- copy. Never replace this integration in-place once stages depend on it.
 
 CREATE STORAGE INTEGRATION IF NOT EXISTS SPOTIFY_S3_INTEGRATION
   TYPE = EXTERNAL_STAGE

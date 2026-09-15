@@ -103,8 +103,10 @@ least-privileged `SPOTIFY_TRANSFORMER` role. CI uses the inert profile under
 `tests/dbt_profile/` and runs `dbt parse --no-partial-parse`, which validates project
 configuration, Jinja, refs/sources, macros, and the DAG without connecting to Snowflake.
 
-Live `dbt build` remains a later cloud-validation gate; this repository does not claim
-warehouse execution merely because the offline parse succeeds.
+The bounded cloud slice has now passed a live Snowflake `dbt build` with 126/126 nodes/tests
+successful for a three-day backfill. A second selective `fact_playlist_snapshot` rerun also
+completed successfully with the fact remaining at 36 rows / 36 unique snapshot keys. CI
+continues to use the inert offline parse contract and does not depend on live credentials.
 
 The incremental fact requires an explicit execution window at runtime: use
 `--vars '{"snapshot_date": "YYYY-MM-DD"}'` for a daily merge or both `start_date` and

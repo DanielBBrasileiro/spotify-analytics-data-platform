@@ -1,6 +1,6 @@
--- Snowpipe definitions are versioned here but not executed in this offline round.
--- M8 will wire S3 object-created notifications to each pipe's Snowflake-managed SQS
--- notification channel. Snowpipe file tracking is transport idempotency only; canonical
+-- Snowpipe definitions are versioned here and validated offline in CI. The bounded cloud slice
+-- has also validated manual S3 object-created notification wiring to Snowflake's managed SQS;
+-- M8 will codify that proven configuration in Terraform. Snowpipe file tracking is transport idempotency only; canonical
 -- business/retry deduplication remains the dbt responsibility at the daily snapshot grain.
 
 -- Snowflake requires SELECT and INSERT on the target table for pipe creation/execution.

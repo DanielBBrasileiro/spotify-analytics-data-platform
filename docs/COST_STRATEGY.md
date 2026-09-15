@@ -8,16 +8,15 @@ This document establishes the financial and operational guardrails for the Spoti
 
 | Metric | Target Limit | Governance Type | Notes |
 | :--- | :--- | :--- | :--- |
-| **Monthly Budget Target** | **≤ $20.00 USD / month** | **Operational planning target** | AWS budget enforcement is not deployed yet. |
-| **Target Steady-State (Idle)** | Not yet measured | Cloud validation pending | Architecture is designed to avoid always-on compute. |
-| **Single Full Pipeline Run** | Not yet measured | Cloud validation pending | Must be measured in the target AWS/Snowflake accounts. |
+| **Monthly Budget Target** | **≤ $20.00 USD / month** | **Operational planning target** | A manual AWS Budget is deployed at $5/month for the current demo; Terraform automation remains M8 work. |
+| **Target Steady-State (Idle)** | No always-on warehouse compute | Operational control | Snowflake warehouse auto-suspends after 60 seconds and is explicitly suspended after validation. Exact provider-side idle billing is not yet isolated. |
+| **Validated Slice Usage** | Glue 597 DPU-seconds; Snowflake monitor 0.14 cumulative credits | Measured evidence | Glue total includes 3 successful runs plus one wrapper-failure attempt. Snowflake usage is cumulative since resource-monitor creation, not an isolated run cost. |
 
 > [!IMPORTANT]
 > The $20.00/month figure is an **operational portfolio planning target**, not a hard cloud
-> provider stop guarantee. The repository currently contains Snowflake cost-control SQL
-> contracts but no deployed AWS Budget, Terraform teardown automation, or measured run-cost
-> evidence. Any vendor pricing examples below are planning inputs only and must be rechecked
-> before provisioning.
+> provider stop guarantee. The current account has a manually created AWS Budget and a live
+> Snowflake resource monitor, but Terraform teardown/budget automation is still pending and
+> the measured usage above must not be presented as a precise per-run dollar cost.
 
 ---
 
@@ -82,14 +81,15 @@ This document establishes the financial and operational guardrails for the Spoti
 - Snowflake SQL and dbt project structure are validated offline without a warehouse connection.
 - Synthetic fixtures are the default source material.
 
-### Mode 2: Demonstration / Portfolio Review Mode (Target)
+### Mode 2: Demonstration / Portfolio Review Mode (Validated bounded slice)
 - Before M8, M4/M5 may use a minimal, manually controlled AWS/Snowflake vertical slice solely
   for the live validation gates that cannot be proven offline. Provision only the resources
   needed for the test, apply the available account/billing guardrails first, and tear them down
   or suspend them immediately after evidence is captured.
 - Portfolio analytics uses the bounded CC0-source/synthetic-temporal demo defined in ADR-0009;
   raw source files remain local and only the tiny generated Bronze validation corpus is uploaded.
-- AWS Lambda/S3/Glue and Snowflake/Snowpipe/dbt are exercised as a vertical slice with measured cost and teardown evidence.
+- S3/Glue and Snowflake/Snowpipe/dbt have been exercised as a bounded vertical slice with
+  measured usage evidence. Live Spotify Lambda extraction remains a separate source-side gate.
 - Power BI consumes validated Snowflake marts only after the warehouse build succeeds.
 - M8 later converts the proven resource shape into Terraform and adds reproducible AWS Budget
   automation; Terraform is not a prerequisite for the first bounded integration validation.
@@ -102,14 +102,16 @@ This document establishes the financial and operational guardrails for the Spoti
 
 ## 5. Cost Governance & Alarms
 
-1. **AWS Budgets (M8 target)**:
-   - Terraform will define alerts at **$10.00 USD** and **$18.00 USD** before the cloud demo path is considered ready.
-   - The current repository does not claim that these alerts already exist in an AWS account.
+1. **AWS Budgets**:
+   - The current demo account has a manually created **$5/month** budget guardrail.
+   - M8 will replace one-off console configuration with versioned Terraform budget automation
+     and project-wide threshold conventions.
 2. **Snowflake Resource Monitors**:
    - M4 SQL contracts define a resource monitor attached to `COMPUTE_WH` with:
      - Notification at 80% of monthly credit quota.
      - Immediate suspension at 100% of quota.
-   - Live deployment and account-specific notification behavior remain cloud-validation gates.
+   - The monitor is deployed on `COMPUTE_WH`; the validated session reported 0.14 cumulative
+     credits used since monitor creation.
 
 ---
 

@@ -6,15 +6,21 @@
 [![Code Style: Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 [![Release: v0.1.1](https://img.shields.io/badge/Release-v0.1.1-brightgreen.svg)](https://github.com/DanielBBrasileiro/spotify-analytics-data-platform/releases/tag/v0.1.1)
 
-> Production-oriented data engineering portfolio with offline-validated ingestion, Glue/PySpark,
-> Snowflake, and dbt contracts. The target cloud path uses AWS Lambda, S3, Glue 5.1,
-> Snowflake/Snowpipe, dbt Core, and later Airflow/Power BI, with deployment validation and
-> infrastructure automation still explicitly gated by their roadmap milestones.
+> Production-oriented data engineering portfolio with offline contracts plus a bounded live
+> cloud validation of S3 -> Glue 5.1 -> Snowflake/Snowpipe -> dbt Core. The target source-side
+> path still includes AWS Lambda for live Spotify extraction, while Airflow, Terraform, and
+> Power BI remain later roadmap milestones.
 
 ---
 
-### Project Status: M3 Complete — M4/M5 Code Complete, Cloud Validation Pending
-> **Implemented and offline-validated:** M0-M3 plus the code-first portions of M4/M5. This includes Glue 5.1 parity on Spark 3.5.6/Python 3.11, explicit Bronze/Silver schemas, collision-free run/playlist-scoped Parquet publications, an observation spine that preserves empty playlist days, Snowflake topology/RBAC/Storage Integration/Snowpipe/Landing DDL, and a pinned dbt project with staging views, incremental Kimball dimensions/bridge/fact, four analytical marts, generic tests, and singular quality assertions. The bounded cloud-validation foundation now includes an AWS S3 bucket, least-purpose Lambda/Glue execution-role trust, AWS cost budget, and Snowflake database/schemas/RBAC/warehouse cost guardrails. Glue execution, Snowflake storage integration/stage, Snowpipe delivery, Landing loads, and live `dbt build` remain pending and are not claimed as validated yet.
+### Project Status: M5 Cloud-Validated Vertical Slice Complete — M6+ Pending
+> **Validated end to end for the bounded portfolio slice:** three CC0-derived Bronze snapshots
+> were uploaded to S3, processed by AWS Glue 5.1 into 18 Silver Parquet objects across six
+> datasets, exposed through a least-privilege Snowflake Storage Integration and external stage,
+> auto-ingested by six Snowpipes, and modeled with dbt Core in Snowflake. The live `dbt build`
+> completed with 126/126 passing nodes/tests, and a selective incremental fact rerun preserved
+> 36 rows / 36 unique snapshot keys. A live Spotify Web API Lambda extraction is not claimed;
+> the reproducible portfolio demo intentionally starts from the CC0 adapter described below.
 
 > **Portfolio data boundary:** the current reproducible cloud demo uses a CC0 public playlist
 > corpus for source track/artist/playlist metadata and generates the three-day membership,
@@ -230,17 +236,17 @@ Detailed schema definitions, canonical grain evaluations, and data dictionaries 
 ## 7. Cost Governance ($20/Month Portfolio Budget Target)
 
 The **USD 20/month** figure is an operational planning target, not a guaranteed
-provider-side spending cap. Current repository controls are offline contracts; live
-billing behavior remains to be verified during the cloud phase.
+provider-side spending cap. The validated slice now has live guardrails on both providers,
+while exact per-run dollar attribution still depends on provider billing/metering windows.
 
 | Metric | Budget Target | Governance Type | Notes |
 | :--- | :--- | :--- | :--- |
-| **Monthly Target** | **≤ $20.00 USD / month** | Planning target | AWS Budgets are planned for M8; Snowflake resource-monitor DDL is implemented but not yet deployed. |
-| **Idle Cost** | Not yet measured | Cloud validation pending | Architecture avoids always-on compute by design. |
-| **Single Run Cost** | Not yet measured | Cloud validation pending | Must be measured after Lambda, Glue, Snowpipe, and dbt are exercised in the target accounts. |
+| **Monthly Target** | **≤ $20.00 USD / month** | Planning target | A manual AWS Budget is deployed at $5/month for this demo; M8 will codify budget automation. Snowflake uses a deployed 2-credit monthly resource monitor. |
+| **Idle Cost** | No always-on warehouse compute | Operational control | `COMPUTE_WH` is X-Small with 60-second auto-suspend and was explicitly suspended after validation. Provider-side idle billing statements are not yet isolated. |
+| **Validation Usage** | Measured usage, not isolated dollar cost | Evidence | Glue reported 597 total DPU-seconds across 4 validation attempts (3 successful + 1 wrapper failure). The Snowflake resource monitor reported 0.14 cumulative credits used since monitor creation. |
 
 Key cost control mechanisms:
-- **Snowflake**: DDL pins an `X-Small` warehouse with `AUTO_SUSPEND = 60` and a bounded development resource monitor; live deployment remains pending.
+- **Snowflake**: `COMPUTE_WH` is deployed as `X-Small` with `AUTO_SUSPEND = 60` and the bounded development resource monitor attached.
 - **Airflow**: Target design keeps Airflow local rather than provisioning MWAA.
 - **Log Retention**: Seven-day CloudWatch retention is a target for the Terraform phase, not a deployed control today.
 - **Teardown**: Terraform-based teardown is planned in M8 and must be verified against actual provisioned resources and billing state.
