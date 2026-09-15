@@ -14,12 +14,14 @@
 ---
 
 ### Project Status: M3 Complete — M4/M5 Code Complete, Cloud Validation Pending
-> **Implemented and offline-validated:** M0-M3 plus the code-first portions of M4/M5. This includes Glue 5.1 parity on Spark 3.5.6/Python 3.11, explicit Bronze/Silver schemas, collision-free run/playlist-scoped Parquet publications, an observation spine that preserves empty playlist days, Snowflake topology/RBAC/Storage Integration/Snowpipe/Landing DDL, and a pinned dbt project with staging views, incremental Kimball dimensions/bridge/fact, four analytical marts, generic tests, and singular quality assertions. No real Snowflake object, AWS IAM trust, S3 notification, Snowpipe delivery, or live `dbt build` is claimed yet. Cloud execution remains deliberately deferred to preserve trial/promotional credits, and portfolio analytical datasets remain synthetic unless permitted usage is established separately.
+> **Implemented and offline-validated:** M0-M3 plus the code-first portions of M4/M5. This includes Glue 5.1 parity on Spark 3.5.6/Python 3.11, explicit Bronze/Silver schemas, collision-free run/playlist-scoped Parquet publications, an observation spine that preserves empty playlist days, Snowflake topology/RBAC/Storage Integration/Snowpipe/Landing DDL, and a pinned dbt project with staging views, incremental Kimball dimensions/bridge/fact, four analytical marts, generic tests, and singular quality assertions. The bounded cloud-validation foundation now includes an AWS S3 bucket, least-purpose Lambda/Glue execution-role trust, AWS cost budget, and Snowflake database/schemas/RBAC/warehouse cost guardrails. Glue execution, Snowflake storage integration/stage, Snowpipe delivery, Landing loads, and live `dbt build` remain pending and are not claimed as validated yet.
 
-> **Portfolio data boundary:** demonstrations and analytical screenshots use fully synthetic
-> playlist histories. Live analytical use of Spotify-derived data is not assumed to be
-> permitted merely because OAuth access exists. See
-> [ADR-0008](docs/adr/0008-synthetic-analytics-and-source-use-boundary.md).
+> **Portfolio data boundary:** the current reproducible cloud demo uses a CC0 public playlist
+> corpus for source track/artist/playlist metadata and generates the three-day membership,
+> positions, snapshot IDs, and missing compatibility fields deterministically. Those temporal
+> analytics are synthetic and must not be presented as observed Spotify behavior. Live Web API
+> analytics remain a separately governed path. See
+> [ADR-0009](docs/adr/0009-cc0-source-with-synthetic-temporal-demo.md).
 
 ---
 
@@ -138,7 +140,8 @@ The platform's engineering design is formalized through **Architecture Decision 
 - **[ADR-0005: Separate Spark and dbt Responsibilities](docs/adr/0005-separate-spark-and-dbt-responsibilities.md)**: Spark handles semi-structured array explosion; dbt handles modular SQL dimensional modeling.
 - **[ADR-0006: Historical Playlist Snapshots](docs/adr/0006-historical-playlist-snapshots.md)**: Pinned to canonical daily grain `(playlist_id + snapshot_date + track_position)` with `spotify_snapshot_id` lineage.
 - **[ADR-0007: Spotify Authorization Code & Refresh Token](docs/adr/0007-spotify-authorization-code-and-refresh-token.md)**: Replaces Client Credentials with two-phase Auth Code + stored refresh token for scheduled ingestion.
-- **[ADR-0008: Synthetic Analytics and Source Use Boundary](docs/adr/0008-synthetic-analytics-and-source-use-boundary.md)**: Keeps portfolio analytics fully synthetic unless permitted live-source use is established separately.
+- **[ADR-0008: Synthetic Analytics and Source Use Boundary](docs/adr/0008-synthetic-analytics-and-source-use-boundary.md)**: Original conservative portfolio boundary; superseded for the current demo by ADR-0009 while its live-source governance rule remains in force.
+- **[ADR-0009: CC0 Source Metadata with Synthetic Temporal Demo](docs/adr/0009-cc0-source-with-synthetic-temporal-demo.md)**: Uses a CC0 playlist corpus for reproducible source metadata while keeping all longitudinal change behavior synthetic and explicitly labeled.
 
 ---
 

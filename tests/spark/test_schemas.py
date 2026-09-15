@@ -61,8 +61,7 @@ def test_silver_schemas_match_documented_scalar_types_and_nullability():
         isinstance(albums["total_tracks"].dataType, IntegerType) and albums["total_tracks"].nullable
     )
     assert (
-        isinstance(tracks["is_explicit"].dataType, BooleanType)
-        and not tracks["is_explicit"].nullable
+        isinstance(tracks["is_explicit"].dataType, BooleanType) and tracks["is_explicit"].nullable
     )
     assert isinstance(tracks["ingestion_date"].dataType, DateType)
     assert (

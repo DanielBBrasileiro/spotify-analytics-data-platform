@@ -2,9 +2,9 @@
 
 ## Status
 
-Accepted for the portfolio demonstration scope. Live analytical use of Spotify-derived
-content remains outside this decision until the exact permitted use is established and
-documented.
+Superseded for the current portfolio demonstration dataset by ADR-0009. Its live-source
+governance boundary remains in force: OAuth/API access does not by itself establish permission
+for downstream analytics, retention, or publication.
 
 ## Context
 

@@ -87,7 +87,8 @@ This document establishes the financial and operational guardrails for the Spoti
   for the live validation gates that cannot be proven offline. Provision only the resources
   needed for the test, apply the available account/billing guardrails first, and tear them down
   or suspend them immediately after evidence is captured.
-- Portfolio analytics uses fully synthetic histories per ADR-0008.
+- Portfolio analytics uses the bounded CC0-source/synthetic-temporal demo defined in ADR-0009;
+  raw source files remain local and only the tiny generated Bronze validation corpus is uploaded.
 - AWS Lambda/S3/Glue and Snowflake/Snowpipe/dbt are exercised as a vertical slice with measured cost and teardown evidence.
 - Power BI consumes validated Snowflake marts only after the warehouse build succeeds.
 - M8 later converts the proven resource shape into Terraform and adds reproducible AWS Budget

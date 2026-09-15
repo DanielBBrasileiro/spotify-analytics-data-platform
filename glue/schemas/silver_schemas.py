@@ -35,7 +35,9 @@ TRACKS_SCHEMA = StructType(
         StructField("track_name", StringType(), False),
         StructField("album_id", StringType(), True),
         StructField("duration_ms", IntegerType(), False),
-        StructField("is_explicit", BooleanType(), False),
+        # Some permitted public source corpora do not expose this provider attribute.
+        # Preserve unknown as NULL rather than fabricating False.
+        StructField("is_explicit", BooleanType(), True),
         StructField("is_local", BooleanType(), False),
         StructField("ingestion_date", DateType(), False),
     ]
