@@ -1,3 +1,5 @@
+-- depends_on: {{ ref('stg_spotify_playlist_observations') }}
+
 {{
     config(
         materialized='incremental',
