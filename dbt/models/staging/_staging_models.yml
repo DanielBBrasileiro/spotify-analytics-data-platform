@@ -27,7 +27,7 @@ models:
     description: Latest album record with partial source release dates normalized to DATE.
     columns:
       - name: album_id
-        description: Provider-backed natural album key.
+        description: Source-stable album key; provider ID when available, adapter-generated otherwise.
         data_tests: [not_null, unique]
       - name: album_name
         data_tests: [not_null]

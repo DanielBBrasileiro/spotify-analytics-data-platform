@@ -12,7 +12,13 @@ with observations as (
         count(*) as total_tracks,
         count(distinct f.track_pk) as distinct_track_count,
         avg(t.duration_ms) as avg_duration_ms,
-        avg(iff(t.is_explicit, 100.0, 0.0)) as explicit_pct,
+        avg(
+            case
+                when t.is_explicit = true then 100.0
+                when t.is_explicit = false then 0.0
+                else null
+            end
+        ) as explicit_pct,
         avg(
             iff(
                 a.release_date is not null and a.release_date <= f.snapshot_date,

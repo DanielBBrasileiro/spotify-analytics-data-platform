@@ -32,6 +32,10 @@ This platform draws conceptual inspiration from educational Spotify ETL patterns
 - [Spotify Developer Terms](https://developer.spotify.com/terms)
 - [Spotify Web API: February 2026 Migration Guide & Changelogs](https://developer.spotify.com/documentation/web-api)
 
+### Portfolio Demonstration Source
+- [Spotify 10000 Songs Dataset (Kaggle)](https://www.kaggle.com/datasets/jeremycte/spotify-10000-songs-dataset) — current bounded source corpus for the cloud demo; Kaggle metadata declares CC0-1.0.
+- [Creative Commons CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) — license referenced by the source dataset.
+
 ### Apache Spark & AWS Glue
 - [AWS Glue 5.1 Release Notes & Runtime Specifications (Spark 3.5.6, Python 3.11)](https://docs.aws.amazon.com/glue/latest/dg/glue-version-5-1.html)
 - [Migrating to AWS Glue Version 5.1](https://docs.aws.amazon.com/glue/latest/dg/migrating-to-glue-version-5-1.html)
