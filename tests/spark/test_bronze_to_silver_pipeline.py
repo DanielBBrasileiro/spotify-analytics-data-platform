@@ -8,6 +8,7 @@ from uuid import UUID
 import pytest
 
 from glue.jobs.bronze_to_silver_curation import (
+    _parse_args,
     build_silver_datasets,
     read_bronze_snapshot,
     run_bronze_to_silver,
@@ -18,6 +19,33 @@ from glue.transforms.snapshots import SnapshotLineage
 from tests.spark.helpers import bronze_payload, load_fixture
 
 RUN_ID = UUID("123e4567-e89b-42d3-a456-426614174000")
+
+
+def test_job_args_tolerate_glue_managed_runtime_arguments():
+    args = _parse_args(
+        [
+            "--bronze-path",
+            "s3://example/bronze.json",
+            "--silver-root",
+            "s3://example",
+            "--pipeline-run-id",
+            str(RUN_ID),
+            "--snapshot-date",
+            "2026-09-11",
+            "--snapshot-timestamp",
+            "2026-09-11T12:00:00+00:00",
+            "--ingestion-date",
+            "2026-09-11",
+            "--JOB_NAME",
+            "spotify-bronze-to-silver-demo",
+            "--extra-py-files",
+            "s3://example/artifacts/glue_runtime.zip",
+        ]
+    )
+
+    assert args.bronze_path == "s3://example/bronze.json"
+    assert args.silver_root == "s3://example"
+    assert args.pipeline_run_id == str(RUN_ID)
 
 
 def _lineage():
