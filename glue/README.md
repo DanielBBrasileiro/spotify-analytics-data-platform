@@ -87,5 +87,6 @@ Landing contract exposes it as a normal column as well as an S3 partition value.
 - The default Python 3.12 CI suite keeps its five-second budget and does not start a JVM.
   A separate CI job mirrors Glue 5.1 and runs only `tests/spark` with external network
   access blocked while allowing Py4J loopback sockets.
-- Cloud Glue execution remains intentionally deferred. No AWS API call or Glue DPU is
-  required to validate M3 locally.
+- The bounded cloud slice has additionally executed three successful Glue 5.1 Bronze-to-Silver
+  runs for the CC0 demo, producing six Silver datasets per day (18 Parquet objects total).
+  Local/CI validation remains the default path and requires no AWS API call or Glue DPU.

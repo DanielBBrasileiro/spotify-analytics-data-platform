@@ -1,10 +1,10 @@
 # Snowflake & Snowpipe contracts (M4)
 
-This directory contains **offline, version-controlled deployment contracts** for M4. None
-of these statements are executed by CI or by the current coding round. Live account,
-region, edition, S3, IAM, stage, and Snowpipe validation remains deliberately deferred.
+This directory contains **version-controlled deployment contracts** for M4. CI still validates
+them offline, but the bounded portfolio slice has also been deployed manually and validated
+against AWS/Snowflake in `us-east-1` without committing account-specific identifiers.
 
-## Execution order for the later cloud phase
+## Validated manual deployment order
 
 1. `ddl/01_databases_and_schemas.sql`
 2. `ddl/02_rbac_roles_and_grants.sql`
@@ -12,18 +12,18 @@ region, edition, S3, IAM, stage, and Snowpipe validation remains deliberately de
 4. replace the inert quoted placeholders in `ddl/03_storage_integration.sql`, then execute it
 5. run `DESC INTEGRATION SPOTIFY_S3_INTEGRATION` and copy Snowflake's generated
    `STORAGE_AWS_IAM_USER_ARN` into the AWS trust relationship
-6. deploy the trust relationship represented by `templates/aws_role_trust_policy.json.example`
-   through M8 Terraform; never commit the real ARN/external ID
+6. deploy the trust relationship represented by `templates/aws_role_trust_policy.json.example`;
+   never commit the real ARN/external ID. M8 will codify this proven shape in Terraform
 7. execute `ddl/05_file_formats.sql`, `ddl/04_external_stages.sql`, and
    `ddl/06_landing_tables.sql`
 8. execute `ddl/07_snowpipes.sql` under the least-privileged loader role after its grants
 9. configure S3 object-created notifications for the Snowflake-managed SQS notification
-   channels in M8 Terraform
+   channel; the bounded slice validated this manually and M8 will codify it in Terraform
 10. run the read-only checks in `validation/verify_landing_loads.sql`
 
-Verify the actual Snowflake cloud/region before deployment. The architecture intends AWS
-N. Virginia where possible, but this repository does not assert an unverified account
-region.
+Verify the actual Snowflake cloud/region before any new deployment. The bounded validation
+ran in AWS/Snowflake `us-east-1`; account-specific locators and generated IAM identities stay
+outside version control.
 
 ## Security and idempotency
 

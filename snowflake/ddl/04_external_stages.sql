@@ -5,6 +5,6 @@ CREATE STAGE IF NOT EXISTS SPOTIFY_ANALYTICS.LANDING.SILVER_STAGE
   URL = 's3://__S3_BUCKET__/silver/'
   STORAGE_INTEGRATION = SPOTIFY_S3_INTEGRATION
   DIRECTORY = (ENABLE = TRUE)
-  COMMENT = 'Curated Silver Parquet root; cloud wiring deferred to M8';
+  COMMENT = 'Curated Silver Parquet root for least-privilege warehouse ingestion';
 
 GRANT USAGE ON STAGE SPOTIFY_ANALYTICS.LANDING.SILVER_STAGE TO ROLE SPOTIFY_LOADER;

@@ -1,4 +1,4 @@
--- M4 warehouse topology contract. Execute only during the later cloud-validation phase.
+-- M4 warehouse topology contract. Execute only in an explicitly controlled deployment phase.
 -- Deployment is expected to run under a separately controlled administrative role.
 
 CREATE DATABASE IF NOT EXISTS SPOTIFY_ANALYTICS
