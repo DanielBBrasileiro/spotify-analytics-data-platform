@@ -119,7 +119,8 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--snapshot-timestamp", required=True)
     parser.add_argument("--ingestion-date", required=True)
     parser.add_argument("--output-partitions", type=int, default=1)
-    return parser.parse_args(argv)
+    args, _glue_runtime_args = parser.parse_known_args(argv)
+    return args
 
 
 def _lineage_from_args(args: argparse.Namespace) -> SnapshotLineage:
