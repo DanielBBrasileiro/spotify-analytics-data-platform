@@ -1,8 +1,9 @@
-# Snowflake & Snowpipe contracts (M4)
+# Snowflake & Snowpipe Warehouse Contracts
 
-This directory contains **version-controlled deployment contracts** for M4. CI still validates
-them offline, but the bounded portfolio slice has also been deployed manually and validated
-against AWS/Snowflake in `us-east-1` without committing account-specific identifiers.
+This directory contains the version-controlled Snowflake deployment and validation contracts
+for v1.0.0. CI validates them offline, and the bounded portfolio slice was also deployed
+manually and exercised against AWS/Snowflake in `us-east-1` without committing
+account-specific identifiers.
 
 ## Validated manual deployment order
 
@@ -13,12 +14,14 @@ against AWS/Snowflake in `us-east-1` without committing account-specific identif
 5. run `DESC INTEGRATION SPOTIFY_S3_INTEGRATION` and copy Snowflake's generated
    `STORAGE_AWS_IAM_USER_ARN` into the AWS trust relationship
 6. deploy the trust relationship represented by `templates/aws_role_trust_policy.json.example`;
-   never commit the real ARN/external ID. M8 will codify this proven shape in Terraform
+   never commit the real ARN/external ID. The Terraform IAM module now codifies the reusable
+   trust shape, but the existing validated role is not claimed as Terraform-state-owned
 7. execute `ddl/05_file_formats.sql`, `ddl/04_external_stages.sql`, and
    `ddl/06_landing_tables.sql`
 8. execute `ddl/07_snowpipes.sql` under the least-privileged loader role after its grants
 9. configure S3 object-created notifications for the Snowflake-managed SQS notification
-   channel; the bounded slice validated this manually and M8 will codify it in Terraform
+   channel. The bounded slice validated this manually; Terraform intentionally does not invent
+   or replace the environment-specific Snowflake-managed notification destination
 10. run the read-only checks in `validation/verify_landing_loads.sql`
 
 Verify the actual Snowflake cloud/region before any new deployment. The bounded validation
@@ -46,8 +49,8 @@ in `.sqlfluffignore`: the `CREATE RESOURCE MONITOR ... WITH ...` body and
 `STORAGE_AWS_EXTERNAL_ID` in `CREATE STORAGE INTEGRATION`. SQLFluff 4.3.0 does not yet
 recognize those clauses even though they are present in current Snowflake SQL reference
 syntax. Dedicated Python contract tests pin their exact expected forms instead of deleting
-or weakening valid Snowflake functionality merely to satisfy a lagging parser. They still
-require live syntax verification in the later cloud phase before M4 is called deployed.
+or weakening valid Snowflake functionality merely to satisfy a lagging parser. The bounded
+cloud deployment subsequently exercised the current DDL/load path; CI remains credential-free.
 
 ## Cost controls
 
@@ -67,19 +70,29 @@ Snowflake metadata. `_loaded_at` uses `METADATA$START_SCAN_TIME`, not wall-clock
 functions. The file's `ingestion_date` remains data, and validation verifies that it agrees
 with the Hive partition path.
 
-M3 explicitly writes Spark `TimestampType` values as Parquet `TIMESTAMP_MICROS` rather than
+Glue explicitly writes Spark `TimestampType` values as Parquet `TIMESTAMP_MICROS` rather than
 the legacy INT96 default. Snowpipe still normalizes timestamp instants and
-`METADATA$START_SCAN_TIME` to UTC before casting to Landing `TIMESTAMP_NTZ`. The later live
-validation phase must prove this with a known UTC instant while the Snowflake session uses
-a non-UTC timezone, so session settings cannot silently change lineage values.
+`METADATA$START_SCAN_TIME` to UTC before casting to Landing `TIMESTAMP_NTZ`. The SQL contract
+keeps UTC normalization explicit so session timezone settings cannot silently redefine lineage.
 
 Snowpipe's loaded-file tracking prevents routine file replay; it is **not** the analytical
-business deduplication key. M5 dbt resolves retries at the canonical grain:
+business deduplication key. dbt resolves retries at the canonical grain:
 `playlist_id + snapshot_date + track_position`. `snapshot_timestamp` and
 `pipeline_run_id` remain lineage/tie-break metadata and never enter that natural key.
 
 ## Source policy boundary
 
-M4 is synthetic/offline-first. These contracts must not be interpreted as approval to
-persist or analyze live Spotify-derived portfolio datasets. Checked-in fixtures remain
-synthetic until permitted usage is established separately.
+The v1.0.0 bounded portfolio validation uses the documented CC0-backed demo with synthetic
+temporal evolution. These warehouse contracts must not be interpreted as proof that the demo
+rows are observed Spotify history or as blanket approval to persist unrelated live Spotify data.
+
+## v1.0.0 validation evidence
+
+The validated warehouse slice includes six Landing datasets, exact Airflow Landing readiness
+checks, a **152/152** dbt build, a second **152/152** replay build, and successful queries of
+all four `BI_*` views using `SPOTIFY_ANALYST`. The replayed logical date remained 12 rows / 12
+unique fact grains and the canonical fact remained 36 rows total.
+
+See [`../docs/DATA_MODEL.md`](../docs/DATA_MODEL.md),
+[`../docs/SERVING_CONTRACT.md`](../docs/SERVING_CONTRACT.md), and
+[`../docs/DATA_QUALITY.md`](../docs/DATA_QUALITY.md).

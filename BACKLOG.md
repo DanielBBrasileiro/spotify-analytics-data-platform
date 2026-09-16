@@ -74,7 +74,7 @@ This backlog establishes the structured, phased implementation roadmap for the *
   - *Objective*: Implement Snappy-compressed Parquet output writing partitioned by date, with local pytest test suite on Spark 3.5.
 
 ### Milestone M4: Snowflake & Snowpipe
-- **Status**: Bounded manual cloud slice validated through S3, Glue, Storage Integration, Snowpipe and Landing. Terraform codification remains M8.
+- **Status**: Bounded manual cloud slice validated through S3, Glue, Storage Integration, Snowpipe and Landing. M8 Terraform desired state is implemented and validated offline/CI; no live state ownership claim.
 - **#14 [M4] Define Snowflake databases, schemas, and RBAC roles**
   - *Status*: Implemented; bounded live account validation recorded in PR #70.
   - *Context*: Warehouse architecture requires structured schemas and least-privilege security roles (ADR-0004).
@@ -84,7 +84,7 @@ This backlog establishes the structured, phased implementation roadmap for the *
   - *Context*: Secure cross-account access between AWS S3 and Snowflake without static credentials.
   - *Objective*: Create Snowflake Storage Integration pointing to S3 Silver stage with IAM trust relationship.
 - **#16 [M4] Implement Snowpipe auto-ingest for Silver Parquet**
-  - *Status*: Six Snowpipes and manual S3 notification wiring validated; Terraform codification pending.
+  - *Status*: Six Snowpipes and manual S3 notification wiring validated. Terraform defines reusable S3 notification desired state but was not applied/imported into the existing live demo.
   - *Context*: Automated loading into Landing tables upon file arrival in S3.
   - *Objective*: Create Snowpipe definitions with `AUTO_INGEST = TRUE` mapped to SQS event notifications, capturing file audit metadata.
 - **#17 [M4] Create Snowflake Landing tables and load validation queries**

@@ -21,6 +21,7 @@ Per **ADR-0005**, AWS Glue 5.1 (Apache Spark 3.5.6 / Python 3.11) handles techni
      - `playlist_snapshots` (point-in-time state of playlist slots preserving `spotify_snapshot_id`)
 4. **Technical Deduplication**: Deduplicate entities across runs using entity IDs.
 5. **Columnar Parquet Output**: Write snappy-compressed Parquet datasets to collision-free S3 Silver prefixes scoped by `ingestion_date`, physical `run_id`, and `playlist_id`.
+6. **Completion Inventory**: Publish `metadata/curation/<pipeline_run_id>/complete.json` only after all six dataset outputs have been inventoried with exact object keys and row counts. Airflow uses this document as the physical contract for the Snowflake Landing gate.
 
 ---
 
@@ -35,7 +36,8 @@ glue/
 │   ├── silver_schemas.py                # Target schemas for Silver Parquet entities
 │   └── validation.py                    # Structural/required-value contract checks
 ├── storage/
-│   └── layout.py                        # Canonical Silver partition paths
+│   ├── layout.py                        # Canonical Silver partition paths
+│   └── completion.py                    # Immutable completion-manifest publication
 └── transforms/
     ├── entities.py                      # Artists/albums/tracks/bridge normalization
     ├── snapshots.py                     # Historical playlist-slot normalization
@@ -87,6 +89,22 @@ Landing contract exposes it as a normal column as well as an S3 partition value.
 - The default Python 3.12 CI suite keeps its five-second budget and does not start a JVM.
   A separate CI job mirrors Glue 5.1 and runs only `tests/spark` with external network
   access blocked while allowing Py4J loopback sockets.
-- The bounded cloud slice has additionally executed three successful Glue 5.1 Bronze-to-Silver
-  runs for the CC0 demo, producing six Silver datasets per day (18 Parquet objects total).
-  Local/CI validation remains the default path and requires no AWS API call or Glue DPU.
+- The initial bounded cloud slice executed three successful Glue 5.1 Bronze-to-Silver runs for
+  the three CC0 demo dates. A subsequent one-day replay added a fourth successful current Glue
+  run while preserving the logical warehouse grain. Across those four validation runs the
+  recorded Glue usage was **589 DPU-seconds**. This is usage evidence, not an isolated dollar
+  cost claim.
+- Local/CI validation remains the default path and requires no AWS API call or Glue DPU.
+
+## Runtime and replay boundary
+
+The validated Glue job uses `MaxRetries=0` and a single concurrent run. Airflow owns the
+physical retry/replay policy because a hidden service retry or blind `StartJobRun` retry could
+duplicate physical work after an ambiguous external response.
+
+Every new physical attempt receives a fresh `pipeline_run_id` and therefore fresh Bronze,
+Silver and completion-manifest paths. Logical deduplication happens later in dbt at the
+canonical `(playlist_id, snapshot_date, track_position)` grain.
+
+See [`../docs/DATA_QUALITY.md`](../docs/DATA_QUALITY.md) for the cross-tier contract and
+[`../airflow/README.md`](../airflow/README.md) for submission/replay semantics.

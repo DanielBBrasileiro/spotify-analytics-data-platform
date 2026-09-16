@@ -26,7 +26,13 @@ Per **ADR-0005**, dbt Core is responsible for in-warehouse analytical transforma
      - `mart_playlist_trends` (track count, explicit share, duration distribution, turnover)
      - `mart_track_lifecycle` (longevity, current rank, best position, position changes)
      - `mart_playlist_changes` (daily track entries, exits, and continuous days retained)
-4. **Data Quality Tests (`tests/`)**:
+4. **Serving Views (`models/marts/`)**:
+   - `bi_playlist_daily`
+   - `bi_track_daily`
+   - `bi_track_changes`
+   - `bi_artist_daily`
+   - These views expose consumer-safe units, one-based display positions, source provenance, and stable row grains without coupling the warehouse to a specific dashboard tool.
+5. **Data Quality Tests (`tests/`)**:
    - Generic schema tests (unique, not_null, accepted_values, relationships).
    - Singular SQL tests for domain rules (e.g., positive track durations).
 
@@ -75,10 +81,15 @@ dbt/
 │   │   └── fact_playlist_snapshot.sql
 │   └── marts/
 │       ├── _marts_models.yml
+│       ├── _serving_models.yml
 │       ├── mart_artist_presence.sql
 │       ├── mart_playlist_trends.sql
 │       ├── mart_track_lifecycle.sql
-│       └── mart_playlist_changes.sql
+│       ├── mart_playlist_changes.sql
+│       ├── bi_playlist_daily.sql
+│       ├── bi_track_daily.sql
+│       ├── bi_track_changes.sql
+│       └── bi_artist_daily.sql
 └── tests/
     ├── assert_positive_track_durations.sql
     ├── assert_nonnegative_positions.sql
@@ -97,15 +108,16 @@ dbt/
 
 ## Offline development contract
 
-M5 uses `dbt-core==1.12.4`, `dbt-snowflake==1.12.0`, and `dbt_utils==1.4.1`.
+The v1.0.0 project uses `dbt-core==1.12.4`, `dbt-snowflake==1.12.0`, and `dbt_utils==1.4.1`.
 `profiles.yml.example` contains environment-variable placeholders only and hard-codes the
 least-privileged `SPOTIFY_TRANSFORMER` role. CI uses the inert profile under
 `tests/dbt_profile/` and runs `dbt parse --no-partial-parse`, which validates project
 configuration, Jinja, refs/sources, macros, and the DAG without connecting to Snowflake.
 
-The bounded cloud slice has now passed a live Snowflake `dbt build` with 126/126 nodes/tests
-successful for a three-day backfill. A second selective `fact_playlist_snapshot` rerun also
-completed successfully with the fact remaining at 36 rows / 36 unique snapshot keys. CI
+The Airflow-orchestrated bounded cloud slice passed a live Snowflake `dbt build` with
+**152/152 nodes/tests** successful across the current model/test graph, including all four
+serving views. A second one-day replay completed the same **152/152** build; the fact remained
+at 36 total rows, while the replayed date remained 12 rows / 12 unique business grains. CI
 continues to use the inert offline parse contract and does not depend on live credentials.
 
 The incremental fact requires an explicit execution window at runtime: use
@@ -126,8 +138,9 @@ distinct landed slot positions for that same run/source version. The fact derive
 and track surrogate keys directly from the canonical natural IDs, so transient dimension
 load lag cannot make slot rows disappear or trigger destructive pruning. A dedicated data
 test still fails a live build if any snapshot track is missing from the staged track
-dimension source. M6 must additionally treat complete Landing/Snowpipe readiness across all
-six datasets as a pre-dbt orchestration gate.
+dimension source. Airflow now enforces complete Landing/Snowpipe readiness across all six
+datasets as a pre-dbt orchestration gate, reconciling exact physical filenames and row counts
+against the Glue completion inventory before this project is allowed to run.
 
 Track-level marts collapse repeated legitimate playlist slots for the same track/date to
 the best (lowest numeric) observed position. The underlying fact keeps every slot at its
@@ -138,3 +151,12 @@ produces exits while a missing pipeline day does not. Turnover is a distinct-tra
 membership ratio: `(new + exited) / (previous_distinct_tracks + current_distinct_tracks)`.
 Artist `playlist_share` uses all observed playlists on the date as its denominator,
 including playlists with zero valid track slots.
+
+## Serving boundary
+
+The data-engineering release ends at the tested Snowflake `BI_*` views. Power BI semantic
+modeling, DAX and dashboard files are not part of v1.0.0; any downstream BI client should
+consume the documented serving grains rather than rebuild core business semantics independently.
+
+See [`../docs/SERVING_CONTRACT.md`](../docs/SERVING_CONTRACT.md) and
+[`../docs/DATA_MODEL.md`](../docs/DATA_MODEL.md).

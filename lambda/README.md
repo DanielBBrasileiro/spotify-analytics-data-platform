@@ -11,7 +11,7 @@ same package code is exercised locally and deployed to Lambda.
 - **Validated Invocation Contract**: accepts `playlist_ids`, a UUID v4
   `pipeline_run_id`, and canonical `snapshot_date`; malformed or duplicate playlist
   inputs are rejected before extraction.
-- **Credential Provider**: Issue #7 loads `client_id`, `client_secret`, and
+- **Credential Provider**: loads `client_id`, `client_secret`, and
   `refresh_token` from AWS Secrets Manager for non-local environments and caches
   them in the Lambda process. `ENVIRONMENT=local` uses explicit process-environment
   credentials without contacting AWS.
@@ -27,7 +27,7 @@ same package code is exercised locally and deployed to Lambda.
   being overwritten. A transient conditional `409` is retried once.
 - **Execution Summary**: successful invocations return HTTP-style status, aggregate
   record counts, per-playlist source versions/S3 URIs, and elapsed milliseconds.
-- **Structured Observability**: Issue #8 emits compact JSON lifecycle events for
+- **Structured Observability**: emits compact JSON lifecycle events for
   extraction start, each version-checked page, successful S3 publication, completion,
   and sanitized failures. `spotify_snapshot_id` is `null` until the source version is
   known; exception messages and raw payloads are never included in failure telemetry.
@@ -71,7 +71,7 @@ representations, or Pydantic serialization. Cloud failures do **not** silently f
 back to environment credentials, and `ENVIRONMENT=local` is rejected when the
 managed Lambda runtime marker is present. The process cache intentionally trades immediate secret refresh for
 fewer API calls; an `invalid_grant` invalidates it. Durable write-back if Spotify
-returns a rotated refresh token is not implemented by Issue #7 and would require a
+returns a rotated refresh token is not implemented and would require a
 separately reviewed Secrets Manager write permission.
 
 ## Telemetry Contract
@@ -92,15 +92,23 @@ Every structured event contains `timestamp`, `event`, `level`, `source`, `compon
 JSON stream handler across warm invocations. Unexpected unstructured messages have
 their free-form text suppressed instead of being copied into telemetry.
 
-When deployed in managed Lambda, these standard logging streams are intended to be
-captured by CloudWatch Logs. This repository has **not** provisioned a log group,
-retention policy, metric filters, alarms, or a live Lambda deployment yet.
+When deployed in managed Lambda, these standard logging streams are captured by CloudWatch
+Logs. The Terraform monitoring module defines the function log group with a seven-day
+retention policy for the reusable development shape. v1.0.0 does **not** claim that a live
+Spotify Lambda invocation was part of the bounded cloud demo, and it does not claim a managed
+CloudWatch metric/alarm dashboard around this source path.
 
 ## Verification Boundary
 
-M2 has no live AWS benchmark. The `< 30s` acceptance target must be measured
-against monitored playlists after deployment configuration exists. Local tests prove
+The source-side Lambda path has no v1.0.0 live Spotify benchmark. Any latency target must be
+measured against an explicitly authorized live playlist before it is presented as evidence.
+Automated tests prove
 event validation, real auth/extraction integration through mocked HTTP, canonical S3
 keys, conditional upload semantics, cached Secrets Manager retrieval, local fallback,
 page-level telemetry, single-line JSON formatting, warm logger idempotency, and
 sanitized failures without consuming AWS resources or credentials.
+
+The public bounded portfolio demo intentionally begins from the CC0-backed source adapter and
+joins this architecture at the same Bronze contract. See
+[`../docs/LOCAL_INGESTION.md`](../docs/LOCAL_INGESTION.md) for the source boundary and
+[`../docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md) for the validated path.

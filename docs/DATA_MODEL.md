@@ -1,12 +1,22 @@
-# Data Model Specification
+# Data Model & Analytical Contracts
 
-This document details the data schemas, entity relationships, dimensional designs, and historical snapshot models across all tiers of the Spotify Analytics Data Platform.
+This document defines the **warehouse modeling contract** for the Spotify Analytics Data Platform: how curated Silver data is represented in Snowflake, how logical business grain is separated from physical execution lineage, how dbt builds the dimensional model, and how analytical semantics reach the `BI_*` serving views.
+
+The model is designed for replayability. A new physical `pipeline_run_id` may reprocess a logical date without creating a second business fact because execution identity and analytical identity are deliberately different concepts.
 
 ---
 
 ## 1. Architectural Modeling Tiers
 
-The data model evolves across four distinct layers within Snowflake:
+The warehouse contract evolves through four Snowflake schemas and a serving surface:
+
+<!--
+VISUAL ASSET 17
+Target: docs/assets/data-model/modeling-layers.png
+Prompt: docs/assets/README.md#17--warehouse-modeling-layers
+When ready:
+![Warehouse Modeling Layers](assets/data-model/modeling-layers.png)
+-->
 
 ```
 S3 Silver Parquet
@@ -21,8 +31,21 @@ S3 Silver Parquet
 3. CORE Schema          (dbt Kimball dimensional star schema: dimensions, facts, bridge)
        │
        ▼
-4. MARTS Schema         (dbt aggregated analytical tables serving Power BI)
+4. MARTS Schema         (dbt analytical marts and stable BI-serving views)
+       │
+       ▼
+5. BI_* Views           (tool-agnostic analytical consumption contract)
 ```
+
+| Layer | Grain responsibility | Main quality responsibility |
+|---|---|---|
+| `LANDING` | Preserve the row grain emitted by the six Silver datasets. | File/row lineage and exact physical ingestion evidence. |
+| `STAGING` | Normalize source entities and choose authoritative logical observations. | Type cleanup, deduplication and source-level validity. |
+| `CORE` | Establish durable dimensions and canonical playlist snapshot fact grain. | Uniqueness, referential integrity and stable surrogate keys. |
+| `MARTS` | Derive analytical grains for trends, lifecycle, churn and artist presence. | Business rules and grain-specific tests. |
+| `BI_*` | Present consumer-safe names, units, positions and provenance. | Serving row keys, coverage and semantic handoff. |
+
+The public v1.0.0 release is **BI-tool agnostic**. Power BI remains an optional downstream consumer; the implemented contract stops at tested Snowflake serving views.
 
 ---
 
@@ -138,7 +161,7 @@ erDiagram
 
     dim_track {
         string track_pk PK "Surrogate Hash (track_id)"
-        string track_id NK "Spotify Track ID"
+        string track_id "Natural key: Spotify Track ID"
         string track_name
         string album_pk FK
         int duration_ms
@@ -149,14 +172,14 @@ erDiagram
 
     dim_artist {
         string artist_pk PK "Surrogate Hash (artist_id)"
-        string artist_id NK "Spotify Artist ID"
+        string artist_id "Natural key: Spotify Artist ID"
         string artist_name
         timestamp created_at
     }
 
     dim_album {
         string album_pk PK "Surrogate Hash (album_id)"
-        string album_id NK "Source-stable Album Key"
+        string album_id "Natural key: source-stable album key"
         string album_name
         string album_type
         date release_date
@@ -165,7 +188,7 @@ erDiagram
 
     dim_playlist {
         string playlist_pk PK "Surrogate Hash (playlist_id)"
-        string playlist_id NK "Spotify Playlist ID"
+        string playlist_id "Natural key: Spotify Playlist ID"
         string playlist_name
     }
 
@@ -208,7 +231,7 @@ new source-contract review and corresponding Silver/Landing schema change.
 
 ## 5. Layer 4: MARTS Schema (Analytical Business Marts)
 
-Power BI connects directly to these curated analytical models.
+Marts translate the canonical dimensional model into purpose-specific analytical grains. They are still **warehouse models**, not dashboard logic: consumer-facing naming, units and provenance are finalized one step later in the `BI_*` serving views.
 
 ### 1. `mart_artist_presence`
 - **Granularity**: `artist_id` + `snapshot_date`
@@ -231,3 +254,131 @@ Power BI connects directly to these curated analytical models.
   - `movement_status`: `'NEW'` (entered today), `'RETAINED'` (present yesterday & today), `'EXITED'` (present yesterday, absent today).
   - `position_delta`: Change in position from previous day (`rank_yesterday - rank_today`).
   - `consecutive_days_retained`: Running count of uninterrupted daily snapshot appearances.
+
+---
+
+## 6. Serving Views
+
+The v1.0.0 consumption surface is four version-controlled Snowflake views in `MARTS`:
+
+| View | Unique grain | Source model | Consumer-oriented semantics |
+|---|---|---|---|
+| `BI_PLAYLIST_DAILY` | `playlist_id + snapshot_date` | `mart_playlist_trends` | Daily playlist size, duration, additions, exits, turnover and provenance. |
+| `BI_TRACK_DAILY` | `playlist_id + track_id + snapshot_date` | `mart_track_lifecycle` | Current/best one-based position and observed-days lifecycle metrics. |
+| `BI_TRACK_CHANGES` | `playlist_id + track_id + snapshot_date` | `mart_playlist_changes` | `NEW` / `RETAINED` / `EXITED`, positions and uninterrupted retention streak. |
+| `BI_ARTIST_DAILY` | `artist_id + snapshot_date` | `mart_artist_presence` | Credited slots, playlist reach/share and artist-presence metrics. |
+
+Serving views deliberately keep analytical semantics in dbt/Snowflake rather than a dashboard file. A future BI client should consume these contracts instead of re-implementing core calculations independently.
+
+See [`SERVING_CONTRACT.md`](SERVING_CONTRACT.md) for units, null semantics, relationship guidance and refresh rules.
+
+---
+
+## 7. Physical Lineage vs Logical Grain
+
+The most important modeling distinction in the platform is the separation between **physical attempts** and **logical facts**.
+
+```text
+physical processing identity
+pipeline_run_id = UUID v4
+        │
+        │ lineage only
+        ▼
+logical analytical identity
+(playlist_id, snapshot_date, track_position)
+```
+
+A replay creates a new `pipeline_run_id`, new immutable Bronze/Silver evidence and new warehouse load metadata. dbt then selects the authoritative logical observation and merges on the stable business grain.
+
+This architecture preserves both:
+
+- **forensic history** — every physical attempt can be traced; and
+- **analytical idempotency** — reprocessing a logical date does not create a second fact solely because execution identity changed.
+
+`spotify_snapshot_id` remains a separate source-version identifier. It must not be overloaded as either the pipeline execution ID or the analytical primary key.
+
+---
+
+## 8. Temporal Semantics
+
+The model distinguishes observed dates from elapsed wall-clock time.
+
+- `snapshot_date` is the logical observation date.
+- `cumulative_days_on_playlist` counts observed dates on which a track is present; it is not elapsed calendar tenure.
+- `consecutive_days_retained` requires uninterrupted consecutive daily observations.
+- A missing observation date is **unknown**, not evidence that every track exited.
+- `NEW` can mean first observed presence or reappearance after a gap; it does not prove a real-world add timestamp.
+- Position-change comparisons are valid only across directly consecutive observed days.
+
+These rules prevent missing pipeline days from being silently converted into business events.
+
+---
+
+## 9. Source Provenance and Synthetic Demo Semantics
+
+The serving layer carries provenance so public demo data cannot be mistaken for observed Spotify history.
+
+For the current CC0 demo:
+
+```text
+source_type     = cc0_demo
+temporal_state  = synthetic
+```
+
+Catalog-style metadata originates from the CC0-backed adapter, while playlist membership and longitudinal changes are deterministically generated by this repository.
+
+Rows outside the recognized demo namespace are classified conservatively as `unclassified`; the model does not automatically assert that they represent live observed Spotify activity.
+
+---
+
+## 10. Null and Unit Semantics
+
+Consumer-safe semantics are intentional rather than presentation-layer defaults:
+
+- unknown `is_explicit` remains `NULL`, not `FALSE`;
+- unavailable release dates remain `NULL`;
+- empty observed playlists can have `NULL` average duration;
+- Core/mart positions are zero-based, while `BI_*` display positions are one-based;
+- duration exposed by `BI_PLAYLIST_DAILY` is seconds;
+- shares and turnover in serving views are ratios from `0` to `1`;
+- descriptive names are labels, never stable join keys.
+
+---
+
+## 11. Aggregation Rules
+
+Several measures are intentionally non-additive:
+
+- summing `track_slots` across dates produces **slot-days**, not distinct tracks;
+- artist credits can overlap because one track slot can credit multiple artists;
+- `playlist_share` is artist reach across observed playlists and should not be expected to sum to 100% across artists;
+- daily percentages and averages should not be summed across dates;
+- fact-like serving views should not be joined to each other on `snapshot_date` alone.
+
+Consumers that require a semantic model should derive date/playlist/track/artist lookup tables and use one-to-many, single-direction relationships rather than many-to-many joins between fact-like views.
+
+---
+
+## 12. Quality Contracts
+
+The model is guarded at several levels:
+
+1. **Landing readiness** proves the physical Silver files and rows exist exactly as declared by Glue.
+2. **Staging tests** enforce source-level validity and deduplication assumptions.
+3. **Core tests** enforce primary grain and dimensional relationships.
+4. **Mart tests** enforce analytical business rules and expected cardinality.
+5. **Serving tests** enforce row-key uniqueness, required labels, accepted movement states, provenance and row-count coverage against source marts.
+
+The full cross-tier contract suite is exposed through:
+
+```bash
+make check-quality
+```
+
+---
+
+## 13. Validated Release Evidence
+
+The current serving models are no longer merely planned contracts. The bounded Airflow/Snowflake run and the one-day replay both completed a **152/152** dbt build, and the four `BI_*` views were queried successfully with the `SPOTIFY_ANALYST` role.
+
+For this reason, the model can be described as **implemented and live-validated for the bounded portfolio slice**, while still keeping the CC0/synthetic provenance boundary explicit.

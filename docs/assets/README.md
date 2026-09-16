@@ -225,9 +225,8 @@ Use status accents for live validated, implemented/contract-tested and offline v
 
 ---
 
-### Prompts still to be added during the sweep
-
-All currently referenced documentation visuals now have dedicated generation briefs below.
+The following briefs are ready for future images; their placeholders do not indicate a missing
+runtime capability. Every currently referenced visual has a dedicated prompt in this guide.
 
 ---
 
@@ -439,7 +438,7 @@ Do not show Power BI as implemented. Do not imply that physical run IDs create n
 
 ---
 
-## 18 — Implemented and deferred extensions (integrated)
+## Integrated companion — Implemented and deferred extensions
 
 **Saved as:** `docs/assets/architecture/implemented-deferred-extensions.png`
 
@@ -448,3 +447,39 @@ Do not show Power BI as implemented. Do not imply that physical run IDs create n
 ### Regeneration brief
 
 Match the same white-background, 16:9, thin-outline, rounded-card visual system used by the first two approved diagrams. Arrange three separately titled panels: **A. Implemented live-source path** (dashed Spotify Web API → AWS Lambda → S3 Bronze, explicitly outside the bounded public demo); **B. Terraform / IaC boundary** (S3, IAM, Lambda, Glue and monitoring/budget desired-state modules, validated offline/CI with no claim of apply/import/destroy or state ownership of existing live resources); and **C. Power BI / BI artifacts** (semantic model and dashboard marked *Deferred from v1.0.0*). Use a compact status legend for validated, contract-tested, deferred and optional paths. Do not depict Terraform as a step in the live data flow or Power BI as a validated consumer.
+
+---
+
+## 18 — Serving consumption model
+
+**Save as:** `docs/assets/serving/serving-consumption-model.png`
+
+**Placement:** `docs/SERVING_CONTRACT.md → Consumption Model`
+
+### Prompt
+
+Create a premium 16:9 technical diagram using the same white background, thin blue outlines, rounded cards and modern typography as the approved README images. Show **Snowflake LANDING → dbt STAGING → CORE → MARTS → four BI_* serving views → Analyst / BI consumer**. List exactly: `BI_PLAYLIST_DAILY`, `BI_TRACK_DAILY`, `BI_TRACK_CHANGES`, `BI_ARTIST_DAILY`. Show read-only `SPOTIFY_ANALYST` at the consumption boundary. Add chips for documented grain, one-based display positions, ratios from 0–1, explicit null semantics and preserved source provenance. Mark Power BI as **deferred from v1.0.0** in a muted separate annotation. Do not draw a validated dashboard, DAX model or Power BI connection.
+
+---
+
+## 19 — Cross-tier data quality gates
+
+**Save as:** `docs/assets/quality/cross-tier-quality-gates.png`
+
+**Placement:** `docs/DATA_QUALITY.md → Quality Gates at a Glance`
+
+### Prompt
+
+Create a premium diagram titled **“Cross-Tier Data Quality — Fail-Closed Gates”** in the same white 16:9 enterprise visual style. Show ordered gates **Bronze payload/lineage → Glue/Silver explicit Spark schemas and quarantine accounting → immutable Glue completion inventory → exact Snowflake Landing gate → dbt CORE/MARTS tests → serving coverage tests**. Make Landing prominent: six required datasets (`artists`, `albums`, `tracks`, `track_artists`, `playlist_snapshots`, `playlist_observations`), exact run-scoped filenames, expected rows, distinct `_FILE_ROW_NUMBER`, no unexpected/excess files and zero rejected demo items. Show that a failed gate blocks downstream work. Add a thin evidence rail for Bronze JSON, Silver Parquet, completion manifest, Landing evidence and dbt results. Do not invent dashboards or production paging.
+
+---
+
+## 20 — Live-source ingestion contract
+
+**Save as:** `docs/assets/ingestion/live-source-contract.png`
+
+**Placement:** `docs/LOCAL_INGESTION.md → opening source-contract overview`
+
+### Prompt
+
+Create a premium source-ingestion diagram in the same white 16:9 visual style, with a dashed blue boundary labeled **“Implemented and contract-tested — outside the bounded CC0 public demo”**. Show **operator authorization → Spotify OAuth Authorization Code + refresh token → credential provider (AWS Secrets Manager in managed Lambda; local environment in explicit local mode) → Spotify Web API playlist items with pagination/source-version checks → Python 3.12 AWS Lambda extractor → immutable S3 Bronze JSON**. Distinguish `pipeline_run_id` (fresh physical UUID) from `spotify_snapshot_id` (source-version identity). Add chips for TLS, rate limits, no secrets in logs, immutable conditional `PutObject` and sanitized structured events. Show the validated CC0 demo as a separate solid green lane converging only at Bronze, labeled `temporal_state=synthetic`. Do not depict Lambda as part of the bounded demo or claim a live extraction benchmark.
