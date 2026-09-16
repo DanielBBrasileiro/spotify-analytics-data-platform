@@ -4,13 +4,13 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python: 3.12](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/downloads/release/python-3120/)
 [![Code Style: Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
-[![Release: v0.1.1](https://img.shields.io/badge/Release-v0.1.1-brightgreen.svg)](https://github.com/DanielBBrasileiro/spotify-analytics-data-platform/releases/tag/v0.1.1)
+[![Release: v1.0.0](https://img.shields.io/badge/Release-v1.0.0-brightgreen.svg)](https://github.com/DanielBBrasileiro/spotify-analytics-data-platform/releases/tag/v1.0.0)
 
 > Production-oriented data engineering portfolio with offline contracts plus a bounded live
 > cloud validation of S3 -> Glue 5.1 -> Snowflake/Snowpipe -> dbt Core. The target source-side
 > path still includes AWS Lambda for live Spotify extraction. Local Airflow orchestration and
 > BI serving views are implemented and have now been exercised against the bounded live cloud
-> slice. Terraform and advanced alerting remain pending; the Power BI dashboard is deferred.
+> slice. Terraform IaC, Airflow 3 Deadline Alerts, cross-tier quality/telemetry and recovery tooling are versioned in the repository. Power BI is intentionally deferred from v1.0.0.
 
 ---
 
@@ -64,8 +64,8 @@ flowchart TD
         Core[("CORE & MARTS Schemas<br/>• dim_track, dim_artist, dim_album<br/>• bridge_track_artist<br/>• fact_playlist_snapshot")]
     end
 
-    subgraph Serving["4. Serving & BI"]
-        PowerBI["Power BI Analytical Dashboard<br/>(DirectQuery / Import)"]
+    subgraph Serving["4. Serving"]
+        BIConsumer["Consumption-ready MARTS views<br/>(BI tool optional / deferred)"]
     end
 
     subgraph Orchestration["Airflow 3.x Orchestration (Local / Docker)"]
@@ -91,7 +91,7 @@ flowchart TD
     Snowpipe -->|Copy Into| Landing
     Landing -->|Transform| dbt
     dbt -->|Incremental Merge| Core
-    Core -->|Query| PowerBI
+    Core -->|Query| BIConsumer
 
     %% Orchestration
     Airflow -.->|1. Trigger| Lambda
@@ -132,9 +132,9 @@ By persisting immutable daily snapshots of **monitored user-owned or collaborati
 | **Ingestion** | Snowflake Snowpipe | Serverless, continuous micro-batch loading from S3 into Landing tables with file audit metadata. |
 | **Data Warehouse** | Snowflake | Columnar analytical warehouse with `X-Small` warehouse and 60-second auto-suspend. |
 | **Transformation** | dbt Core | SQL dimensional modeling, surrogate key hashing, incremental `MERGE`, and data testing. |
-| **Infrastructure as Code** | Terraform | Reproducible, version-controlled cloud infrastructure across AWS and Snowflake. |
+| **Infrastructure as Code** | Terraform | Version-controlled AWS resource definitions with offline validation and security scanning; Snowflake DDL remains version-controlled separately. |
 | **CI/CD** | GitHub Actions | Python lint/test, Glue-parity Spark contracts, Snowflake SQL contracts, and dbt parse/manifest validation on PRs and `main`. |
-| **Business Intelligence** | Power BI | Star schema analytical reporting, interactive churn dashboards, and tenure metrics. |
+| **Serving** | Snowflake MARTS / `BI_*` views | Consumption-ready analytical contract validated with `SPOTIFY_ANALYST`; Power BI remains an optional downstream consumer outside v1.0.0. |
 
 ---
 
@@ -268,13 +268,15 @@ Full budget breakdown available in [`docs/COST_STRATEGY.md`](docs/COST_STRATEGY.
 │   └── pull_request_template.md
 │
 ├── docs/                     # Comprehensive engineering documentation
-│   ├── PROJECT_BLUEPRINT.md  # Master 47-section technical specification (v0.1.1)
+│   ├── PROJECT_BLUEPRINT.md  # Master technical specification and architectural baseline
 │   ├── COST_STRATEGY.md      # Budget limits, cost drivers, and teardown runbook
 │   ├── ARCHITECTURE.md       # High-level architecture and sequence diagrams
 │   ├── DATA_MODEL.md         # Schema dictionaries, dimensional model, canonical keys
 │   ├── SECURITY.md           # OAuth 2.0 token lifecycle, IAM least privilege, RBAC
 │   ├── OBSERVABILITY.md      # Structured telemetry schema (pipeline_run_id & snapshot_id)
-│   ├── RUNBOOK.md            # Incident triage playbooks and backfill procedures
+│   ├── RUNBOOK.md            # Incident triage, replay and audit procedures
+│   ├── INTERVIEW_GUIDE.md    # Technical talking points for portfolio review
+│   ├── DEMO_GUIDE.md         # Short reproducible portfolio walkthrough
 │   ├── REFERENCES.md         # Official 2026 API, Glue 5.1, and Airflow 3 citations
 │   └── adr/                  # Architectural Decision Records (ADR 0001 - 0008)
 │
@@ -288,8 +290,8 @@ Full budget breakdown available in [`docs/COST_STRATEGY.md`](docs/COST_STRATEGY.
 ├── glue/                     # AWS Glue 5.1 PySpark scripts and explicit schemas
 ├── dbt/                      # dbt Core project (staging, core, marts, tests)
 ├── snowflake/                # Snowflake DDL, Snowpipe, and RBAC manifests
-├── infra/terraform/          # Terraform target design; implementation begins in M8
-├── powerbi/                  # Semantic models, DAX measures, and dashboard templates
+├── infra/terraform/          # Versioned AWS IaC modules and budget/monitoring guardrails
+├── powerbi/                  # Deferred optional consumer notes (not part of v1.0.0)
 ├── scripts/                  # Developer utilities and mock data generators
 │
 ├── .editorconfig             # Standardized cross-editor formatting rules
@@ -312,7 +314,7 @@ Full budget breakdown available in [`docs/COST_STRATEGY.md`](docs/COST_STRATEGY.
 ### Prerequisites
 - Python 3.12+ (managed via `pyenv` or `asdf`)
 - Git & GitHub CLI (`gh`)
-- Docker & Docker Compose (needed later for M6 Airflow; not required by the current offline suite)
+- Docker & Docker Compose for the local Airflow 3 orchestration runtime
 - Python 3.11 + Java 17 for the Glue 5.1 parity test environment (`make spark-test`)
 
 ### Quick Start
@@ -357,10 +359,10 @@ Full budget breakdown available in [`docs/COST_STRATEGY.md`](docs/COST_STRATEGY.
 - [x] **Milestone M3 — Glue / PySpark & Silver Layer** (offline complete on Glue 5.1 parity runtime)
 - [x] **Milestone M4 — Snowflake & Snowpipe** (bounded manual cloud slice validated; Terraform remains M8)
 - [x] **Milestone M5 — dbt Analytics Engineering** (bounded cloud build, serving views and selective replay validated live)
-- [ ] **Milestone M6 — Airflow Orchestration** (bounded live orchestration validated; live Lambda source path and advanced Deadline Alerts remain pending)
-- [ ] **Milestone M7 — Data Quality & Observability** (Cross-tier gates, telemetry manifests, incident playbooks)
-- [ ] **Milestone M8 — Terraform & CI/CD Hardening** (Terraform modules, CI security, AWS Budgets)
-- [ ] **Milestone M9 — Serving & Portfolio Release** (BI consumption views implemented locally; Power BI dashboard and semantic-model artifacts deferred)
+- [x] **Milestone M6 — Airflow Orchestration** (bounded live orchestration validated with Task SDK, retries, rescheduling sensors, Deadline Alert and structured failure callbacks; live Spotify Lambda invocation is a separate source-path extension)
+- [x] **Milestone M7 — Data Quality & Observability** (cross-tier gates, unified run reports, replay/audit CLIs and incident runbooks)
+- [x] **Milestone M8 — Terraform & CI/CD Hardening** (AWS IaC, static security/lint checks and budget definitions; existing manually deployed resources were not replaced in-place)
+- [x] **Milestone M9 — Serving & Portfolio Release** (live-validated `BI_*` serving views, interview/demo documentation and v1.0.0 packaging; Power BI explicitly deferred)
 
 Refer to [BACKLOG.md](BACKLOG.md) for detailed issues, user stories, and acceptance criteria.
 
@@ -376,7 +378,7 @@ The next integrated path uses the existing CC0 demo, the local
 [Airflow DAG](airflow/README.md), exact run-scoped Landing checks, and `dbt build`.
 Four `BI_*` views expose names, one-based positions, documented units and synthetic-data
 labels to future consumers. See the [serving contract](docs/SERVING_CONTRACT.md).
-No Power BI dashboard or semantic-model artifact is part of the current delivery.
+No Power BI dashboard, `.pbit`, or DAX artifact is part of v1.0.0. The repository stops at a tested serving contract so a BI tool can be attached without changing pipeline semantics.
 
 The bounded Airflow smoke run and one-day replay completed successfully against AWS Glue,
 Snowpipe and Snowflake. The four `BI_*` views were queried successfully using the

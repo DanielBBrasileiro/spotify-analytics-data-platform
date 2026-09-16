@@ -7,6 +7,15 @@ import os
 from datetime import UTC, datetime, timedelta
 
 from airflow.sdk import Param, PokeReturnValue, dag, get_current_context, task, task_group
+from airflow.sdk.definitions.callback import SyncCallback
+from airflow.sdk.definitions.deadline import DeadlineAlert, DeadlineReference
+
+
+def _dag_failure_callback(context):
+    """Lazy runtime import keeps DAG parsing independent from service credentials."""
+    from spotify_tasks import dag_failure_callback
+
+    return dag_failure_callback(context)
 
 
 @dag(
@@ -17,9 +26,15 @@ from airflow.sdk import Param, PokeReturnValue, dag, get_current_context, task, 
     max_active_runs=1,
     max_active_tasks=4,
     dagrun_timeout=timedelta(hours=2),
+    deadline=DeadlineAlert(
+        reference=DeadlineReference.DAGRUN_QUEUED_AT,
+        interval=timedelta(hours=2),
+        callback=SyncCallback("spotify_tasks.deadline_missed_callback"),
+    ),
+    on_failure_callback=_dag_failure_callback,
     default_args={
-        "retries": 2,
-        "retry_delay": timedelta(seconds=30),
+        "retries": 3,
+        "retry_delay": timedelta(minutes=5),
         "retry_exponential_backoff": True,
         "execution_timeout": timedelta(minutes=5),
     },

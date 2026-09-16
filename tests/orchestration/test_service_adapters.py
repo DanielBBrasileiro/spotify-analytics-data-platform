@@ -111,6 +111,7 @@ def test_readiness_reads_six_current_run_partitions_and_persists_evidence(
     client.get_object.side_effect = lambda **kw: {
         "Body": io.BytesIO(json.dumps(inventory).encode())
     }
+    client.get_job_run.return_value = {"JobRun": {"ExecutionTime": 12, "DPUSeconds": 24.0}}
     monkeypatch.setattr(tasks, "aws", lambda *a, **kw: client)
     monkeypatch.setenv("PIPELINE_ARTIFACT_ROOT", str(tmp_path / "artifacts"))
     connection = MagicMock()
@@ -121,14 +122,18 @@ def test_readiness_reads_six_current_run_partitions_and_persists_evidence(
         for files in inventory["datasets"].values()
     ]
     cursor.fetchall.side_effect = [*landed[:-1], []]
-    job = {"record": record, "job_run_id": "jr_test"}
+    job = {"record": record, "job_name": "curation", "job_run_id": "jr_test"}
     assert tasks.check_landing(job, "bucket", "dag-run") is False
     cursor.fetchall.side_effect = landed
     assert tasks.check_landing(job, "bucket", "dag-run") is True
     sql, params = cursor.execute.call_args.args
     assert "STARTSWITH" in sql and "LIKE" not in sql
     assert record["pipeline_run_id"] in params[0]
-    assert list((tmp_path / "artifacts").glob("*/landing-*.json"))
+    evidence = list((tmp_path / "artifacts").glob("*/landing-*.json"))
+    assert evidence
+    payload = json.loads(evidence[0].read_text())
+    assert payload["glue_execution_time_seconds"] == 12
+    assert payload["glue_dpu_seconds"] == 24.0
     inventory["rejected_items"] = 1
     with pytest.raises(ValueError, match="rejected"):
         tasks.check_landing(job, "bucket", "dag-run")
@@ -172,3 +177,28 @@ def test_dbt_build_captures_artifacts_and_rejects_warn_or_skipped_nodes(monkeypa
     monkeypatch.setattr(tasks.subprocess, "run", fail)
     with pytest.raises(subprocess.CalledProcessError):
         tasks.build_dbt(plan)
+
+
+def test_failure_callbacks_emit_sanitized_structured_json(capsys):
+    task_instance = SimpleNamespace(
+        dag_id="spotify_daily_snapshot",
+        task_id="transform",
+        run_id="manual__test",
+        try_number=2,
+    )
+    context = {
+        "task_instance": task_instance,
+        "exception": RuntimeError("do-not-log-this-secret-message"),
+    }
+    payload = tasks.dag_failure_callback(context)
+    rendered = capsys.readouterr().out.strip()
+    assert json.loads(rendered) == payload
+    assert payload["event"] == "DAG_FAILED"
+    assert payload["exception_type"] == "RuntimeError"
+    assert "do-not-log-this-secret-message" not in rendered
+
+    deadline = tasks.deadline_missed_callback(context, deadline_name="completion")
+    rendered = capsys.readouterr().out.strip()
+    assert json.loads(rendered) == deadline
+    assert deadline["event"] == "DAG_DEADLINE_MISSED"
+    assert deadline["deadline_name"] == "completion"

@@ -70,6 +70,47 @@ def write_report(airflow_run_id, filename, payload):
     pending.replace(directory / filename)
 
 
+def _airflow_context_value(context, name, default=None):
+    """Read one safe scalar from callback context without serializing Airflow objects."""
+    value = context.get(name, default) if isinstance(context, dict) else default
+    if value is None:
+        return default
+    return str(value)
+
+
+def _emit_airflow_event(event, context, **details):
+    """Emit a compact structured event without exception text or credentials."""
+    ti = context.get("task_instance") if isinstance(context, dict) else None
+    dag_run = context.get("dag_run") if isinstance(context, dict) else None
+    exception = context.get("exception") if isinstance(context, dict) else None
+    payload = {
+        "timestamp": datetime.now(UTC).isoformat(),
+        "event": event,
+        "component": "airflow",
+        "status": "FAILED",
+        "dag_id": getattr(ti, "dag_id", None) or getattr(dag_run, "dag_id", None),
+        "task_id": getattr(ti, "task_id", None),
+        "run_id": getattr(ti, "run_id", None)
+        or getattr(dag_run, "run_id", None)
+        or _airflow_context_value(context, "run_id"),
+        "try_number": getattr(ti, "try_number", None),
+        "exception_type": type(exception).__name__ if exception is not None else None,
+        **details,
+    }
+    print(json.dumps(payload, separators=(",", ":"), default=str), flush=True)
+    return payload
+
+
+def dag_failure_callback(context):
+    """DAG-level failure callback with sanitized structured context."""
+    return _emit_airflow_event("DAG_FAILED", context)
+
+
+def deadline_missed_callback(context, **kwargs):
+    """Deadline Alert callback executed by Airflow after the run completion deadline."""
+    return _emit_airflow_event("DAG_DEADLINE_MISSED", context, **kwargs)
+
+
 def upload_bronze(record, bucket):
     body = Path(record["local_path"]).read_bytes()
     if hashlib.sha256(body).hexdigest() != record["sha256"]:
@@ -161,6 +202,11 @@ def check_landing(job, bucket, airflow_run_id):
             )
             checks[dataset] = landing_ready(datasets[dataset], cursor.fetchall())
     ready = all(checks.values())
+    glue_run = {}
+    if ready:
+        glue_run = aws("glue").get_job_run(JobName=job["job_name"], RunId=job["job_run_id"])[
+            "JobRun"
+        ]
     write_report(
         airflow_run_id,
         f"landing-{record['pipeline_run_id']}.json",
@@ -169,6 +215,8 @@ def check_landing(job, bucket, airflow_run_id):
             "datasets": checks,
             "completion": completion,
             "glue_job_run_id": job["job_run_id"],
+            "glue_execution_time_seconds": glue_run.get("ExecutionTime"),
+            "glue_dpu_seconds": glue_run.get("DPUSeconds"),
         },
     )
     return ready

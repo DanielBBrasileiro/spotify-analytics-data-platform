@@ -20,6 +20,7 @@ def manifest(tmp_path):
         "playlist_id": "1" * 22,
         "spotify_snapshot_id": "cc0-sim-test",
         "source_provenance": {"temporal_state": "synthetic"},
+        "items": [{"item": {"type": "track"}}],
     }
     (tmp_path / "bronze.json").write_text(json.dumps(source))
     doc = {
@@ -75,6 +76,7 @@ def test_retry_stable_but_new_dag_run_gets_new_physical_publication(manifest):
     assert a["sha256"] == b["sha256"]
     assert UUID(a["pipeline_run_id"]).version == 4
     assert a["bronze_key"] != b["bronze_key"]
+    assert a["records_extracted"] == 1
 
 
 @pytest.mark.parametrize(

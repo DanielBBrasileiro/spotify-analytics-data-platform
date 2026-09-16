@@ -52,6 +52,9 @@ def plan_demo(manifest_path: str, start_date: str, end_date: str, airflow_run_id
             raise ValueError("Bronze file must be inside the manifest directory.")
         payload = local_path.read_bytes()
         source = json.loads(payload)
+        source_items = source.get("items")
+        if not isinstance(source_items, list):
+            raise ValueError("Bronze source items must be a list.")
         if (
             source.get("playlist_id") != playlist_id
             or source.get("spotify_snapshot_id") != original["spotify_snapshot_id"]
@@ -83,6 +86,7 @@ def plan_demo(manifest_path: str, start_date: str, end_date: str, airflow_run_id
                 f"run_id={physical_id}/playlist_{playlist_id}.json"
             ),
             completion_key=f"metadata/curation/{physical_id}/complete.json",
+            records_extracted=len(source_items),
         )
         records.append(record)
     expected_days = (end - start).days + 1

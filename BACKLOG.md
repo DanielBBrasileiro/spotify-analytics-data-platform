@@ -14,10 +14,10 @@ This backlog establishes the structured, phased implementation roadmap for the *
 | **M3** | **Glue / PySpark & Silver Layer** | **COMPLETED (offline-validated)** | AWS Glue 5.1 parity (Spark 3.5.6 / Python 3.11), StructType schemas, item validation, Parquet Silver |
 | **M4** | **Snowflake & Snowpipe** | **Bounded manual cloud validation complete** | Storage integration, external stage, Snowpipe auto-ingest, Landing tables with audit metadata |
 | **M5** | **dbt Analytics Engineering** | **Bounded cloud build and rerun validated** | Staging views, Kimball star schema, incremental merge fact model (`snapshot_pk`), marts |
-| **M6** | **Airflow Orchestration** | Bounded live orchestration validated; advanced alerts pending | Apache Airflow 3.x Task SDK, external cloud coordination, exact readiness gates, retries and reporting |
-| **M7** | **Data Quality & Observability** | Planned | Cross-tier quality gates, structured telemetry reporting (`run_id` & `snapshot_id`), runbooks |
-| **M8** | **Terraform & CI/CD Hardening** | Planned | Terraform modules (S3, IAM, Lambda, Glue), CI security, AWS Budgets alert thresholds |
-| **M9** | **Power BI & Portfolio Release** | Planned | Semantic model, DAX measures (churn, longevity), portfolio dashboard, interview showcase |
+| **M6** | **Airflow Orchestration** | **COMPLETED — bounded live orchestration validated** | Apache Airflow 3.x Task SDK, external cloud coordination, exact readiness gates, retries and reporting |
+| **M7** | **Data Quality & Observability** | **COMPLETED** | Cross-tier quality gates, structured telemetry reporting (`run_id` & `snapshot_id`), runbooks |
+| **M8** | **Terraform & CI/CD Hardening** | **COMPLETED (IaC validated offline; no replacement apply)** | Terraform modules (S3, IAM, Lambda, Glue), CI security, AWS Budgets alert thresholds |
+| **M9** | **Serving & Portfolio Release** | **COMPLETED for v1.0.0** | Serving contract, portfolio documentation and release; Power BI deferred |
 
 ---
 
@@ -116,7 +116,7 @@ This backlog establishes the structured, phased implementation roadmap for the *
   - *Objective*: Implement `mart_artist_presence`, `mart_playlist_trends`, `mart_track_lifecycle`, `mart_playlist_changes` and comprehensive dbt tests.
 
 ### Milestone M6: Airflow Orchestration
-- **Current implementation**: Local Compose and Task SDK DAG for CC0 Bronze → Glue → exact six-dataset Landing gate → dbt, with bounded retries and persisted summaries. The bounded AWS/Snowflake orchestration path has been validated live, including a successful three-day run and one-day replay. The live Lambda source path and Deadline Alerts remain pending.
+- **Status**: Completed for the bounded portfolio workflow. Local Compose and Task SDK orchestrate CC0 Bronze → Glue → exact six-dataset Landing gate → dbt with exponential retries, rescheduling sensors, Airflow 3 Deadline Alert, structured failure callbacks and persisted summaries. The bounded AWS/Snowflake path passed a three-day run and one-day replay. Live Spotify Lambda invocation remains a separate source-side extension, not a v1.0.0 claim.
 - **#23 [M6] Create local Docker Compose Airflow environment**
   - *Context*: Cost-effective orchestration testing requires containerized local Airflow.
   - *Objective*: Create `docker-compose.yml`, custom Dockerfile for Apache Airflow 3.x with AWS and Snowflake providers.
@@ -131,7 +131,7 @@ This backlog establishes the structured, phased implementation roadmap for the *
   - *Objective*: Add exponential retry policies, S3 Bronze sensors, and Airflow 3 Deadline Alerts for monitoring.
 
 ### Milestone M7: Data Quality & Observability
-- **Current implementation**: Immutable physical-run planning, Glue completion inventories, per-file Landing count/duplicate checks, dbt result validation and local run evidence. Unified CloudWatch/billing telemetry and general recovery automation remain pending.
+- **Status**: Completed for the portfolio scope. Immutable physical-run planning, Glue completion inventories, exact per-file Landing checks, dbt validation, `make check-quality`, unified run reports, safe replay and read-only Landing-lag audit CLIs are implemented. Full managed observability dashboards/paging remain intentionally out of scope.
 - **#27 [M7] Implement cross-tier data quality validation gates**
   - *Context*: Corrupted data or silent schema drift must be quarantined before reaching analytical marts.
   - *Objective*: Build automated validation gates verifying file size, schema validity, and null checks between tiers.
@@ -143,6 +143,7 @@ This backlog establishes the structured, phased implementation roadmap for the *
   - *Objective*: Build CLI recovery scripts for replaying failed dates, refreshing expired tokens, and purging corrupted partitions.
 
 ### Milestone M8: Terraform & CI/CD Hardening
+- **Status**: Completed as version-controlled, offline-validated AWS IaC and CI security controls. The pre-existing manually deployed demo was intentionally not replaced or destroyed merely to prove Terraform ownership.
 - **#30 [M8] Provision AWS resources (S3, IAM, Lambda, Glue) with Terraform**
   - *Context*: Cloud infrastructure must be 100% reproducible via IaC.
   - *Objective*: Implement Terraform modules for S3 buckets, least-privilege IAM roles, Lambda extractor, and Glue 5.1 job.
@@ -153,8 +154,8 @@ This backlog establishes the structured, phased implementation roadmap for the *
   - *Context*: Strictly govern the $20/month portfolio budget target.
   - *Objective*: Add Terraform definition for AWS Budget with alerts at $10.00 and $18.00 spend.
 
-### Milestone M9: Serving Data & Future Portfolio Release
-- **Scope decision**: Prepare consumption-ready MARTS views and a documented serving contract now. Power BI semantic-model artifacts, dashboard, DAX and `.pbit` are deferred by the user; they do not block the current functional delivery. The four BI views passed the live dbt build and were queried successfully with `SPOTIFY_ANALYST`.
+### Milestone M9: Serving Data & Portfolio Release
+- **Scope decision**: v1.0.0 ends at consumption-ready Snowflake MARTS/`BI_*` views plus a documented serving contract. Power BI semantic-model artifacts, dashboard, DAX and `.pbit` are explicitly not planned for this release and do not block a data-engineering portfolio release. The four BI views passed the live dbt build and were queried successfully with `SPOTIFY_ANALYST`.
 - **#33 [M9] Build Power BI semantic model on Snowflake Marts**
   - *Context*: Analytical consumption requires a clean semantic model.
   - *Objective*: Create Power BI model connecting to Snowflake `MARTS` with verified relationships.
