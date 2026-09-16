@@ -8,18 +8,21 @@
 
 > Production-oriented data engineering portfolio with offline contracts plus a bounded live
 > cloud validation of S3 -> Glue 5.1 -> Snowflake/Snowpipe -> dbt Core. The target source-side
-> path still includes AWS Lambda for live Spotify extraction, while Airflow, Terraform, and
-> Power BI remain later roadmap milestones.
+> path still includes AWS Lambda for live Spotify extraction. Local Airflow orchestration and
+> BI serving views are implemented and have now been exercised against the bounded live cloud
+> slice. Terraform and advanced alerting remain pending; the Power BI dashboard is deferred.
 
 ---
 
-### Project Status: M5 Cloud-Validated Vertical Slice Complete — M6+ Pending
+### Project Status: Bounded Cloud Slice — Airflow Orchestration and Serving Live-Validated
 > **Validated end to end for the bounded portfolio slice:** three CC0-derived Bronze snapshots
 > were uploaded to S3, processed by AWS Glue 5.1 into 18 Silver Parquet objects across six
 > datasets, exposed through a least-privilege Snowflake Storage Integration and external stage,
-> auto-ingested by six Snowpipes, and modeled with dbt Core in Snowflake. The live `dbt build`
-> completed with 126/126 passing nodes/tests, and a selective incremental fact rerun preserved
-> 36 rows / 36 unique snapshot keys. A live Spotify Web API Lambda extraction is not claimed;
+> auto-ingested by six Snowpipes, and modeled with dbt Core in Snowflake. The Airflow-orchestrated
+> live `dbt build` completed with **152/152 passing nodes/tests**, including four consumption-ready
+> `BI_*` views. A one-day replay of 2026-09-11 preserved **12 rows / 12 unique fact grains** for
+> that date and **36 total fact rows**, proving the incremental merge path is idempotent for the
+> validated slice. A live Spotify Web API Lambda extraction is not claimed;
 > the reproducible portfolio demo intentionally starts from the CC0 adapter described below.
 
 > **Portfolio data boundary:** the current reproducible cloud demo uses a CC0 public playlist
@@ -243,7 +246,7 @@ while exact per-run dollar attribution still depends on provider billing/meterin
 | :--- | :--- | :--- | :--- |
 | **Monthly Target** | **≤ $20.00 USD / month** | Planning target | A manual AWS Budget is deployed at $5/month for this demo; M8 will codify budget automation. Snowflake uses a deployed 2-credit monthly resource monitor. |
 | **Idle Cost** | No always-on warehouse compute | Operational control | `COMPUTE_WH` is X-Small with 60-second auto-suspend and was explicitly suspended after validation. Provider-side idle billing statements are not yet isolated. |
-| **Validation Usage** | Measured usage, not isolated dollar cost | Evidence | Glue reported 597 total DPU-seconds across 4 validation attempts (3 successful + 1 wrapper failure). The Snowflake resource monitor reported 0.14 cumulative credits used since monitor creation. |
+| **Validation Usage** | Measured usage, not isolated dollar cost | Evidence | The four successful Airflow-orchestrated Glue runs reported 589 total DPU-seconds. The Snowflake resource monitor reported 0.45 cumulative credits used since monitor creation after the final orchestration/replay validation. |
 
 Key cost control mechanisms:
 - **Snowflake**: `COMPUTE_WH` is deployed as `X-Small` with `AUTO_SUSPEND = 60` and the bounded development resource monitor attached.
@@ -352,12 +355,12 @@ Full budget breakdown available in [`docs/COST_STRATEGY.md`](docs/COST_STRATEGY.
 - [x] **Milestone M1 — Local Spotify Ingestion** (Auth Code client, pagination, fixtures/parser tests, run metadata, local Bronze persistence)
 - [x] **Milestone M2 — AWS Lambda & Bronze Data Lake** (runtime/contracts complete; deployment awaits cloud infrastructure)
 - [x] **Milestone M3 — Glue / PySpark & Silver Layer** (offline complete on Glue 5.1 parity runtime)
-- [ ] **Milestone M4 — Snowflake & Snowpipe** (DDL/contracts complete; real IAM, S3/SQS, Snowpipe delivery, and live validation pending in #15/#16)
-- [ ] **Milestone M5 — dbt Analytics Engineering** (models/tests complete offline; live `dbt build`, MERGE, and data assertions pending in #19-#22)
-- [ ] **Milestone M6 — Airflow Orchestration** (Airflow 3.x Task SDK, Deadline Alerts, external operators)
+- [x] **Milestone M4 — Snowflake & Snowpipe** (bounded manual cloud slice validated; Terraform remains M8)
+- [x] **Milestone M5 — dbt Analytics Engineering** (bounded cloud build, serving views and selective replay validated live)
+- [ ] **Milestone M6 — Airflow Orchestration** (bounded live orchestration validated; live Lambda source path and advanced Deadline Alerts remain pending)
 - [ ] **Milestone M7 — Data Quality & Observability** (Cross-tier gates, telemetry manifests, incident playbooks)
 - [ ] **Milestone M8 — Terraform & CI/CD Hardening** (Terraform modules, CI security, AWS Budgets)
-- [ ] **Milestone M9 — Power BI & Portfolio Release** (Semantic model, dashboard visuals, v1.0.0 release)
+- [ ] **Milestone M9 — Serving & Portfolio Release** (BI consumption views implemented locally; Power BI dashboard and semantic-model artifacts deferred)
 
 Refer to [BACKLOG.md](BACKLOG.md) for detailed issues, user stories, and acceptance criteria.
 
@@ -366,3 +369,15 @@ Refer to [BACKLOG.md](BACKLOG.md) for detailed issues, user stories, and accepta
 ## 11. License
 
 This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+
+## Current execution and serving handoff
+
+The next integrated path uses the existing CC0 demo, the local
+[Airflow DAG](airflow/README.md), exact run-scoped Landing checks, and `dbt build`.
+Four `BI_*` views expose names, one-based positions, documented units and synthetic-data
+labels to future consumers. See the [serving contract](docs/SERVING_CONTRACT.md).
+No Power BI dashboard or semantic-model artifact is part of the current delivery.
+
+The bounded Airflow smoke run and one-day replay completed successfully against AWS Glue,
+Snowpipe and Snowflake. The four `BI_*` views were queried successfully using the
+`SPOTIFY_ANALYST` role after the run. Power BI artifacts remain intentionally deferred.

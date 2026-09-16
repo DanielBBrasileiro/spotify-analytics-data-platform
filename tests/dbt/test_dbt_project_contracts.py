@@ -38,6 +38,10 @@ def test_manifest_contains_complete_m5_model_set_and_layer_materializations():
         "mart_playlist_trends": "table",
         "mart_track_lifecycle": "table",
         "mart_playlist_changes": "table",
+        "bi_playlist_daily": "view",
+        "bi_track_daily": "view",
+        "bi_track_changes": "view",
+        "bi_artist_daily": "view",
     }
     for name, materialized in expected.items():
         assert _model(manifest, name)["config"]["materialized"] == materialized
@@ -204,5 +208,6 @@ def test_singular_quality_suite_is_registered_in_manifest():
         "assert_artist_playlist_share",
         "assert_observation_slot_completeness",
         "assert_snapshot_track_dimension_readiness",
+        "assert_serving_coverage",
     }
     assert expected <= test_names

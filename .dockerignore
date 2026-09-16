@@ -1,0 +1,15 @@
+**
+!src/
+!src/**
+!dbt/
+!dbt/**
+!airflow/
+!airflow/**
+**/__pycache__/
+dbt/target/
+dbt/logs/
+dbt/dbt_packages/
+airflow/.env*
+airflow/logs/
+airflow/artifacts/
+airflow/secrets/

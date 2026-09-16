@@ -80,6 +80,8 @@ tests/dbt_profile/.user.yml
 airflow/logs/
 airflow/*.pid
 airflow/airflow.db
+airflow/artifacts/
+.venv-airflow/
 
 # Data, temporary, and scratch files
 data/
