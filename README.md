@@ -251,20 +251,20 @@ erDiagram
 
     dim_track {
         string track_pk PK
-        string track_id NK
+        string track_id "Natural key"
         string album_pk FK
     }
     dim_artist {
         string artist_pk PK
-        string artist_id NK
+        string artist_id "Natural key"
     }
     dim_album {
         string album_pk PK
-        string album_id NK
+        string album_id "Natural key"
     }
     dim_playlist {
         string playlist_pk PK
-        string playlist_id NK
+        string playlist_id "Natural key"
     }
     bridge_track_artist {
         string bridge_pk PK

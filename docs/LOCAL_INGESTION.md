@@ -1,6 +1,18 @@
-# Local Spotify ingestion
+# Spotify Source Ingestion & Bronze Contracts
 
-## Authentication (Issue #1)
+This document describes the implemented **live Spotify-compatible source contract** and the local Bronze writer used to validate it without requiring cloud access.
+
+> **v1.0.0 evidence boundary:** these source/authentication components are implemented and automated-contract tested. The final bounded cloud portfolio demo starts from the CC0 source adapter and does **not** claim that its Bronze payloads were extracted live from Spotify through Lambda.
+
+<!--
+VISUAL ASSET 20
+Target: docs/assets/ingestion/live-source-contract.png
+Prompt: docs/assets/README.md#20--live-source-ingestion-contract
+When ready:
+![Live Source Ingestion Contract](assets/ingestion/live-source-contract.png)
+-->
+
+## 1. Authentication Contract
 
 `SpotifyAuthClient` implements ADR-0007 using Python's standard library; it has
 no third-party runtime dependencies. Obtain user consent separately, then supply
@@ -31,15 +43,18 @@ the library emits no credential-bearing logs.
 
 If Spotify returns a rotated refresh token, subsequent exchanges use it.
 `auth.refresh_token` deliberately exposes that secret to an explicit persistence
-adapter. Rotation is **in-memory only** in M1; M2 must securely persist the current
-token before the process exits. Never log this property or include it in artifacts.
+adapter. The auth client itself keeps rotation in memory. The current cloud credential
+provider reads Secrets Manager but deliberately does not add Secrets Manager write
+permission for automatic refresh-token persistence. Persisting a rotated refresh token
+therefore requires an explicit authorized credential-management action. Never log this
+property or include it in artifacts.
 
 The [Spotify refresh guide](https://developer.spotify.com/documentation/web-api/tutorials/refreshing-tokens)
 documents optional token rotation and currently specifies a six-month refresh
 token lifetime for dashboard-registered apps. Scheduled refreshes do not extend
 that lifetime; operator reauthorization remains necessary.
 
-## Playlist extraction (Issue #2)
+## 2. Playlist Extraction Contract
 
 ```python
 import os
@@ -94,9 +109,10 @@ is consulted before every attempt, including after a rate-limit wait.
 
 `timeout` is a per-socket-operation timeout, not a total extraction deadline.
 The snapshot is assembled in memory; `pages` and `items` duplicate content when
-serialized. M1 tests do not demonstrate live Spotify authorization.
+serialized. Automated tests prove client behavior against scripted HTTP boundaries;
+they do not, by themselves, prove live Spotify authorization.
 
-## Run metadata and local Bronze persistence (Issue #4)
+## 3. Run Metadata and Local Bronze Persistence
 
 `PipelineRunMetadata` is the validated execution-lineage contract used to keep
 physical execution identity separate from the logical business observation date.
@@ -127,7 +143,7 @@ run = PipelineRunMetadata(
 path = LocalBronzeWriter().write(snapshot, run)
 ```
 
-The default writer mirrors the future S3 Bronze key hierarchy under the gitignored
+The default writer mirrors the platform's S3 Bronze key hierarchy under the gitignored
 `data/` directory:
 
 ```text
@@ -147,15 +163,17 @@ telemetry into the source payload. The writer checks playlist/source-version lin
 and the raw item count before publishing. Only complete `SUCCESS` observations are
 landed. Publication is no-clobber and atomic at the final-path boundary: an existing
 object is never overwritten and temporary files are removed on failure. This mirrors
-ADR-0002's append-only rule while keeping AWS S3 calls out of M1.
+ADR-0002's append-only rule while keeping the local verification path independent from AWS.
 
 The metadata model supports the broader observability lifecycle states (`RUNNING`,
 `SUCCESS`, `FAILED`, `PARTIAL`), but persisted failure/run manifests are intentionally
-separate from Bronze raw objects and remain later observability work.
+separate from Bronze raw objects. The Airflow/cloud path persists orchestration evidence
+under `airflow/artifacts/` and can consolidate it into the unified pipeline run report;
+failure telemetry is never injected into the raw Bronze payload.
 
-## Offline verification
+## 4. Offline Verification
 
-Issue #3 adds a [synthetic fixture corpus](../tests/fixtures/spotify/README.md)
+The repository includes a [synthetic fixture corpus](../tests/fixtures/spotify/README.md)
 with a 50+2-item traversal, a single-page mixed-media scenario, and a 429 body.
 Integration tests feed these files through the real extractor with injected HTTP
 responses and sleep functions, without contacting Spotify or waiting on retries.
@@ -167,7 +185,7 @@ Null and duplicate artist IDs retain their slots. Missing keys or malformed
 containers raise `SpotifyItemParseException` with no raw values in the message.
 Unknown fields are ignored, and the original entry is never mutated. The raw
 extractor does not call this parser or drop records; full schema enforcement and
-Silver normalization remain M3 responsibilities.
+Silver normalization remain Glue/Spark responsibilities.
 
 CI gives the complete pytest command, including coverage startup, a five-second
 wall-clock budget using the Ubuntu runner's `timeout` command. Timeout exits fail
