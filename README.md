@@ -1,224 +1,277 @@
+<div align="center">
+
 # Spotify Analytics Data Platform
 
+### A production-oriented data engineering platform for historical playlist analytics
+
+**Apache Airflow 3 · AWS · Glue 5.1 · Spark 3.5.6 · Snowflake · Snowpipe · dbt Core · Terraform · GitHub Actions**
+
 [![CI](https://github.com/DanielBBrasileiro/spotify-analytics-data-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/DanielBBrasileiro/spotify-analytics-data-platform/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python: 3.12](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/downloads/release/python-3120/)
-[![Code Style: Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
-[![Release: v1.0.0](https://img.shields.io/badge/Release-v1.0.0-brightgreen.svg)](https://github.com/DanielBBrasileiro/spotify-analytics-data-platform/releases/tag/v1.0.0)
+[![Release](https://img.shields.io/badge/release-v1.0.0-2ea44f)](https://github.com/DanielBBrasileiro/spotify-analytics-data-platform/releases/tag/v1.0.0)
+[![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Airflow](https://img.shields.io/badge/Airflow-3.2.2-017CEE?logo=apacheairflow&logoColor=white)](https://airflow.apache.org/)
+[![dbt](https://img.shields.io/badge/dbt%20Core-1.12-FF694B?logo=dbt&logoColor=white)](https://www.getdbt.com/)
+[![Terraform](https://img.shields.io/badge/Terraform-IaC-844FBA?logo=terraform&logoColor=white)](https://www.terraform.io/)
+[![License](https://img.shields.io/badge/license-MIT-yellow)](LICENSE)
 
-> Production-oriented data engineering portfolio with offline contracts plus a bounded live
-> cloud validation of S3 -> Glue 5.1 -> Snowflake/Snowpipe -> dbt Core. The target source-side
-> path still includes AWS Lambda for live Spotify extraction. Local Airflow orchestration and
-> BI serving views are implemented and have now been exercised against the bounded live cloud
-> slice. Terraform IaC, Airflow 3 Deadline Alerts, cross-tier quality/telemetry and recovery tooling are versioned in the repository. Power BI is intentionally deferred from v1.0.0.
+[Architecture](#architecture-at-a-glance) · [Validated Evidence](#validated-evidence) · [Engineering Highlights](#engineering-highlights) · [Quick Start](#quick-start) · [Documentation](#documentation)
 
----
-
-### Project Status: Bounded Cloud Slice — Airflow Orchestration and Serving Live-Validated
-> **Validated end to end for the bounded portfolio slice:** three CC0-derived Bronze snapshots
-> were uploaded to S3, processed by AWS Glue 5.1 into 18 Silver Parquet objects across six
-> datasets, exposed through a least-privilege Snowflake Storage Integration and external stage,
-> auto-ingested by six Snowpipes, and modeled with dbt Core in Snowflake. The Airflow-orchestrated
-> live `dbt build` completed with **152/152 passing nodes/tests**, including four consumption-ready
-> `BI_*` views. A one-day replay of 2026-09-11 preserved **12 rows / 12 unique fact grains** for
-> that date and **36 total fact rows**, proving the incremental merge path is idempotent for the
-> validated slice. A live Spotify Web API Lambda extraction is not claimed;
-> the reproducible portfolio demo intentionally starts from the CC0 adapter described below.
-
-> **Portfolio data boundary:** the current reproducible cloud demo uses a CC0 public playlist
-> corpus for source track/artist/playlist metadata and generates the three-day membership,
-> positions, snapshot IDs, and missing compatibility fields deterministically. Those temporal
-> analytics are synthetic and must not be presented as observed Spotify behavior. Live Web API
-> analytics remain a separately governed path. See
-> [ADR-0009](docs/adr/0009-cc0-source-with-synthetic-temporal-demo.md).
+</div>
 
 ---
 
-## 1. Architecture Overview
+## Executive Summary
 
-The platform implements a decoupled lakehouse-to-warehouse architecture where compute workloads are delegated to specialized engines while Apache Airflow 3.x strictly coordinates scheduling, dependency management, and quality assertions.
+The **Spotify Analytics Data Platform** is an end-to-end batch data engineering project built to preserve historical playlist state and turn it into reliable, replayable analytical data.
 
-```mermaid
-flowchart TD
-    subgraph Auth["OAuth 2.0 Auth Side-Flow"]
-        Operator["Operator Setup<br/>(One-Time Interactive)"] -->|Auth Code Consent| SpotifyAuth["Spotify Accounts Service"]
-        SpotifyAuth -->|Refresh Token| SecMgr[("AWS Secrets Manager<br/>(spotify/api/credentials)")]
-    end
+The platform separates technical curation from analytical modeling: immutable source snapshots land in **Amazon S3 Bronze**, **AWS Glue 5.1 / Apache Spark 3.5.6** normalizes them into typed Parquet datasets in **S3 Silver**, **Snowpipe** loads the warehouse, and **dbt Core 1.12** builds the dimensional model, marts, tests, and BI-serving views in **Snowflake**. **Apache Airflow 3.2.2**, running locally in Docker, coordinates the external boundaries and records run evidence rather than performing heavy data processing itself.
 
-    subgraph Sources["1. Source Layer"]
-        API["Spotify Web API<br/>(/v1/playlists/{id}/items)"]
-    end
+The repository also includes **cross-tier quality gates, replay-safe orchestration, unified run telemetry, incident/recovery tooling, Terraform IaC, security scanning, cost guardrails, CI contracts, and portfolio-grade operational documentation**.
 
-    subgraph Lake["2. AWS Data Lake (us-east-1)"]
-        Lambda["AWS Lambda Extractor<br/>(Python 3.12, Dynamic Token Refresh)"]
-        S3Bronze[("Amazon S3 Bronze<br/>• Raw JSON Payloads<br/>• Immutable / Replayable<br/>• Partitioned by date & run_id")]
-        Glue["AWS Glue 5.1 / PySpark 3.5.6<br/>• Schema Enforcement<br/>• Item Type Validation<br/>• Explode Arrays & Deduplicate"]
-        S3Silver[("Amazon S3 Silver<br/>• Curated Parquet<br/>• Snappy Compressed<br/>• Partitioned by date")]
-    end
+> **Validation boundary:** the reproducible public demo starts from a CC0-backed playlist dataset and uses deterministic **synthetic temporal evolution**. The bounded cloud slice from S3 through Glue, Snowpipe, Snowflake, dbt, Airflow orchestration, and serving views was live-validated. A live Spotify API → Lambda extraction is implemented as a separate source path but is **not** presented as part of that validated demo. Power BI is intentionally outside the v1.0.0 scope.
 
-    subgraph Warehouse["3. Snowflake Analytical Warehouse"]
-        SQS["Amazon SQS / S3 Events"]
-        Snowpipe["Snowpipe Continuous Ingestion<br/>(Capturing Lineage Metadata)"]
-        Landing[("LANDING Schema<br/>• 1:1 Parquet Relational Tables")]
-        dbt["dbt Core Engine<br/>• Staging Views<br/>• Dimensional Star Schema<br/>• Incremental Merge Marts"]
-        Core[("CORE & MARTS Schemas<br/>• dim_track, dim_artist, dim_album<br/>• bridge_track_artist<br/>• fact_playlist_snapshot")]
-    end
+---
 
-    subgraph Serving["4. Serving"]
-        BIConsumer["Consumption-ready MARTS views<br/>(BI tool optional / deferred)"]
-    end
+## At a Glance
 
-    subgraph Orchestration["Airflow 3.x Orchestration (Local / Docker)"]
-        Airflow["Apache Airflow 3.x<br/>• Task SDK Coordinator<br/>• External Task Sensors<br/>• Deadline Alerts & Quality Gates"]
-    end
+| | Evidence |
+|---|---|
+| **Cloud pipeline** | S3 Bronze → Glue 5.1 / Spark → S3 Silver → Snowpipe → Snowflake → dbt |
+| **Orchestration** | Airflow 3.2.2 Task SDK, Deadline Alert, structured failure callback, bounded retries |
+| **Live validation** | 3 snapshot dates processed end to end, followed by a selective one-day replay |
+| **dbt result** | **152 / 152** nodes and tests passed in the validated builds |
+| **Replay result** | Replayed date remained **12 rows / 12 unique fact grains**; total fact count remained **36** |
+| **Serving** | 4 tested `BI_*` Snowflake views queryable by `SPOTIFY_ANALYST` |
+| **IaC & CI** | Terraform + TFLint + Checkov + Python/Spark/Snowflake/dbt/Airflow contracts |
+| **Cost design** | Local Airflow, bounded Glue, Snowflake X-Small + auto-suspend, AWS Budget definitions |
+| **Release** | [`v1.0.0`](https://github.com/DanielBBrasileiro/spotify-analytics-data-platform/releases/tag/v1.0.0) |
 
-    subgraph Foundation["Cross-Cutting Platform Governance"]
-        TF["Terraform (IaC)"]
-        GHA["GitHub Actions (CI/CD)"]
-        CW["CloudWatch & Audit Telemetry"]
-        Sec["AWS Secrets Manager & RBAC"]
-    end
+---
 
-    %% Data Pipeline Flow
-    SecMgr -.->|Fetch Token| Lambda
-    Lambda -->|Token Exchange & GET| API
-    API -->|"HTTPS JSON (50/page)"| Lambda
-    Lambda -->|PutObject| S3Bronze
-    S3Bronze -->|Read Payloads| Glue
-    Glue -->|Write Parquet| S3Silver
-    S3Silver -->|S3 Event| SQS
-    SQS -->|Notify| Snowpipe
-    Snowpipe -->|Copy Into| Landing
-    Landing -->|Transform| dbt
-    dbt -->|Incremental Merge| Core
-    Core -->|Query| BIConsumer
+## Architecture at a Glance
 
-    %% Orchestration
-    Airflow -.->|1. Trigger| Lambda
-    Airflow -.->|2. Trigger| Glue
-    Airflow -.->|3. Validate| Landing
-    Airflow -.->|4. Execute| dbt
+![Spotify Analytics Data Platform — bounded AWS/Snowflake architecture, local Airflow orchestration and optional Spotify source](docs/assets/readme/architecture-overview.png)
+
+*Architecture overview. Solid connections describe the bounded CC0-backed cloud demo; the dashed Spotify API/Lambda branch is implemented separately and is not part of its live validation. Power BI is a future optional consumer, not a v1.0.0 deliverable.*
+
+The platform follows a **lake-to-warehouse** architecture with clear execution boundaries. Compute is delegated to the engine best suited to each responsibility, while orchestration, lineage, quality and recovery remain explicit platform concerns.
+
+The target source-side architecture additionally supports **Spotify Web API → AWS Lambda → S3 Bronze**. It remains visually and documentationally separated from the validated CC0 demo so that implementation and live evidence are never conflated.
+
+For the technical deep dive, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
+---
+
+## Validated Evidence
+
+![Validated v1.0.0 path contrasted with optional Spotify extraction and deferred Power BI consumption](docs/assets/readme/validated-demo-path.png)
+
+*Evidence map for v1.0.0. The three-day CC0-backed cloud workflow and selective replay are distinguished from the separately tested live-source contract and deferred BI consumer. The illustration summarizes recorded validation; it is not a monitoring dashboard.*
+
+This repository deliberately distinguishes **implemented**, **live-validated**, and **deferred** capabilities.
+
+| Capability | Status | Evidence / boundary |
+|---|---|---|
+| S3 Bronze → Glue 5.1 → S3 Silver | **Live validated** | Three bounded snapshot dates plus one replay; Glue completion manifests captured per physical run. |
+| Snowpipe → Snowflake Landing | **Live validated** | Six datasets checked against exact run-scoped filenames and expected row counts. |
+| dbt Core models/tests | **Live validated** | 152/152 nodes/tests passed in both the bounded run and replay validation. |
+| Incremental replay/idempotency | **Live validated** | One logical date replayed without duplicate fact grains or fact inflation. |
+| Snowflake serving layer | **Live validated** | `BI_PLAYLIST_DAILY`, `BI_TRACK_DAILY`, `BI_TRACK_CHANGES`, and `BI_ARTIST_DAILY` queried with `SPOTIFY_ANALYST`. |
+| Airflow orchestration | **Live validated** | Bounded DAG completed successfully against AWS Glue, Snowpipe, Snowflake and dbt. |
+| Airflow Deadline Alert / structured callback | **Implemented + CI validated** | Airflow 3.2.2 contract loaded by CI; no legacy SLA syntax. |
+| Terraform IaC | **Implemented + offline validated** | `fmt`, `init -backend=false`, `validate`, TFLint and Checkov pass; no destructive apply/destroy was performed for v1.0.0. |
+| Spotify API → Lambda live extraction | **Implemented source path; not part of validated demo** | Auth/extraction contracts are tested; the public bounded demo starts from CC0 Bronze input. |
+| Power BI semantic model/dashboard | **Deferred** | v1.0.0 intentionally ends at tested Snowflake/dbt serving views. |
+
+### Portfolio data boundary
+
+The public demo adapts catalog-style metadata from the CC0-licensed `jeremycte/spotify-10000-songs-dataset`. The three-day playlist membership, positions, snapshot IDs, and compatibility fields are generated deterministically by this repository and tagged with `source_type=cc0_demo` and `temporal_state=synthetic`.
+
+This supports statements such as **“the pipeline computes changes across three simulated snapshots”**. It does not support presenting those changes as observed Spotify history, listening behavior, popularity, or market trends. See [ADR-0009](docs/adr/0009-cc0-source-with-synthetic-temporal-demo.md).
+
+---
+
+## End-to-End Data Flow
+
+<!--
+VISUAL ASSET 03
+Target: docs/assets/readme/data-layers-flow.png
+Prompt: docs/assets/README.md#03--data-layers-flow
+When ready:
+![Data Flow Across Platform Layers](docs/assets/readme/data-layers-flow.png)
+-->
+
+| Layer | Primary representation | Responsibility | Downstream contract |
+|---|---|---|---|
+| **Source / Bronze** | Immutable JSON snapshots | Preserve source-shaped input and execution lineage. | Glue reads run-scoped Bronze objects. |
+| **Silver** | Snappy Parquet | Enforce technical schema, validate item types, normalize entities and explode arrays. | Completion manifest inventories all physical output files and row counts. |
+| **Landing** | Snowflake typed tables | Preserve one-to-one curated ingestion plus file/row audit metadata. | Exact readiness gate must pass before dbt starts. |
+| **Staging** | dbt views | Normalize names, types and source semantics. | Stable warehouse-facing interface. |
+| **Core** | Kimball dimensions, bridge and fact | Model durable business entities and canonical playlist snapshot grain. | Tested dimensional foundation. |
+| **Marts / Serving** | Analytical marts + `BI_*` views | Expose longitudinal playlist, track, artist and change semantics. | Thin BI/analyst consumption contract. |
+
+### Canonical fact grain
+
+```text
+(playlist_id, snapshot_date, track_position)
 ```
 
----
+The physical `pipeline_run_id` is lineage, **not** part of the analytical key. A replay therefore creates fresh immutable processing evidence while dbt converges on the same logical fact grain.
 
-## 2. Business & Analytical Problem
-
-Music streaming metadata undergoes continuous changes as tracks enter, shift positions, and exit playlists. However, typical educational ETL pipelines suffer from fundamental design flaws:
-- **State Overwriting**: Overwriting playlist state daily destroys historical track movements.
-- **Missing Retention Metrics**: Unable to calculate how many consecutive days a track stays on a playlist.
-- **Unverified API Assumptions**: Relying on deprecated endpoints (`/tracks`) or removed popularity fields.
-
-### What This Platform Answers
-By persisting immutable daily snapshots of **monitored user-owned or collaborative playlists accessible under authorized Spotify application scopes**, this platform provides deep longitudinal analysis:
-1. **Track Lifecycle & Churn**: Exact entry date, exit date, and retention tenure (days present).
-2. **Positional Dynamics**: Daily rank movement, best position achieved, and average position.
-3. **Artist Representation & Concentration**: Which artists occupy the greatest playlist share over time.
-4. **Playlist Volatility**: Quantifying turnover rates (daily additions vs. exits) across monitored playlists.
-5. **Catalog Composition Trends**: Longitudinal evolution of explicit content share, duration distribution, and release recency.
+Detailed schemas and dictionaries live in [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md).
 
 ---
 
-## 3. Technology Stack
+## Engineering Highlights
 
-| Layer | Technology | Architectural Rationale |
-| :--- | :--- | :--- |
-| **Language** | Python 3.12 | Modern runtime, native typing, robust SDKs (`boto3`, `requests`). |
-| **Authentication** | OAuth 2.0 Auth Code + Refresh Token | Complies with 2026 Spotify Development Mode restrictions for user-scoped playlist access. |
-| **Orchestration** | Apache Airflow 3.x | Task SDK (`airflow.sdk`) authoring, service-oriented execution, and Deadline Alerts. |
-| **Extraction** | AWS Lambda | Serverless extractor runtime implemented; real cloud duration and cost remain unmeasured until deployment. |
-| **Data Lake** | Amazon S3 | Tiered storage: raw immutable JSON in Bronze, columnar Snappy-compressed Parquet in Silver. |
-| **Lake Processing** | AWS Glue 5.1 / PySpark | Managed Spark 3.5.6 / Python 3.11 for unnesting semi-structured items and schema enforcement. |
-| **Ingestion** | Snowflake Snowpipe | Serverless, continuous micro-batch loading from S3 into Landing tables with file audit metadata. |
-| **Data Warehouse** | Snowflake | Columnar analytical warehouse with `X-Small` warehouse and 60-second auto-suspend. |
-| **Transformation** | dbt Core | SQL dimensional modeling, surrogate key hashing, incremental `MERGE`, and data testing. |
-| **Infrastructure as Code** | Terraform | Version-controlled AWS resource definitions with offline validation and security scanning; Snowflake DDL remains version-controlled separately. |
-| **CI/CD** | GitHub Actions | Python lint/test, Glue-parity Spark contracts, Snowflake SQL contracts, and dbt parse/manifest validation on PRs and `main`. |
-| **Serving** | Snowflake MARTS / `BI_*` views | Consumption-ready analytical contract validated with `SPOTIFY_ANALYST`; Power BI remains an optional downstream consumer outside v1.0.0. |
+### 1. Orchestration built for safe external execution
 
----
+<!--
+VISUAL ASSET 04
+Target: docs/assets/readme/orchestration-dag.png
+Prompt: docs/assets/README.md#04--airflow-orchestration-model
+When ready:
+![Airflow Orchestration Model](docs/assets/readme/orchestration-dag.png)
+-->
 
-## 4. Key Architectural Decisions
+The Airflow DAG follows this runtime structure:
 
-The platform's engineering design is formalized through **Architecture Decision Records (ADRs)** in [`docs/adr/`](docs/adr/):
-
-- **[ADR-0001: Airflow as Orchestrator, Not Execution Engine](docs/adr/0001-airflow-as-orchestrator.md)**: Airflow never processes data in worker memory. Compute is delegated to Lambda, Glue 5.1, and Snowflake.
-- **[ADR-0002: S3 Bronze as Durable Immutable Landing Layer](docs/adr/0002-s3-as-durable-landing-zone.md)**: Preserves raw API responses under deterministic partitions (`ingestion_date=YYYY-MM-DD/run_id=<id>/`) enabling full replayability.
-- **[ADR-0003: Apache Parquet for Curated Data](docs/adr/0003-parquet-for-curated-data.md)**: Snappy-compressed columnar format provides up to 75% storage savings and accelerates warehouse loading.
-- **[ADR-0004: Snowflake as Central Analytical Warehouse](docs/adr/0004-snowflake-as-analytical-warehouse.md)**: Elastic compute scaling with automated 60-second auto-suspension to strictly control costs.
-- **[ADR-0005: Separate Spark and dbt Responsibilities](docs/adr/0005-separate-spark-and-dbt-responsibilities.md)**: Spark handles semi-structured array explosion; dbt handles modular SQL dimensional modeling.
-- **[ADR-0006: Historical Playlist Snapshots](docs/adr/0006-historical-playlist-snapshots.md)**: Pinned to canonical daily grain `(playlist_id + snapshot_date + track_position)` with `spotify_snapshot_id` lineage.
-- **[ADR-0007: Spotify Authorization Code & Refresh Token](docs/adr/0007-spotify-authorization-code-and-refresh-token.md)**: Replaces Client Credentials with two-phase Auth Code + stored refresh token for scheduled ingestion.
-- **[ADR-0008: Synthetic Analytics and Source Use Boundary](docs/adr/0008-synthetic-analytics-and-source-use-boundary.md)**: Original conservative portfolio boundary; superseded for the current demo by ADR-0009 while its live-source governance rule remains in force.
-- **[ADR-0009: CC0 Source Metadata with Synthetic Temporal Demo](docs/adr/0009-cc0-source-with-synthetic-temporal-demo.md)**: Uses a CC0 playlist corpus for reproducible source metadata while keeping all longitudinal change behavior synthetic and explicitly labeled.
-
----
-
-## 5. Spark vs. dbt Responsibilities
-
-```
-Raw JSON (Bronze S3)
-       │
-       ▼ [AWS Glue 5.1 / PySpark 3.5.6] -> Parse items, validate tracks, explode artists
-Curated Parquet (Silver S3)
-       │
-       ▼ [Snowpipe] -> Automated Ingestion + Metadata Lineage
-Landing Tables (Snowflake)
-       │
-       ▼ [dbt Core] -> Dimensional Modeling & Incremental Merge
-Core Star Schema & Marts (Snowflake)
+```text
+prepare
+  └─ records
+      └─ [upload → submit → await_glue → await_landing] per snapshot
+                                                       │
+                                                       ▼
+                                                  transform
+                                                       │
+                                                       ▼
+                                                    report
 ```
 
-- **AWS Glue 5.1 / PySpark**: Unpacks raw JSON items, validates item types, enforces explicit StructType schemas, handles technical deduplication, and serializes Snappy Parquet.
-- **dbt Core**: Generates surrogate keys, maintains dimensions (`dim_track`, `dim_artist`, `dim_album`), manages `bridge_track_artist`, merges `fact_playlist_snapshot` on `snapshot_pk`, and builds analytical marts.
+Key reliability decisions:
+
+- **Airflow 3.2.2 Task SDK** (`@dag`, `@task`, `@task.sensor`).
+- `schedule=None` by design: the portfolio workflow is manually triggered to keep live runs explicit and bounded.
+- `max_active_runs=1` to avoid overlapping bounded demos.
+- Safe transient tasks use **3 retries**, a five-minute initial delay and exponential backoff.
+- **Glue submission has `retries=0`**. An ambiguous external submission must not be blindly repeated.
+- Glue and Landing waits use sensor behavior rather than tight polling loops.
+- Airflow 3 **Deadline Alert** replaces legacy SLA semantics.
+- Structured `DAG_FAILED` and `DAG_DEADLINE_MISSED` events expose safe execution context without serializing secrets or exception bodies.
+
+See [`airflow/README.md`](airflow/README.md) for the operational contract.
+
+### 2. Cross-tier quality gates
+
+<!--
+VISUAL ASSET 05
+Target: docs/assets/readme/quality-observability.png
+Prompt: docs/assets/README.md#05--data-quality-and-observability-controls
+When ready:
+![Data Quality and Observability Controls](docs/assets/readme/quality-observability.png)
+-->
+
+A successful upstream service call is **not** treated as proof that downstream data is ready.
+
+The pipeline validates quality at multiple boundaries:
+
+- **Bronze:** valid non-empty source payloads and required snapshot lineage.
+- **Silver:** explicit Spark schemas, valid item types, technical normalization and rejected-item accounting.
+- **Landing:** exact run-scoped files, expected row totals, distinct `_FILE_ROW_NUMBER` values, no unexpected files and zero rejected demo items.
+- **dbt/Core:** uniqueness, relationships, accepted values, grain integrity and serving coverage tests.
+
+The repository exposes the complete gate suite through:
+
+```bash
+make check-quality
+```
+
+### 3. Evidence-first observability
+
+Each Airflow run produces a small evidence chain under `airflow/artifacts/<run-key>/`:
+
+```text
+plan.json
+├── glue-<pipeline_run_id>.json
+├── landing-<pipeline_run_id>.json
+├── dbt-summary.json
+├── run-summary.json
+└── pipeline-run-report.json      # generated on demand
+```
+
+`scripts/generate_run_report.py` consolidates correlation IDs, status, source provenance, extracted/curated/loaded counts, Glue execution metadata, dbt results and component durations into a schema-validated run report. Publication to `metadata/pipeline_runs/` in S3 is explicit and immutable.
+
+See [`docs/OBSERVABILITY.md`](docs/OBSERVABILITY.md).
+
+### 4. Replay without erasing forensic history
+
+A replay creates a **new physical UUID v4** and fresh immutable S3 paths. Existing evidence is not deleted or overwritten. dbt performs logical convergence at the canonical business grain.
+
+```bash
+.venv/bin/python scripts/replay_partition.py \
+  --date 2026-09-10 \
+  --dry-run
+```
+
+Execution requires the explicit `--execute` flag. Operational recovery guidance is documented in [`docs/RUNBOOK.md`](docs/RUNBOOK.md).
 
 ---
 
-## 6. Planned Snowflake Dimensional Model
+## Technology Stack
+
+| Concern | Technology | Why it is used here |
+|---|---|---|
+| **Language** | Python 3.12 | Typed platform code, source adapters, orchestration helpers and CLIs. |
+| **Source auth** | OAuth 2.0 Authorization Code + refresh token | Supports user-scoped playlist access in the live source architecture. |
+| **Source compute** | AWS Lambda | Serverless Python extractor for the optional live Spotify source path. |
+| **Raw / curated storage** | Amazon S3 | Immutable Bronze plus columnar Silver and metadata prefixes. |
+| **Technical curation** | AWS Glue 5.1 / Spark 3.5.6 | Schema enforcement, semi-structured normalization and Parquet production. |
+| **Warehouse ingestion** | Snowpipe | Event-driven ingestion from S3 Silver into Snowflake Landing. |
+| **Warehouse** | Snowflake | Landing, dimensional modeling, marts and serving contract. |
+| **Analytics engineering** | dbt Core 1.12 | Staging, dimensions, fact, marts, incremental merge and tests. |
+| **Orchestration** | Apache Airflow 3.2.2 | Task SDK coordination, sensors, Deadline Alert, evidence and recovery boundaries. |
+| **Local runtime** | Docker / Docker Compose | Reproducible Airflow environment without managed-orchestrator baseline cost. |
+| **Infrastructure as Code** | Terraform | Version-controlled AWS S3, IAM, Lambda, Glue, monitoring and budget definitions. |
+| **CI / security** | GitHub Actions, Ruff, TFLint, Checkov | Code, data-platform and IaC contracts without cloud credentials in CI. |
+| **Serving** | Snowflake `MARTS` / `BI_*` views | Tested analytical consumption surface independent of dashboard tooling. |
+
+---
+
+## Analytical Model
+
+The warehouse uses a Kimball-style dimensional core:
 
 ```mermaid
 erDiagram
-    dim_track ||--o{ bridge_track_artist : "has"
-    dim_artist ||--o{ bridge_track_artist : "credited"
-    dim_album ||--o{ dim_track : "contains"
-    dim_track ||--o{ fact_playlist_snapshot : "observed at slot"
-    dim_playlist ||--o{ fact_playlist_snapshot : "hosts slot"
+    dim_track ||--o{ bridge_track_artist : credited
+    dim_artist ||--o{ bridge_track_artist : performs
+    dim_album ||--o{ dim_track : contains
+    dim_track ||--o{ fact_playlist_snapshot : observed
+    dim_playlist ||--o{ fact_playlist_snapshot : hosts
 
     dim_track {
         string track_pk PK
-        string track_id "Natural key"
-        string track_name
-        int duration_ms
-        boolean is_explicit
+        string track_id NK
+        string album_pk FK
     }
-
     dim_artist {
         string artist_pk PK
-        string artist_id "Natural key"
-        string artist_name
+        string artist_id NK
     }
-
     dim_album {
         string album_pk PK
-        string album_id "Natural key"
-        string album_name
-        date release_date
-        int total_tracks
+        string album_id NK
     }
-
     dim_playlist {
         string playlist_pk PK
-        string playlist_id "Natural key"
-        string playlist_name
+        string playlist_id NK
     }
-
     bridge_track_artist {
         string bridge_pk PK
         string track_pk FK
         string artist_pk FK
         int artist_order
     }
-
     fact_playlist_snapshot {
         string snapshot_pk PK
         string playlist_pk FK
@@ -226,160 +279,243 @@ erDiagram
         date snapshot_date
         int track_position
         string spotify_snapshot_id
-        timestamp snapshot_timestamp
-        timestamp added_at
         string pipeline_run_id
     }
 ```
 
-Detailed schema definitions, canonical grain evaluations, and data dictionaries are documented in [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md).
+Spark and dbt deliberately own different responsibilities:
+
+- **Glue / Spark:** source-shape normalization, technical validation, array explosion, deduplication and Parquet serialization.
+- **dbt / Snowflake:** warehouse semantics, surrogate keys, dimensions, canonical fact grain, incremental merge, marts, serving views and business tests.
 
 ---
 
-## 7. Cost Governance ($20/Month Portfolio Budget Target)
+## Serving Layer
 
-The **USD 20/month** figure is an operational planning target, not a guaranteed
-provider-side spending cap. The validated slice now has live guardrails on both providers,
-while exact per-run dollar attribution still depends on provider billing/metering windows.
+<!--
+VISUAL ASSET 06
+Target: docs/assets/readme/serving-layer.png
+Prompt: docs/assets/README.md#06--analytics-serving-layer
+When ready:
+![Analytics Serving Layer](docs/assets/readme/serving-layer.png)
+-->
 
-| Metric | Budget Target | Governance Type | Notes |
-| :--- | :--- | :--- | :--- |
-| **Monthly Target** | **≤ $20.00 USD / month** | Planning target | A manual AWS Budget is deployed at $5/month for this demo; M8 will codify budget automation. Snowflake uses a deployed 2-credit monthly resource monitor. |
-| **Idle Cost** | No always-on warehouse compute | Operational control | `COMPUTE_WH` is X-Small with 60-second auto-suspend and was explicitly suspended after validation. Provider-side idle billing statements are not yet isolated. |
-| **Validation Usage** | Measured usage, not isolated dollar cost | Evidence | The four successful Airflow-orchestrated Glue runs reported 589 total DPU-seconds. The Snowflake resource monitor reported 0.45 cumulative credits used since monitor creation after the final orchestration/replay validation. |
+v1.0.0 ends at a tested Snowflake serving contract rather than coupling the platform to one visualization tool.
 
-Key cost control mechanisms:
-- **Snowflake**: `COMPUTE_WH` is deployed as `X-Small` with `AUTO_SUSPEND = 60` and the bounded development resource monitor attached.
-- **Airflow**: Target design keeps Airflow local rather than provisioning MWAA.
-- **Log Retention**: Seven-day CloudWatch retention is a target for the Terraform phase, not a deployed control today.
-- **Teardown**: Terraform-based teardown is planned in M8 and must be verified against actual provisioned resources and billing state.
+| View | Grain | Primary purpose |
+|---|---|---|
+| `BI_PLAYLIST_DAILY` | playlist + snapshot date | Daily playlist size, duration, entries, exits and turnover. |
+| `BI_TRACK_DAILY` | playlist + track + snapshot date | Position and observed-retention behavior by track. |
+| `BI_TRACK_CHANGES` | playlist + track + snapshot date/change state | `NEW`, `RETAINED`, `EXITED`, positional movement and streaks. |
+| `BI_ARTIST_DAILY` | artist + snapshot date | Artist presence, credited slots, reach and playlist share. |
 
-Full budget breakdown available in [`docs/COST_STRATEGY.md`](docs/COST_STRATEGY.md).
+The contract defines units, null semantics, provenance, relationship guidance, display positions and refresh expectations in [`docs/SERVING_CONTRACT.md`](docs/SERVING_CONTRACT.md).
+
+**Power BI is an optional downstream consumer and is not part of the v1.0.0 implementation claim.**
 
 ---
 
-## 8. Repository Structure
+## Infrastructure, CI and Cost Controls
 
+<!--
+VISUAL ASSET 07
+Target: docs/assets/readme/iac-ci-cost-controls.png
+Prompt: docs/assets/README.md#07--infrastructure-as-code-ci-and-cost-controls
+When ready:
+![Infrastructure as Code, CI and Cost Controls](docs/assets/readme/iac-ci-cost-controls.png)
+-->
+
+### Terraform scope
+
+The AWS Terraform root defines:
+
+- private, versioned and SSE-S3-encrypted lake storage;
+- least-privilege Lambda, Glue and Snowflake integration IAM roles;
+- Python 3.12 Lambda extraction shape;
+- Glue 5.1 Spark job shape;
+- seven-day CloudWatch log retention;
+- configurable **USD 20/month** AWS Budget notifications at 50% and 90% for actual and forecast spend.
+
+The Terraform code was validated with `terraform fmt`, `init -backend=false`, `validate`, **TFLint**, and **Checkov**. The existing manually validated cloud slice was intentionally preserved; v1.0.0 does **not** claim that the live environment is already owned by a Terraform state or that an apply/destroy cycle was executed.
+
+### CI pipeline
+
+Every pull request and `main` push validates six independent concerns:
+
+```text
+Terraform checks
+Lint & Test (Python 3.12)
+Spark Contracts (Glue 5.1 parity)
+Snowflake SQL Contracts
+dbt Parse Contracts
+Airflow DAG and service contracts
 ```
+
+The v1.0.0 release was cut from a green `main` build.
+
+### Cost strategy
+
+The **USD 20/month** figure is a planning target, not a provider-side hard stop. The architecture controls cost structurally:
+
+- Airflow runs locally rather than on MWAA.
+- No always-on EC2, EMR or Kubernetes compute is required.
+- The Terraform shape avoids a NAT Gateway for Lambda.
+- Glue uses bounded worker count/concurrency and timeout controls.
+- Snowflake uses an **X-Small** warehouse with 60-second auto-suspend and a resource monitor.
+- The live validation recorded **589 DPU-seconds** across four successful Glue runs.
+- The Snowflake resource monitor showed **0.45 cumulative credits used** after final bounded validation and replay; this is not presented as isolated per-run dollar cost.
+- A manually created **USD 5 AWS Budget** protected the live demo account, while Terraform codifies the reusable USD 20 portfolio budget contract.
+
+See [`docs/COST_STRATEGY.md`](docs/COST_STRATEGY.md) for the evidence boundary and operating controls.
+
+---
+
+## Key Architectural Decisions
+
+The project records non-trivial decisions as ADRs rather than burying rationale in implementation details.
+
+| Decision | Rationale |
+|---|---|
+| [Airflow orchestrates; compute stays external](docs/adr/0001-airflow-as-orchestrator.md) | Keeps worker memory out of data-processing responsibilities and makes service boundaries explicit. |
+| [S3 Bronze is durable and immutable](docs/adr/0002-s3-as-durable-landing-zone.md) | Enables replay, lineage and forensic inspection without source re-fetch. |
+| [Parquet is the Silver contract](docs/adr/0003-parquet-for-curated-data.md) | Columnar typed storage is efficient for Snowpipe/Snowflake ingestion. |
+| [Snowflake owns analytical warehousing](docs/adr/0004-snowflake-as-analytical-warehouse.md) | Separates analytical compute from lake curation and supports aggressive auto-suspend. |
+| [Spark and dbt have separate jobs](docs/adr/0005-separate-spark-and-dbt-responsibilities.md) | Spark handles source-shape work; dbt owns warehouse/business semantics. |
+| [Historical snapshots use a stable logical grain](docs/adr/0006-historical-playlist-snapshots.md) | Physical retries do not create new business facts. |
+| [Authorization Code + refresh token](docs/adr/0007-spotify-authorization-code-and-refresh-token.md) | Matches the user-scoped scheduled source design. |
+| [CC0 source + synthetic temporal demo](docs/adr/0009-cc0-source-with-synthetic-temporal-demo.md) | Makes the public demo reproducible without overstating Spotify-derived history. |
+
+---
+
+## Repository Structure
+
+```text
 .
-├── .github/
-│   ├── ISSUE_TEMPLATE/       # Structured GitHub issue templates (bug & feature)
-│   ├── workflows/            # GitHub Actions CI pipeline
-│   └── pull_request_template.md
-│
-├── docs/                     # Comprehensive engineering documentation
-│   ├── PROJECT_BLUEPRINT.md  # Master technical specification and architectural baseline
-│   ├── COST_STRATEGY.md      # Budget limits, cost drivers, and teardown runbook
-│   ├── ARCHITECTURE.md       # High-level architecture and sequence diagrams
-│   ├── DATA_MODEL.md         # Schema dictionaries, dimensional model, canonical keys
-│   ├── SECURITY.md           # OAuth 2.0 token lifecycle, IAM least privilege, RBAC
-│   ├── OBSERVABILITY.md      # Structured telemetry schema (pipeline_run_id & snapshot_id)
-│   ├── RUNBOOK.md            # Incident triage, replay and audit procedures
-│   ├── INTERVIEW_GUIDE.md    # Technical talking points for portfolio review
-│   ├── DEMO_GUIDE.md         # Short reproducible portfolio walkthrough
-│   ├── REFERENCES.md         # Official 2026 API, Glue 5.1, and Airflow 3 citations
-│   └── adr/                  # Architectural Decision Records (ADR 0001 - 0008)
-│
-├── src/
-│   └── spotify_data_platform/# Core Python package
-│
-├── tests/                    # Unit/integration, Spark, Snowflake-contract, and dbt-contract suites
-│
-├── airflow/                  # Airflow 3.x DAGs, Docker Compose, and Task SDK
-├── lambda/                   # Serverless Spotify API extractor handler
-├── glue/                     # AWS Glue 5.1 PySpark scripts and explicit schemas
-├── dbt/                      # dbt Core project (staging, core, marts, tests)
-├── snowflake/                # Snowflake DDL, Snowpipe, and RBAC manifests
-├── infra/terraform/          # Versioned AWS IaC modules and budget/monitoring guardrails
-├── powerbi/                  # Deferred optional consumer notes (not part of v1.0.0)
-├── scripts/                  # Developer utilities and mock data generators
-│
-├── .editorconfig             # Standardized cross-editor formatting rules
-├── .env.example              # Template environment variables (no credentials)
-├── .geminiignore             # Gemini CLI security and noise filters
-├── .gitignore                # Git exclusion rules
-├── BACKLOG.md                # Phased engineering roadmap across milestones M0 - M9
-├── CONTRIBUTING.md           # Contribution guidelines, branching, and commit conventions
-├── GEMINI.md                 # Repository-level Gemini CLI operational guidelines
-├── LICENSE                   # MIT Open Source License
-├── Makefile                  # Local automation commands (lint, test, format, check)
-├── pyproject.toml            # Python packaging and tool configuration (Ruff, pytest)
-└── README.md
+├── airflow/                 # Airflow 3.2.2 DAG, Docker runtime and service adapters
+├── dbt/                     # Staging, core, marts, serving views and dbt tests
+├── docs/                    # Architecture, data model, operations, ADRs and portfolio guides
+│   ├── adr/                 # Architecture Decision Records
+│   └── assets/              # Premium documentation visuals and generation briefs
+├── glue/                    # Glue 5.1 / Spark transformation and completion manifest logic
+├── infra/terraform/         # Modular AWS IaC, monitoring and budget controls
+├── lambda/                  # Spotify API extractor runtime
+├── scripts/                 # Demo generation, replay, telemetry and operational CLIs
+├── snowflake/               # DDL, Snowpipe, RBAC and validation SQL
+├── src/                     # Core Python package
+├── tests/                   # Python, Spark, Snowflake, dbt and orchestration contracts
+├── BACKLOG.md               # Completed milestone history and scope decisions
+├── Makefile                 # Local validation and orchestration commands
+└── README.md                # Portfolio entry point
 ```
 
 ---
 
-## 9. Local Development Setup
+## Quick Start
 
 ### Prerequisites
-- Python 3.12+ (managed via `pyenv` or `asdf`)
-- Git & GitHub CLI (`gh`)
-- Docker & Docker Compose for the local Airflow 3 orchestration runtime
-- Python 3.11 + Java 17 for the Glue 5.1 parity test environment (`make spark-test`)
 
-### Quick Start
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/DanielBBrasileiro/spotify-analytics-data-platform.git
-   cd spotify-analytics-data-platform
-   ```
+- Python 3.12+
+- Git
+- Docker + Docker Compose for local Airflow
+- Python 3.11 + Java 17 for Glue/Spark parity tests
+- Terraform/TFLint/Checkov only when reproducing local IaC validation
 
-2. **Initialize virtual environment & install dev dependencies**:
-   ```bash
-   make setup
-   ```
+### Local Python setup
 
-3. **Optional integration configuration** (not needed for offline tests):
-   ```bash
-   cp .env.example .env
-   # The application reads process environment; do not commit real credentials.
-   ```
+```bash
+git clone https://github.com/DanielBBrasileiro/spotify-analytics-data-platform.git
+cd spotify-analytics-data-platform
+make setup
+make check
+```
 
-4. **Run static analysis and tests**:
-   ```bash
-   make check
-   ```
+No Spotify, AWS or Snowflake credentials are required for the default offline Python validation path.
 
-### Makefile Commands
-- `make setup`: Creates `.venv` and installs dependencies in editable mode with development packages.
-- `make lint`: Runs Ruff linter (`ruff check .`).
-- `make format`: Formats code using Ruff (`ruff format .`).
-- `make format-check`: Verifies code formatting without writing changes.
-- `make test`: Runs unit tests via `pytest`.
-- `make check`: Executes `lint`, `format-check`, and `test` sequentially.
-- `make clean`: Removes Python build artifacts, `.pyc` files, and test caches.
+### Cross-tier quality contracts
 
----
+Once the dedicated Airflow, Spark and dbt environments are prepared:
 
-## 10. Phased Implementation Roadmap
+```bash
+export JAVA_HOME=/path/to/java-17
+make check-quality
+```
 
-- [x] **Milestone M0 — Project Foundation & Architecture Blueprint** (Completed & Revised in v0.1.1)
-- [x] **Milestone M1 — Local Spotify Ingestion** (Auth Code client, pagination, fixtures/parser tests, run metadata, local Bronze persistence)
-- [x] **Milestone M2 — AWS Lambda & Bronze Data Lake** (runtime/contracts complete; deployment awaits cloud infrastructure)
-- [x] **Milestone M3 — Glue / PySpark & Silver Layer** (offline complete on Glue 5.1 parity runtime)
-- [x] **Milestone M4 — Snowflake & Snowpipe** (bounded manual cloud slice validated; Terraform remains M8)
-- [x] **Milestone M5 — dbt Analytics Engineering** (bounded cloud build, serving views and selective replay validated live)
-- [x] **Milestone M6 — Airflow Orchestration** (bounded live orchestration validated with Task SDK, retries, rescheduling sensors, Deadline Alert and structured failure callbacks; live Spotify Lambda invocation is a separate source-path extension)
-- [x] **Milestone M7 — Data Quality & Observability** (cross-tier gates, unified run reports, replay/audit CLIs and incident runbooks)
-- [x] **Milestone M8 — Terraform & CI/CD Hardening** (AWS IaC, static security/lint checks and budget definitions; existing manually deployed resources were not replaced in-place)
-- [x] **Milestone M9 — Serving & Portfolio Release** (live-validated `BI_*` serving views, interview/demo documentation and v1.0.0 packaging; Power BI explicitly deferred)
+### Local Airflow
 
-Refer to [BACKLOG.md](BACKLOG.md) for detailed issues, user stories, and acceptance criteria.
+```bash
+cp airflow/.env.example airflow/.env
+# Configure local integration values without committing secrets.
+make airflow-up
+```
+
+Then follow [`airflow/README.md`](airflow/README.md). The default Compose UI binds to `localhost:8080`; the port can be overridden locally when another environment already occupies it.
+
+> Never commit `.env`, private keys, refresh tokens, Snowflake passwords, or temporary AWS credentials. See [`docs/SECURITY.md`](docs/SECURITY.md).
 
 ---
 
-## 11. License
+## Documentation
 
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+| Document | Use it for |
+|---|---|
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | System design, execution sequence and component responsibilities. |
+| [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md) | Landing, staging, core, marts, grain and data dictionaries. |
+| [`docs/SERVING_CONTRACT.md`](docs/SERVING_CONTRACT.md) | BI-facing views, units, null semantics and consumption rules. |
+| [`docs/OBSERVABILITY.md`](docs/OBSERVABILITY.md) | Correlation IDs, evidence files, unified run-report schema and telemetry boundary. |
+| [`docs/RUNBOOK.md`](docs/RUNBOOK.md) | Incident triage, safe replay, Landing lag inspection and recovery. |
+| [`docs/COST_STRATEGY.md`](docs/COST_STRATEGY.md) | Cloud-cost controls, measured evidence and budget governance. |
+| [`docs/SECURITY.md`](docs/SECURITY.md) | OAuth lifecycle, secrets hygiene, IAM and Snowflake RBAC. |
+| [`airflow/README.md`](airflow/README.md) | Local Airflow runtime, trigger/replay semantics and quality gates. |
+| [`infra/terraform/README.md`](infra/terraform/README.md) | AWS IaC scope, validation and deployment boundary. |
+| [`docs/DEMO_GUIDE.md`](docs/DEMO_GUIDE.md) | A 5–8 minute portfolio walkthrough grounded in real evidence. |
+| [`docs/INTERVIEW_GUIDE.md`](docs/INTERVIEW_GUIDE.md) | Technical talking points and architecture trade-offs for interviews. |
+| [`docs/assets/README.md`](docs/assets/README.md) | Visual production brief and detailed prompts for every planned diagram. |
+| [`BACKLOG.md`](BACKLOG.md) | Completed milestones, issue history and explicit scope decisions. |
 
-## Current execution and serving handoff
+---
 
-The next integrated path uses the existing CC0 demo, the local
-[Airflow DAG](airflow/README.md), exact run-scoped Landing checks, and `dbt build`.
-Four `BI_*` views expose names, one-based positions, documented units and synthetic-data
-labels to future consumers. See the [serving contract](docs/SERVING_CONTRACT.md).
-No Power BI dashboard, `.pbit`, or DAX artifact is part of v1.0.0. The repository stops at a tested serving contract so a BI tool can be attached without changing pipeline semantics.
+## Release Scope: v1.0.0
 
-The bounded Airflow smoke run and one-day replay completed successfully against AWS Glue,
-Snowpipe and Snowflake. The four `BI_*` views were queried successfully using the
-`SPOTIFY_ANALYST` role after the run. Power BI artifacts remain intentionally deferred.
+### Included
+
+- Python 3.12 platform code and source contracts
+- S3 Bronze / Silver architecture
+- Glue 5.1 / Spark 3.5.6 curation
+- Snowpipe / Snowflake Landing
+- dbt staging, core, marts and serving views
+- Airflow 3.2.2 orchestration with reliability controls
+- Cross-tier data quality
+- Run evidence and unified telemetry reporting
+- Safe replay and Landing-lag inspection tools
+- Modular AWS Terraform and CI security validation
+- Cost controls, runbook, demo and interview documentation
+
+### Deliberately outside this release
+
+- A claim that the bounded demo performed a live Spotify Lambda extraction
+- Managed Airflow / AWS MWAA
+- 24/7 production alerting or managed APM
+- Power BI semantic model, DAX, `.pbit`, or dashboard assets
+- A destructive Terraform apply/destroy demonstration against the validated live environment
+
+These boundaries are design decisions, not hidden gaps. They keep the public claims aligned with verifiable evidence.
+
+---
+
+## Portfolio / Interview Entry Points
+
+If you are reviewing this repository for a data engineering role, the fastest route is:
+
+1. **Architecture:** [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+2. **Run evidence:** [`docs/OBSERVABILITY.md`](docs/OBSERVABILITY.md)
+3. **Data model:** [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md)
+4. **Orchestration / replay safety:** [`airflow/README.md`](airflow/README.md)
+5. **Infrastructure / CI:** [`infra/terraform/README.md`](infra/terraform/README.md)
+6. **Demo script:** [`docs/DEMO_GUIDE.md`](docs/DEMO_GUIDE.md)
+7. **Technical discussion guide:** [`docs/INTERVIEW_GUIDE.md`](docs/INTERVIEW_GUIDE.md)
+
+---
+
+## License
+
+Licensed under the [MIT License](LICENSE).
