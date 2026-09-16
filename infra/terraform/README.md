@@ -1,38 +1,71 @@
-# Infrastructure as Code (Terraform)
+# AWS infrastructure (Terraform)
 
-This directory contains Terraform manifests defining and managing the AWS and Snowflake cloud infrastructure.
+This Terraform root defines the low-cost AWS development shape for the Spotify analytics data platform: one private S3 lake, one Python 3.12 Lambda extractor, one Glue 5.1 Spark job, least-privilege IAM roles, bounded CloudWatch retention, and a monthly AWS Budget.
 
----
+## Resources
 
-## Architectural Responsibility
+- One S3 bucket with `bronze/`, `silver/`, `artifacts/`, and `metadata/` prefixes. It is private, uses SSE-S3 encryption, has versioning enabled, denies non-TLS requests, aborts incomplete multipart uploads after seven days, and expires non-current object versions after 30 days.
+- One Lambda Python 3.12 function with reserved concurrency `1`. Its role can write only `bronze/spotify/*`, read only the configured Spotify Secrets Manager secret, and write only its own CloudWatch log streams.
+- One Glue 5.1 Spark job using `FLEX`, two `G.1X` workers by default, a single concurrent run, and a 15-minute timeout. Its role reads Bronze and Glue artifacts and can write/delete only Silver outputs and completion metadata.
+- One Snowflake storage role trusted only by the configured Snowflake IAM user plus `sts:ExternalId`, with read-only access to `silver/*`.
+- Lambda and standard Glue job log groups with seven-day retention.
+- One monthly AWS Budget, `$20` by default, with email notifications for both actual and forecast spend at 50% and 90%.
 
-- **Declarative Resource Management**: All cloud resources (S3 buckets, IAM roles, Lambda functions, Glue jobs, CloudWatch log groups, and SNS/SQS notification channels) are managed via Terraform.
-- **Reproducibility**: Infrastructure can be provisioned on-demand for demonstrations or end-to-end integration testing, and subsequently torn down via `terraform destroy` to enforce zero ongoing cloud spend.
-- **Least-Privilege IAM**: IAM policies grant explicit, tightly bounded actions (e.g., Lambda write-only access to S3 Bronze, Glue read Bronze / write Silver).
+The stack deliberately avoids NAT Gateways, EC2, databases, customer-managed KMS keys, and always-on compute.
+AWS Budgets only sends threshold notifications; it does not automatically stop workloads or suspend the account.
+Taggable resources inherit `Project = SpotifyAnalyticsDataPlatform`, `Environment = dev`, and `ManagedBy = Terraform` by default.
 
----
+## Runtime artifacts
 
-## Planned Directory Structure
+Terraform provisions the runtime resources but does not build Python packages. Before an apply, place these objects in the lake bucket (or override their keys):
 
-```
-infra/terraform/
-├── main.tf                    # Root orchestration and provider configuration
-├── variables.tf               # Environment and configuration variables
-├── outputs.tf                 # Resource ARNs, bucket names, and role identifiers
-├── terraform.tfvars.example   # Example variable inputs (no secrets)
-└── modules/
-    ├── s3/                    # Bronze, Silver, and Metadata bucket definitions
-    ├── iam/                   # Roles for Lambda, Glue, and Snowflake Storage Integration
-    ├── lambda/                # Spotify API extractor function and trigger config
-    ├── glue/                  # Glue Spark job definition, script upload, and DPU config
-    └── monitoring/            # CloudWatch log groups and metric alarms
+```text
+artifacts/lambda/spotify-ingestion.zip
+artifacts/glue/bronze_to_silver_curation.py
+artifacts/glue/spotify-glue-lib.zip
 ```
 
----
+The Lambda archive must expose `extractor.py` at the zip root, include the `spotify_data_platform` package, and vendor its runtime dependency (`pydantic`). The Glue library zip must preserve the `glue/` package path so imports such as `glue.schemas` and `glue.transforms` resolve.
 
-## Cost Governance
+The Spotify secret is intentionally external to Terraform state. Its JSON value contains `client_id`, `client_secret`, and `refresh_token`; Terraform receives only its ARN.
 
-- Region pinned to `us-east-1`.
-- S3 lifecycle rules configured to transition or expire test snapshots.
-- CloudWatch log retention capped at 7 days.
-- No NAT Gateways or permanently running EC2 instances.
+## Snowflake trust bootstrap
+
+Snowflake exposes the IAM user ARN and external ID used by an AWS storage integration. Supply those locally as `snowflake_iam_user_arn` and `snowflake_external_id`. Terraform builds the constrained trust policy and outputs `snowflake_storage_role_arn`, which is the role ARN configured in Snowflake.
+
+## Local configuration
+
+```bash
+cd infra/terraform
+cp terraform.tfvars.example terraform.tfvars
+```
+
+Real `*.tfvars`, state, `.terraform/`, and provider lock files are ignored by git. Keep the Snowflake external ID and every secret value out of committed files.
+
+When `lake_bucket_name` is empty, Terraform derives `<project>-<environment>-<aws-account-id>`.
+
+## Offline validation
+
+CI runs the same checks without AWS credentials:
+
+```bash
+terraform fmt -check -recursive
+terraform init -backend=false -input=false
+terraform validate
+tflint --recursive
+checkov -d . --framework terraform --compact
+```
+
+`terraform plan` and `terraform apply` require AWS credentials and valid local variables. CI never applies cloud resources.
+
+Checkov remains blocking for unreviewed findings. The HCL contains explicit, reasoned skips for
+controls that intentionally conflict with this bounded low-cost development architecture, such
+as a Lambda VPC/NAT path, customer-managed KMS keys, one-year log retention, cross-region S3
+replication, a second access-log bucket, and production-only tracing/code-signing controls.
+Those skips are visible in code and should be revisited before treating this stack as a
+production/compliance baseline.
+
+## Cost guardrails
+
+Defaults are intentionally bounded for a portfolio/dev environment: Lambda concurrency `1`, Glue `FLEX` with two `G.1X` workers, 15-minute Glue timeout, seven-day CloudWatch retention, 30-day non-current S3 version retention, and a `$20/month` budget with actual plus forecast notifications at 50% and 90%.
+The development lake defaults to `force_destroy = true` so a deliberate `terraform destroy` can remove versioned data and staged runtime artifacts instead of leaving billable S3 objects behind.

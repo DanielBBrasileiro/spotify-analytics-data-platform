@@ -1,0 +1,26 @@
+aws_region  = "us-east-1"
+environment = "dev"
+project_tag = "SpotifyAnalyticsDataPlatform"
+
+# Leave empty to derive spotify-analytics-dev-<aws-account-id>.
+lake_bucket_name = ""
+
+# Existing secret. Do not put the secret JSON/value in Terraform variables.
+spotify_credentials_secret_arn = "arn:aws:secretsmanager:us-east-1:123456789012:secret:spotify/api/credentials-abc123"
+
+# Values returned by Snowflake DESC INTEGRATION after creating/configuring the
+# storage integration bootstrap. Keep the external ID outside source control.
+snowflake_iam_user_arn = "arn:aws:iam::123456789012:user/example-snowflake-user"
+snowflake_external_id  = "replace-me-locally"
+
+budget_notification_email = "you@example.com"
+
+monthly_budget_usd = 20
+
+lambda_artifact_key = "artifacts/lambda/spotify-ingestion.zip"
+glue_script_key     = "artifacts/glue/bronze_to_silver_curation.py"
+glue_library_key    = "artifacts/glue/spotify-glue-lib.zip"
+
+additional_tags = {
+  Owner = "data-engineering"
+}
